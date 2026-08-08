@@ -37,7 +37,7 @@ fn ingestion_batch() -> ChatBatch {
 
 pub async fn run() -> Result<ProfileResult> {
     let fixture = fixture()?;
-    let _ = init_global(256);
+    crate::core::bus::init().await.expect("bus init");
     eprintln!("[library-profile] memory-ingest: fixture + event bus ready");
     measure("memory-ingest", INGEST_MESSAGE_COUNT, None, |_rec| async {
         let result = ingest_chat(

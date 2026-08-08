@@ -92,7 +92,7 @@ pub async fn run() -> Result<ProfileResult> {
     // `max_parallel_tools` (default 4). Raise it to K so the full width actually
     // spawns instead of erroring back to a re-spawn loop.
     fixture.config.agent.max_parallel_tools = width.max(4);
-    let _ = init_global(256);
+    crate::core::bus::init().await.expect("bus init");
     openhuman_core::openhuman::agent::bus::register_agent_handlers();
     let _ = AgentDefinitionRegistry::init_global_builtins();
 

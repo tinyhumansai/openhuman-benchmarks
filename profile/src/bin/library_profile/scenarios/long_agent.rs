@@ -30,7 +30,7 @@ pub async fn run() -> Result<ProfileResult> {
         .unwrap_or(DEFAULT_TURNS);
 
     let fixture = fixture()?;
-    let _ = init_global(256);
+    crate::core::bus::init().await.expect("bus init");
     openhuman_core::openhuman::agent::bus::register_agent_handlers();
     let _ = AgentDefinitionRegistry::init_global_builtins();
     let mock = PlainTextMock::new("Phoenix migration is healthy; no action needed.");

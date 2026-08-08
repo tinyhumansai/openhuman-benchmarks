@@ -13,7 +13,7 @@ use crate::mock::{subagent_marker, SubagentMock};
 
 pub async fn run() -> Result<ProfileResult> {
     let fixture = fixture()?;
-    let _ = init_global(256);
+    crate::core::bus::init().await.expect("bus init");
     openhuman_core::openhuman::agent::bus::register_agent_handlers();
     let _ = AgentDefinitionRegistry::init_global_builtins();
     let mock = SubagentMock::new();
