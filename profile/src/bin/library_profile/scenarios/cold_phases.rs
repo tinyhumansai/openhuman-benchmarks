@@ -5,7 +5,7 @@
 use std::time::Duration;
 
 use anyhow::Result;
-use openhuman_core::core::event_bus::init_global;
+use openhuman_core::core::bus::init as init_global;
 use openhuman_core::openhuman::agent::harness::AgentDefinitionRegistry;
 use openhuman_core::openhuman::agent::Agent;
 use openhuman_core::openhuman::inference::provider::factory::test_provider_override;

@@ -4,7 +4,7 @@
 //! The agent node's LLM routes through the plain-text mock provider.
 
 use anyhow::Result;
-use openhuman_core::core::event_bus::init_global;
+use openhuman_core::core::bus::init as init_global;
 use openhuman_core::openhuman::agent::harness::AgentDefinitionRegistry;
 use openhuman_core::openhuman::flows::ops::{flows_create, flows_run};
 use openhuman_core::openhuman::flows::FlowRunTrigger;
