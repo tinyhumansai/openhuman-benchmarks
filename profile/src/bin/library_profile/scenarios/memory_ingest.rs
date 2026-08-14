@@ -4,8 +4,8 @@
 use anyhow::Result;
 use chrono::{TimeZone, Utc};
 use openhuman_core::core::bus::init as init_global;
-use openhuman_core::openhuman::memory::ingest_pipeline::ingest_chat;
-use openhuman_core::openhuman::memory::queue::drain_until_idle;
+use tinymemory_core::ingest_pipeline::ingest_chat;
+use tinymemory_core::queue::drain_until_idle;
 use tinycortex::memory::ingest::canonicalize::chat::{ChatBatch, ChatMessage};
 
 use crate::harness::{fixture, measure, ProfileResult};
