@@ -40,6 +40,8 @@ function parseArgs(argv) {
     samples: null,
     driver: null,
     turns: null,
+    workspaceMibBefore: null,
+    workspaceMibAfter: null,
     out: null,
     // Growth budget per turn before RSS growth is called a leak. Default is
     // deliberately loose; tighten it per scenario once a baseline exists.
