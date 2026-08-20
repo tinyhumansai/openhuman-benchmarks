@@ -53,6 +53,7 @@ function parseArgs(argv) {
   const spec = {
     '--samples': ['samples', String],
     '--driver': ['driver', String],
+    '--turns': ['turns', String],
     '--out': ['out', String],
     '--rss-kib-per-turn': ['rssKibPerTurn', Number],
     '--warmup-frac': ['warmupFrac', Number],
