@@ -368,6 +368,7 @@ ANALYZE_STATUS=0
 node "$REPO_ROOT/scripts/bench/analyze.mjs" \
   --samples "$OUT_DIR/samples.jsonl" \
   --driver "$OUT_DIR/driver.json" \
+  --turns "$OUT_DIR/turns.jsonl" \
   --out "$OUT_DIR/report.json" \
   >/dev/null || ANALYZE_STATUS=$?
 
