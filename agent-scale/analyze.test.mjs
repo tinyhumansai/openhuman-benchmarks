@@ -435,7 +435,7 @@ test('a leaking RSS curve is marked confounded when the workspace grew a lot', (
   const rss = report.memory.find((m) => m.field === 'rssKib');
   assert.equal(rss.verdict, 'fail', 'still a failure — the caveat does not excuse it');
   assert.equal(rss.confounded, true);
-  assert.match(rss.confoundNote, /not a leak/);
+  assert.match(rss.confoundNote, /rather than a leak/);
   assert.equal(report.workspace.growthMib, 3990);
 });
 
