@@ -269,7 +269,7 @@ async function handleCompletion(req, res, body, opts) {
   });
 }
 
-function handleEmbeddings(res, body) {
+function handleEmbeddings(res, body, opts) {
   stats.embeddings += 1;
   let count = 1;
   try {
@@ -278,9 +278,12 @@ function handleEmbeddings(res, body) {
   } catch {
     stats.malformedRequests += 1;
   }
-  // 1536 dims matches the usual text-embedding-3-small shape. A constant vector
-  // is fine: nothing in the benchmark scores retrieval quality.
-  const vector = new Array(1536).fill(0.0001);
+  // The dimension MUST match what the memory store expects, or every chunk is
+  // stored without vectors and the memory write path runs degraded for the whole
+  // run — silently, as a warning rather than an error. 1536 (the usual
+  // text-embedding-3-small width) is the wrong default here; the store wants
+  // 1024. A constant vector is fine, since nothing scores retrieval quality.
+  const vector = new Array(opts.embedDims).fill(0.0001);
   sendJson(res, 200, {
     object: 'list',
     model: 'mock-embedding',
