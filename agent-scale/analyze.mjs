@@ -396,17 +396,67 @@ const failed = checks.filter((c) => c.verdict === 'fail');
 // the others reported for corroboration.
 const overall = failed.length > 0 ? 'fail' : 'pass';
 
+/**
+ * What happened after load stopped.
+ *
+ * Not a pass/fail check — it is an observation that helps interpret the memory
+ * verdict. Memory released once work stops was working-set, not retained; memory
+ * still held is the part a leak would live in. CPU that keeps burning after the
+ * last turn is its own finding.
+ */
+function analyzeSettle() {
+  if (clippedTail.length < 2) return { available: false };
+  const rss = clippedTail
+    .map((s) => s.rssKib)
+    .filter((v) => typeof v === 'number');
+  if (rss.length < 2) return { available: false };
+
+  const lastUnderLoad = samples[samples.length - 1];
+  const releasedKib = (lastUnderLoad.rssKib ?? rss[0]) - rss[rss.length - 1];
+
+  const cpuFirst = clippedTail[0];
+  const cpuLast = clippedTail[clippedTail.length - 1];
+  const idleMs = cpuLast.tMs - cpuFirst.tMs;
+  const idleCpuMs =
+    typeof cpuFirst.cpuUserMs === 'number' && typeof cpuLast.cpuUserMs === 'number'
+      ? cpuLast.cpuUserMs + cpuLast.cpuSystemMs - (cpuFirst.cpuUserMs + cpuFirst.cpuSystemMs)
+      : null;
+
+  return {
+    available: true,
+    tailSamples: clippedTail.length,
+    idleWindowMs: idleMs,
+    rssAtLoadEndKib: lastUnderLoad.rssKib ?? null,
+    rssAfterSettleKib: rss[rss.length - 1],
+    releasedKib,
+    idleCpuMs,
+    idleCpuFraction: idleMs > 0 && idleCpuMs !== null ? idleCpuMs / idleMs : null,
+  };
+}
+
+const settle = analyzeSettle();
+
 const report = {
   overall,
   threadMode,
+  underpowered,
+  underpoweredNote: underpowered
+    ? `analyzed ${samples.length} samples over ${(durationMs / 1000).toFixed(1)}s. ` +
+      `A leak verdict from a window this short is weak — growth and plateau are ` +
+      `hard to separate over seconds. Prefer --duration-ms 900000 or more for a ` +
+      `run you intend to act on.`
+    : null,
   window: {
     totalSamples: allSamples.length,
+    clippedToLoadWindow,
+    loadWindowSamples: loadSamples.length,
     warmupSamplesDropped: skip,
     analyzedSamples: samples.length,
     durationMs,
     turnsTotal,
     turnsInWindowApprox: turnsInWindow,
   },
+  settle,
   driverSummary: driver
     ? {
         turnsOk: driver.turnsOk,
