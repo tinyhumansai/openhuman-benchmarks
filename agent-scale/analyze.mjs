@@ -596,6 +596,18 @@ if (cpu.available) {
   );
   lines.push(`               ${cpu.reason}`);
 }
+if (throughput.available) {
+  lines.push(
+    `  ${throughput.verdict.padEnd(12)} ${'Throughput held'.padEnd(24)} ` +
+      `${throughput.firstQuarterTurnsPerSec.toFixed(1)} → ` +
+      `${throughput.lastQuarterTurnsPerSec.toFixed(1)} turns/s`,
+  );
+  lines.push(`               ${throughput.reason}`);
+}
+if (livenessBroken) {
+  lines.push('');
+  lines.push(`  !! ${report.livenessNote}`);
+}
 if (settle.available) {
   lines.push('');
   lines.push(
