@@ -126,9 +126,39 @@ if (allSamples.length === 0) {
 }
 const driver = opts.driver ? JSON.parse(fs.readFileSync(opts.driver, 'utf8')) : null;
 
-// Drop the warm-up head of the series.
-const skip = Math.floor(allSamples.length * opts.warmupFrac);
-const samples = allSamples.slice(skip);
+// Clip to the window in which load was actually being applied.
+//
+// This is load-bearing, not tidying. The sampler deliberately runs before the
+// driver starts and for a few seconds after it stops, so the series has an idle
+// head and an idle tail. Analyzing those is not merely noisy — it inverts the
+// result: an idle tail is flat and consumes no CPU, so "growth stopped by the
+// end" and "CPU rate fell" both become trivially true and every check passes
+// regardless of what happened under load. A short run, where the tail is a large
+// fraction of the series, would always report a clean bill of health.
+//
+// The driver records the wall-clock bounds of its measured window; samples carry
+// epochMs for exactly this alignment.
+let loadSamples = allSamples;
+let clippedTail = [];
+if (driver?.measureStartedAtMs && driver?.wallMs) {
+  const loadStart = driver.measureStartedAtMs;
+  const loadEnd = loadStart + driver.wallMs;
+  const withEpoch = allSamples.filter((s) => typeof s.epochMs === 'number');
+  if (withEpoch.length > 0) {
+    const inWindow = withEpoch.filter((s) => s.epochMs >= loadStart && s.epochMs <= loadEnd);
+    // Only trust the clip if it left enough to analyze; otherwise fall back to
+    // the full series and say so, rather than failing on a technicality.
+    if (inWindow.length >= 8) {
+      loadSamples = inWindow;
+      clippedTail = withEpoch.filter((s) => s.epochMs > loadEnd);
+    }
+  }
+}
+const clippedToLoadWindow = loadSamples !== allSamples;
+
+// Drop the warm-up head of what remains.
+const skip = Math.floor(loadSamples.length * opts.warmupFrac);
+const samples = loadSamples.slice(skip);
 if (samples.length < 4) {
   process.stderr.write(
     `[analyze] only ${samples.length} samples after dropping ${skip} warm-up ` +
