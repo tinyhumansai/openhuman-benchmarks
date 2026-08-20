@@ -145,6 +145,7 @@ const stats = {
   finalAnswers: 0,
   embeddings: 0,
   telemetry: 0,
+  ancillary: 0,
   injectedFailures: 0,
   unknownRoutes: 0,
   malformedRequests: 0,
