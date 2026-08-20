@@ -240,6 +240,94 @@ test('a looser per-turn budget can accept growth a tight one rejects', () => {
   assert.equal(loose.report.memory.find((m) => m.field === 'rssKib').verdict, 'pass');
 });
 
+const EPOCH0 = 1_700_000_000_000;
+
+test('an idle tail after load does not mask a leak', () => {
+  // The regression this guards: the sampler runs past the end of the load, so
+  // the series ends with an idle stretch that is flat and consumes no CPU.
+  // Analyzed naively, that tail makes "growth stopped" and "CPU fell" trivially
+  // true and EVERY run passes — the shorter the run, the more certain the false
+  // clean bill of health. Here memory climbs relentlessly for the whole load and
+  // then goes idle; the verdict must still be a leak.
+  const LOAD_SAMPLES = 150;
+  const samples = buildSamples({
+    count: 200,
+    rssKib: (i) => 120_000 + Math.min(i, LOAD_SAMPLES) * 400,
+    // CPU accrues under load, then stops entirely.
+    cpuMs: (i) => Math.min(i, LOAD_SAMPLES) * 100,
+  });
+  const withWindow = driver({
+    measureStartedAtMs: EPOCH0,
+    wallMs: LOAD_SAMPLES * INTERVAL_MS,
+  });
+
+  const { report, exitCode } = runAnalyzer(samples, withWindow);
+
+  assert.equal(report.window.clippedToLoadWindow, true, 'must clip to the load window');
+  assert.ok(
+    report.window.analyzedSamples < 200,
+    'the idle tail must be excluded from the analyzed window',
+  );
+  assert.equal(report.memory.find((m) => m.field === 'rssKib').verdict, 'fail');
+  assert.equal(report.overall, 'fail');
+  assert.equal(exitCode, 1);
+});
+
+test('the settle tail is reported separately from the verdict', () => {
+  const LOAD_SAMPLES = 150;
+  // Memory rises under load and is largely handed back once work stops — the
+  // shape of a working set, which is exactly what the settle figures exist to
+  // make visible rather than fold into the pass/fail decision.
+  const samples = buildSamples({
+    count: 200,
+    rssKib: (i) =>
+      i <= LOAD_SAMPLES ? 120_000 + i * 400 : 120_000 + LOAD_SAMPLES * 400 - (i - LOAD_SAMPLES) * 800,
+    cpuMs: (i) => Math.min(i, LOAD_SAMPLES) * 100,
+  });
+  const { report } = runAnalyzer(
+    samples,
+    driver({ measureStartedAtMs: EPOCH0, wallMs: LOAD_SAMPLES * INTERVAL_MS }),
+  );
+
+  assert.equal(report.settle.available, true);
+  assert.ok(report.settle.releasedKib > 0, 'should record memory handed back after load');
+  assert.ok(report.settle.idleCpuFraction < 0.05, 'idle CPU should be near zero');
+});
+
+test('a short run is flagged as weak evidence even when it passes', () => {
+  // 20 samples over 5s. The checks may well pass, but the report must not let a
+  // window this small read as a confident clean bill of health.
+  const samples = buildSamples({ count: 20, rssKib: () => 120_000 });
+  const { report, exitCode } = runAnalyzer(samples, driver());
+
+  assert.equal(report.overall, 'pass');
+  assert.equal(report.underpowered, true);
+  assert.match(report.underpoweredNote, /weak/i);
+  assert.equal(exitCode, 0, 'weak evidence is a caveat, not a failure');
+});
+
+test('a long clean run is not flagged as underpowered', () => {
+  // 200 samples at 250ms = 50s, comfortably over both thresholds.
+  const samples = buildSamples({ count: 200, rssKib: () => 120_000 });
+  const { report } = runAnalyzer(samples, driver());
+
+  assert.equal(report.underpowered, false);
+  assert.equal(report.underpoweredNote, null);
+});
+
+test('clipping is skipped when it would leave too little to analyze', () => {
+  // A load window of only a few samples must fall back to the full series
+  // rather than exiting, and must say that it did not clip.
+  const samples = buildSamples({ count: 200, rssKib: () => 120_000 });
+  const { report } = runAnalyzer(
+    samples,
+    driver({ measureStartedAtMs: EPOCH0, wallMs: 3 * INTERVAL_MS }),
+  );
+
+  assert.equal(report.window.clippedToLoadWindow, false);
+  assert.equal(report.window.loadWindowSamples, 200);
+});
+
 test('a series too short to analyze exits non-zero rather than guessing', () => {
   const samples = buildSamples({ count: 4, rssKib: () => 120_000 });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-analyze-'));
