@@ -106,19 +106,20 @@ test('steady unbounded RSS growth is reported as a leak', () => {
 });
 
 test('growth that levels off is reported as a plateau, not a leak', () => {
-  // Rises steeply, then flattens — the shape of a cache reaching its working
-  // set. The warm-up head is dropped, so the analyzed window is mostly flat.
+  // Climbs hard through the first part of the ANALYZED window (which starts at
+  // sample 50, after the warm-up head is dropped) and then stops dead at 130.
+  // Overall slope is well over budget, but the final third is flat — the shape
+  // of a cache filling to its working set. Distinguishing this from a leak is
+  // the whole point of fitting the tail separately.
   const samples = buildSamples({
     count: 200,
-    rssKib: (i) => 120_000 + 40_000 * (1 - Math.exp(-i / 12)),
+    rssKib: (i) => 120_000 + Math.min(i, 130) * 400,
   });
   const { report, exitCode } = runAnalyzer(samples, driver());
 
   const rss = report.memory.find((m) => m.field === 'rssKib');
-  assert.ok(
-    rss.verdict === 'plateau' || rss.verdict === 'pass',
-    `expected plateau/pass, got ${rss.verdict}: ${rss.reason}`,
-  );
+  assert.equal(rss.verdict, 'plateau', rss.reason);
+  assert.ok(rss.kibPerTurn > rss.tailKibPerTurn, 'tail should grow slower than overall');
   assert.equal(report.overall, 'pass');
   assert.equal(exitCode, 0);
 });
