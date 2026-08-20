@@ -273,6 +273,12 @@ else
   DRIVER_ARGS+=(--turns "$TURNS")
 fi
 
+# Workspace size before and after the load. The agent persists memory chunks and
+# embeddings every turn, so this grows even in `fresh` thread mode — which means
+# RSS growth is not automatically a leak, it may be an index tracking data that
+# genuinely accumulated. Recording both lets the report say which.
+WORKSPACE_MIB_BEFORE="$(du -sm "$WORKSPACE" 2>/dev/null | awk '{print $1}')"
+
 echo "==> running load"
 DRIVER_STATUS=0
 node "$REPO_ROOT/scripts/bench/driver.mjs" "${DRIVER_ARGS[@]}" \
