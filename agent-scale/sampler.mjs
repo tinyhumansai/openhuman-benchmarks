@@ -234,7 +234,12 @@ const timer = setInterval(() => {
     stop();
     return;
   }
-  process.stdout.write(`${JSON.stringify({ tMs: Date.now() - startedAt, ...sample })}\n`);
+  const now = Date.now();
+  // epochMs as well as tMs: the analyzer aligns this series against the
+  // driver's turn log, which has its own time origin.
+  process.stdout.write(
+    `${JSON.stringify({ tMs: now - startedAt, epochMs: now, ...sample })}\n`,
+  );
   if (opts.durationMs !== null && Date.now() - startedAt >= opts.durationMs) stop();
 }, opts.intervalMs);
 
