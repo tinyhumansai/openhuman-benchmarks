@@ -396,6 +396,32 @@ const cpu = analyzeCpu();
 
 const throughput = opts.turns ? analyzeThroughput(opts.turns) : { available: false };
 
+/**
+ * On-disk state the run produced.
+ *
+ * This is the caveat to the memory verdict, not decoration. `fresh` thread mode
+ * removes accumulating CONVERSATION history, but it does not stop the agent
+ * persisting memory chunks and embeddings on every turn — a run can leave
+ * gigabytes behind. An index over data that genuinely grew is not a leak, so a
+ * failing RSS curve that arrives alongside large workspace growth is ambiguous
+ * and has to be reported that way.
+ */
+const workspace =
+  opts.workspaceMibBefore !== null && opts.workspaceMibAfter !== null
+    ? {
+        available: true,
+        beforeMib: opts.workspaceMibBefore,
+        afterMib: opts.workspaceMibAfter,
+        growthMib: opts.workspaceMibAfter - opts.workspaceMibBefore,
+      }
+    : { available: false };
+
+// Enough on-disk growth that an index over it could plausibly account for a
+// rising RSS curve on its own.
+const WORKSPACE_CONFOUND_MIB = 100;
+const memoryConfounded =
+  workspace.available && workspace.growthMib >= WORKSPACE_CONFOUND_MIB;
+
 const checks = [...memory.filter((m) => m.available), threads, fds, cpu, throughput].filter(
   (c) => c.available !== false,
 );
