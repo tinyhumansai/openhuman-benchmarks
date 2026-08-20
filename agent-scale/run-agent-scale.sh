@@ -169,6 +169,11 @@ cleanup() {
     kill -9 "$CORE_PID" 2>/dev/null
   fi
   [[ -n "$MOCK_PID" ]] && kill "$MOCK_PID" 2>/dev/null
+  # Record how much the run wrote before removing it — a workspace that grows
+  # without bound is its own finding, and it is invisible once deleted.
+  if [[ -d "$WORKSPACE" ]]; then
+    du -sm "$WORKSPACE" 2>/dev/null | awk '{print "workspace on disk: " $1 " MiB"}' >&2
+  fi
   if [[ -z "$KEEP_WORKSPACE" && -d "$WORKSPACE" ]]; then
     rm -rf "$WORKSPACE"
   elif [[ -n "$KEEP_WORKSPACE" ]]; then
