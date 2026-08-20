@@ -46,9 +46,6 @@ function parseArgs(argv) {
     // Fraction of the series treated as warm-up and excluded. First-touch
     // initialization dominates early samples and would fake a steep slope.
     warmupFrac: 0.25,
-    // Final-vs-early window growth, as a fraction, that counts as "never
-    // plateaued" when the slope is also positive.
-    plateauTolerance: 0.05,
     // Threads/FDs may drift a little with pool churn; require real growth.
     maxThreadGrowth: 8,
     maxFdGrowth: 32,
