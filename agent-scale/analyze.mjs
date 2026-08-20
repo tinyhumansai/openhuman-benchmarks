@@ -481,7 +481,9 @@ const lines = [];
 lines.push('');
 lines.push(`  agent-scale benchmark — ${overall.toUpperCase()}`);
 lines.push(`  thread-mode=${threadMode}  samples=${samples.length}/${allSamples.length}` +
-  `  window=${(durationMs / 1000).toFixed(1)}s`);
+  `  window=${(durationMs / 1000).toFixed(1)}s` +
+  `${clippedToLoadWindow ? ' (clipped to load)' : ''}`);
+if (underpowered) lines.push(`  WEAK EVIDENCE: ${report.underpoweredNote}`);
 if (driver) {
   lines.push(
     `  turns: ${driver.turnsOk} ok / ${driver.turnsFailed} failed` +
