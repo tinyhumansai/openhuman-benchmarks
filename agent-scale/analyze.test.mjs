@@ -407,6 +407,53 @@ test('throughput is simply unavailable when no turn log is supplied', () => {
   assert.equal(exitCode, 0, 'a missing turn log is not a failure');
 });
 
+test('degradation short of an outage is not called a liveness break', () => {
+  // The core kept serving, just more slowly. Throughput must fail, but the
+  // resource verdicts stay meaningful — so the "this describes an idle process"
+  // qualifier must NOT appear, because the process plainly was not idle.
+  const samples = buildSamples({ count: 200, rssKib: () => 120_000 });
+  const turns = buildTurns(50_000, (t) => (t < 12_500 ? 40 : 5));
+
+  const { report } = runAnalyzer(samples, driver(), [], turns);
+
+  assert.equal(report.throughput.verdict, 'fail');
+  assert.equal(report.throughput.stopped, false);
+  assert.equal(report.livenessBroken, false, 'degradation is not an outage');
+  assert.equal(report.livenessNote, null);
+});
+
+test('a leaking RSS curve is marked confounded when the workspace grew a lot', () => {
+  // `fresh` mode stops conversation history accumulating, but the agent still
+  // persists memory chunks every turn. RSS tracking an index over data that
+  // genuinely grew is not a leak, and the report must not claim otherwise.
+  const samples = buildSamples({ count: 200, rssKib: (i) => 120_000 + i * 400 });
+  const { report } = runAnalyzer(samples, driver(), [
+    '--workspace-mib-before', '10',
+    '--workspace-mib-after', '4000',
+  ]);
+
+  const rss = report.memory.find((m) => m.field === 'rssKib');
+  assert.equal(rss.verdict, 'fail', 'still a failure — the caveat does not excuse it');
+  assert.equal(rss.confounded, true);
+  assert.match(rss.confoundNote, /not a leak/);
+  assert.equal(report.workspace.growthMib, 3990);
+});
+
+test('a leaking RSS curve is NOT confounded when the workspace barely grew', () => {
+  // Same leak, but nothing accumulated on disk to explain it. This is the
+  // unambiguous case, and it must read as such.
+  const samples = buildSamples({ count: 200, rssKib: (i) => 120_000 + i * 400 });
+  const { report } = runAnalyzer(samples, driver(), [
+    '--workspace-mib-before', '10',
+    '--workspace-mib-after', '12',
+  ]);
+
+  const rss = report.memory.find((m) => m.field === 'rssKib');
+  assert.equal(rss.verdict, 'fail');
+  assert.notEqual(rss.confounded, true);
+  assert.equal(report.workspace.growthMib, 2);
+});
+
 test('a series too short to analyze exits non-zero rather than guessing', () => {
   const samples = buildSamples({ count: 4, rssKib: () => 120_000 });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-analyze-'));
