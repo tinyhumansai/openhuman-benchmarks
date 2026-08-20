@@ -248,6 +248,7 @@ function analyzeMemory(field, label) {
     relativeGrowth,
     kibPerMin,
     kibPerTurn,
+    tailKibPerTurn,
     r2: fit.r2,
   };
 }
