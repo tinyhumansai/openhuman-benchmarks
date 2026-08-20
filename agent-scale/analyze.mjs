@@ -509,7 +509,6 @@ function analyzeThroughput(turnsPath) {
   };
 }
 
-const throughput = opts.turns ? analyzeThroughput(opts.turns) : { available: false };
 
 const report = {
   overall,
