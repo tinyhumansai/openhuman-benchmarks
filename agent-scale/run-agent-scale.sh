@@ -101,6 +101,31 @@ fi
 
 WORKSPACE="$(mktemp -d -t openhuman-bench-XXXXXX)"
 
+# The core enforces a daily managed-inference spend limit, $10 by default, and
+# prices the mock's reported token usage against it. A sustained run blows
+# through that in a few hundred turns, after which EVERY remaining turn fails
+# instantly with "cost budget exceeded" — which does not look like a broken
+# benchmark, it looks like enormous throughput and a memory curve driven
+# entirely by error handling.
+#
+# The limits are raised rather than the check disabled (`[cost] enabled = false`)
+# so the budget check still runs on every turn and its cost stays in the
+# measurement. We are not benchmarking billing, but we should not silently
+# remove work the product does per turn either.
+#
+# Written to both candidate locations because the resolver accepts
+# `<workspace>/config.toml` and `<workspace>/../config.toml` depending on layout.
+BENCH_CONFIG=$(cat <<'TOML'
+[cost]
+enabled = true
+daily_limit_usd = 1000000.0
+monthly_limit_usd = 1000000.0
+TOML
+)
+mkdir -p "$WORKSPACE/workspace"
+printf '%s\n' "$BENCH_CONFIG" >"$WORKSPACE/config.toml"
+printf '%s\n' "$BENCH_CONFIG" >"$WORKSPACE/workspace/config.toml"
+
 MOCK_PID=""
 CORE_PID=""
 SAMPLER_PID=""
