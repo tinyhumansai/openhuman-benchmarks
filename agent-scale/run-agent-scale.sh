@@ -153,6 +153,15 @@ curl -fsS "http://127.0.0.1:$MOCK_PORT/health" >/dev/null || {
 echo "==> starting openhuman-core on :$CORE_PORT"
 # BACKEND_URL is the whole redirect: it feeds both the inference base and the
 # backend base, so every outbound call lands on the mock.
+#
+# OPENHUMAN_APPROVAL_GATE=0 is not a convenience. The gate is ON by default and
+# parks interactive chat turns pending a human decision, with a 10-minute TTL
+# that resolves to Deny. Left on, every benchmark turn would block on a prompt
+# nobody is there to answer, and the run would measure a queue of parked turns
+# rather than agent throughput.
+#
+# `env -i` clears the environment so a developer's own OPENHUMAN_* or BACKEND_URL
+# settings cannot silently redirect the run at their real account or backend.
 env -i \
   PATH="$PATH" HOME="$WORKSPACE" \
   OPENHUMAN_WORKSPACE="$WORKSPACE" \
