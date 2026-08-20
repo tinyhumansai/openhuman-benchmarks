@@ -512,6 +512,7 @@ function analyzeThroughput(turnsPath) {
     available: true,
     verdict,
     reason,
+    stopped,
     firstQuarterTurnsPerSec: firstRate,
     lastQuarterTurnsPerSec: lastRate,
     retainedFraction: retained,
