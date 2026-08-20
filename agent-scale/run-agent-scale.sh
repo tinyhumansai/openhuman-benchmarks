@@ -377,6 +377,8 @@ node "$REPO_ROOT/scripts/bench/analyze.mjs" \
   --samples "$OUT_DIR/samples.jsonl" \
   --driver "$OUT_DIR/driver.json" \
   --turns "$OUT_DIR/turns.jsonl" \
+  --workspace-mib-before "${WORKSPACE_MIB_BEFORE:-0}" \
+  --workspace-mib-after "${WORKSPACE_MIB_AFTER:-0}" \
   --out "$OUT_DIR/report.json" \
   >/dev/null || ANALYZE_STATUS=$?
 
