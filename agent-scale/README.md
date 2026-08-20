@@ -27,6 +27,15 @@ but attributes less precisely. Use `profile/` to find out *what* costs; use
 
 - Linux (the sampler reads `/proc`).
 - Node 20+.
+- **Artifacts on a disk-backed filesystem, not tmpfs.** The runner puts the
+  core's workspace under `--out-dir` and refuses to start if that lands on
+  tmpfs. This is not fussiness: tmpfs pages *are* memory, so the core's disk
+  writes would be charged against the machine's RAM while the benchmark is
+  trying to attribute RAM to the core — and a sustained run fills the mount,
+  after which turns fail with "Failed to write auth profile lock owner" and
+  SQLite I/O errors. That looks like a leak-induced meltdown and is a full disk.
+- **Several GB free.** A 5-minute run at concurrency 8 leaves ~5 GB of memory
+  chunks and embeddings behind.
 - A release core binary:
 
 ```bash
