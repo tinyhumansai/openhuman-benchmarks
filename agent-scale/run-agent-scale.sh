@@ -99,7 +99,35 @@ if [[ ! -x "$CORE_BIN" ]]; then
   exit 1
 fi
 
-WORKSPACE="$(mktemp -d -t openhuman-bench-XXXXXX)"
+# The workspace goes on real disk, under the artifacts directory — NOT in /tmp.
+#
+# On a host where /tmp is tmpfs (common, and the case on the box this was
+# written on) that choice is not cosmetic, it corrupts the experiment twice
+# over. tmpfs pages ARE memory, so every byte the core writes to its workspace
+# is charged against the machine's RAM while the benchmark is trying to
+# attribute RAM to the core. And it does not merely skew the numbers: a
+# sustained run fills the mount, at which point the core starts failing with
+# "Failed to write auth profile lock owner" and SQLite "disk I/O error", and
+# throughput collapses to zero — a failure that reads like a leak-induced
+# meltdown rather than a full disk.
+WORKSPACE="$OUT_DIR/workspace"
+mkdir -p "$WORKSPACE"
+
+WORKSPACE_FS="$(findmnt -no FSTYPE --target "$WORKSPACE" 2>/dev/null || echo unknown)"
+if [[ "$WORKSPACE_FS" == "tmpfs" || "$WORKSPACE_FS" == "ramfs" ]]; then
+  echo "error: the benchmark workspace is on $WORKSPACE_FS ($WORKSPACE)." >&2
+  echo "  A RAM-backed filesystem charges the core's disk writes against machine" >&2
+  echo "  memory, which invalidates the memory measurement, and fills up mid-run." >&2
+  echo "  Use --out-dir to place artifacts on a disk-backed filesystem." >&2
+  exit 1
+fi
+
+WORKSPACE_AVAIL_MIB="$(df -Pm "$WORKSPACE" 2>/dev/null | awk 'NR==2 {print $4}')"
+if [[ -n "$WORKSPACE_AVAIL_MIB" && "$WORKSPACE_AVAIL_MIB" -lt 2048 ]]; then
+  echo "warning: only ${WORKSPACE_AVAIL_MIB} MiB free at $WORKSPACE." >&2
+  echo "  A sustained run writes memory chunks and embeddings continuously; if the" >&2
+  echo "  filesystem fills, turns start failing and the run measures that instead." >&2
+fi
 
 # The core enforces a daily managed-inference spend limit, $10 by default, and
 # prices the mock's reported token usage against it. A sustained run blows
