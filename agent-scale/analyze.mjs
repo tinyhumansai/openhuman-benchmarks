@@ -470,8 +470,13 @@ function analyzeThroughput(turnsPath) {
   const okTurns = turns.filter((t) => t.ok);
   if (okTurns.length < 20) return { available: false };
 
-  const lastT = turns[turns.length - 1].tMs;
-  const quarter = lastT / 4;
+  // The window must be the run's actual duration, NOT the timestamp of the last
+  // logged turn. If the core stops answering and the driver's in-flight requests
+  // hang or stop being recorded, the log simply ends early — and measuring
+  // against its own last entry would rescale the window to fit the period when
+  // things still worked, hiding exactly the outage this check exists to catch.
+  const runMs = driver?.wallMs ?? turns[turns.length - 1].tMs;
+  const quarter = runMs / 4;
   const firstQuarter = okTurns.filter((t) => t.tMs < quarter).length;
   const lastQuarter = okTurns.filter((t) => t.tMs >= 3 * quarter).length;
 
