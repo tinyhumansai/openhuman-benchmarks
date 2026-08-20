@@ -55,6 +55,8 @@ function parseArgs(argv) {
     '--samples': ['samples', String],
     '--driver': ['driver', String],
     '--turns': ['turns', String],
+    '--workspace-mib-before': ['workspaceMibBefore', Number],
+    '--workspace-mib-after': ['workspaceMibAfter', Number],
     '--out': ['out', String],
     '--rss-kib-per-turn': ['rssKibPerTurn', Number],
     '--warmup-frac': ['warmupFrac', Number],
