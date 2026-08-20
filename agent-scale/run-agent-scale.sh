@@ -1,0 +1,240 @@
+#!/usr/bin/env bash
+#
+# Agent-scale benchmark: drive a real openhuman-core process at concurrency
+# against a mocked LLM, sample its CPU/RSS, and report a leak verdict.
+#
+# This is the OUT-OF-PROCESS tier. It complements scripts/profile/, which
+# embeds the core as a library and measures the current process. Here the core
+# is a normally-built server binary reached over /rpc, so the numbers include
+# the transport, serde and scheduler costs a library benchmark cannot see, and
+# RSS is what the OS actually charges the shipped binary.
+#
+# It needs NO cargo test features and NO core code changes. Two facts make that
+# work, and both are load-bearing:
+#
+#   * BACKEND_URL redirects managed inference. The core derives its inference
+#     base and its backend base from the same value, so pointing it at the mock
+#     captures chat completions, embeddings and telemetry in one move.
+#   * A session token shaped `<a>.<b>.local` is stored WITHOUT the GET /auth/me
+#     round-trip a remote JWT triggers, so no login and no auth mock is needed.
+#     The driver seeds it before the load starts.
+#
+# Usage:
+#   scripts/bench/run-agent-scale.sh [options]
+#
+#   --concurrency N     parallel in-flight turns (default 8)
+#   --turns N           total turns in the measured window (default 300)
+#   --duration-ms N     run for a wall-clock duration instead of a turn count
+#   --warmup-turns N    turns to run and discard before measuring (default 10)
+#   --tool-depth N      tool calls the mock drives per turn (default 1)
+#   --latency-ms N      mock inference latency (default 40)
+#   --jitter-ms N       jitter around that latency (default 20)
+#   --reply-chars N     assistant reply size (default 240)
+#   --fail-rate F       fraction of completions answered 500 (default 0)
+#   --thread-mode M     fresh | per-worker | shared (default fresh)
+#   --interval-ms N     resource sampling interval (default 250)
+#   --tree              also sample descendant processes
+#   --keep-workspace    do not delete the temp workspace on exit
+#   --out-dir DIR       where to write artifacts (default target/bench/<stamp>)
+#
+# Exit status is the analyzer's: non-zero when a leak or drift check fails.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$REPO_ROOT"
+
+CONCURRENCY=8
+TURNS=300
+DURATION_MS=""
+WARMUP_TURNS=10
+TOOL_DEPTH=1
+LATENCY_MS=40
+JITTER_MS=20
+REPLY_CHARS=240
+FAIL_RATE=0
+THREAD_MODE=fresh
+INTERVAL_MS=250
+TREE=""
+KEEP_WORKSPACE=""
+OUT_DIR=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --concurrency) CONCURRENCY="$2"; shift 2 ;;
+    --turns) TURNS="$2"; shift 2 ;;
+    --duration-ms) DURATION_MS="$2"; shift 2 ;;
+    --warmup-turns) WARMUP_TURNS="$2"; shift 2 ;;
+    --tool-depth) TOOL_DEPTH="$2"; shift 2 ;;
+    --latency-ms) LATENCY_MS="$2"; shift 2 ;;
+    --jitter-ms) JITTER_MS="$2"; shift 2 ;;
+    --reply-chars) REPLY_CHARS="$2"; shift 2 ;;
+    --fail-rate) FAIL_RATE="$2"; shift 2 ;;
+    --thread-mode) THREAD_MODE="$2"; shift 2 ;;
+    --interval-ms) INTERVAL_MS="$2"; shift 2 ;;
+    --tree) TREE="--tree"; shift ;;
+    --keep-workspace) KEEP_WORKSPACE=1; shift ;;
+    --out-dir) OUT_DIR="$2"; shift 2 ;;
+    -h|--help) sed -n '2,40p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+STAMP="$(date +%Y%m%d-%H%M%S)"
+OUT_DIR="${OUT_DIR:-$REPO_ROOT/target/bench/$STAMP}"
+mkdir -p "$OUT_DIR"
+
+# Ports chosen to avoid both the core's default 7788 (so a dev core can keep
+# running) and the LOCAL_AI_PORTS set the core routes around.
+MOCK_PORT="${BENCH_MOCK_PORT:-18700}"
+CORE_PORT="${BENCH_CORE_PORT:-17788}"
+CORE_TOKEN="bench-$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+
+CORE_BIN="$REPO_ROOT/target/release/openhuman-core"
+if [[ ! -x "$CORE_BIN" ]]; then
+  echo "error: $CORE_BIN not found." >&2
+  echo "Build it first:" >&2
+  echo "  cargo build --release --bin openhuman-core \\" >&2
+  echo "    --no-default-features --features \"\$(bash scripts/ci/product-features.sh)\"" >&2
+  exit 1
+fi
+
+WORKSPACE="$(mktemp -d -t openhuman-bench-XXXXXX)"
+
+MOCK_PID=""
+CORE_PID=""
+SAMPLER_PID=""
+
+cleanup() {
+  local status=$?
+  set +e
+  [[ -n "$SAMPLER_PID" ]] && kill "$SAMPLER_PID" 2>/dev/null
+  if [[ -n "$CORE_PID" ]]; then
+    kill "$CORE_PID" 2>/dev/null
+    # Give it a moment to flush and close cleanly before forcing.
+    for _ in $(seq 1 20); do kill -0 "$CORE_PID" 2>/dev/null || break; sleep 0.25; done
+    kill -9 "$CORE_PID" 2>/dev/null
+  fi
+  [[ -n "$MOCK_PID" ]] && kill "$MOCK_PID" 2>/dev/null
+  if [[ -z "$KEEP_WORKSPACE" && -d "$WORKSPACE" ]]; then
+    rm -rf "$WORKSPACE"
+  elif [[ -n "$KEEP_WORKSPACE" ]]; then
+    echo "workspace kept at $WORKSPACE" >&2
+  fi
+  exit $status
+}
+trap cleanup EXIT INT TERM
+
+echo "==> artifacts: $OUT_DIR"
+echo "==> workspace: $WORKSPACE"
+
+# ---------------------------------------------------------------- mock LLM
+echo "==> starting mock LLM on :$MOCK_PORT"
+node "$REPO_ROOT/scripts/bench/mock-llm.mjs" \
+  --port "$MOCK_PORT" \
+  --latency-ms "$LATENCY_MS" \
+  --jitter-ms "$JITTER_MS" \
+  --tool-depth "$TOOL_DEPTH" \
+  --reply-chars "$REPLY_CHARS" \
+  --fail-rate "$FAIL_RATE" \
+  >"$OUT_DIR/mock-llm.log" 2>&1 &
+MOCK_PID=$!
+
+for _ in $(seq 1 50); do
+  if curl -fsS "http://127.0.0.1:$MOCK_PORT/health" >/dev/null 2>&1; then break; fi
+  sleep 0.2
+done
+curl -fsS "http://127.0.0.1:$MOCK_PORT/health" >/dev/null || {
+  echo "error: mock LLM did not become healthy; see $OUT_DIR/mock-llm.log" >&2
+  exit 1
+}
+
+# ---------------------------------------------------------------- core
+echo "==> starting openhuman-core on :$CORE_PORT"
+# BACKEND_URL is the whole redirect: it feeds both the inference base and the
+# backend base, so every outbound call lands on the mock.
+env -i \
+  PATH="$PATH" HOME="$WORKSPACE" \
+  OPENHUMAN_WORKSPACE="$WORKSPACE" \
+  OPENHUMAN_ACTION_DIR="$WORKSPACE/projects" \
+  OPENHUMAN_CORE_HOST=127.0.0.1 \
+  OPENHUMAN_CORE_PORT="$CORE_PORT" \
+  OPENHUMAN_CORE_TOKEN="$CORE_TOKEN" \
+  BACKEND_URL="http://127.0.0.1:$MOCK_PORT" \
+  RUST_LOG="${RUST_LOG:-warn}" \
+  "$CORE_BIN" serve >"$OUT_DIR/core.log" 2>&1 &
+CORE_PID=$!
+
+for _ in $(seq 1 150); do
+  if curl -fsS "http://127.0.0.1:$CORE_PORT/health" >/dev/null 2>&1; then break; fi
+  if ! kill -0 "$CORE_PID" 2>/dev/null; then
+    echo "error: core exited during startup; see $OUT_DIR/core.log" >&2
+    tail -30 "$OUT_DIR/core.log" >&2
+    exit 1
+  fi
+  sleep 0.2
+done
+curl -fsS "http://127.0.0.1:$CORE_PORT/health" >/dev/null || {
+  echo "error: core did not become healthy; see $OUT_DIR/core.log" >&2
+  tail -30 "$OUT_DIR/core.log" >&2
+  exit 1
+}
+echo "==> core pid $CORE_PID healthy"
+
+# ---------------------------------------------------------------- sample + load
+# The sampler starts before the driver so the series covers warm-up too; the
+# analyzer drops that head via --warmup-frac.
+echo "==> sampling every ${INTERVAL_MS}ms"
+node "$REPO_ROOT/scripts/bench/sampler.mjs" \
+  --pid "$CORE_PID" --interval-ms "$INTERVAL_MS" $TREE \
+  >"$OUT_DIR/samples.jsonl" 2>"$OUT_DIR/sampler.log" &
+SAMPLER_PID=$!
+
+DRIVER_ARGS=(
+  --core-url "http://127.0.0.1:$CORE_PORT"
+  --token "$CORE_TOKEN"
+  --concurrency "$CONCURRENCY"
+  --thread-mode "$THREAD_MODE"
+  --warmup-turns "$WARMUP_TURNS"
+  --out "$OUT_DIR/driver.json"
+  --turns-out "$OUT_DIR/turns.jsonl"
+)
+if [[ -n "$DURATION_MS" ]]; then
+  DRIVER_ARGS+=(--duration-ms "$DURATION_MS")
+else
+  DRIVER_ARGS+=(--turns "$TURNS")
+fi
+
+echo "==> running load"
+DRIVER_STATUS=0
+node "$REPO_ROOT/scripts/bench/driver.mjs" "${DRIVER_ARGS[@]}" \
+  >"$OUT_DIR/driver.stdout" 2>"$OUT_DIR/driver.log" || DRIVER_STATUS=$?
+
+# Let the sampler capture the post-load tail. Memory that is only released once
+# work stops shows up here, and so does a process that keeps burning CPU after
+# the last turn — which is itself a finding.
+echo "==> settling"
+sleep 3
+kill "$SAMPLER_PID" 2>/dev/null || true
+wait "$SAMPLER_PID" 2>/dev/null || true
+SAMPLER_PID=""
+
+curl -fsS "http://127.0.0.1:$MOCK_PORT/__bench/stats" >"$OUT_DIR/mock-stats.json" 2>/dev/null || true
+
+if [[ $DRIVER_STATUS -ne 0 ]]; then
+  echo "error: driver failed (exit $DRIVER_STATUS); see $OUT_DIR/driver.log" >&2
+  tail -20 "$OUT_DIR/driver.log" >&2
+  exit $DRIVER_STATUS
+fi
+
+# ---------------------------------------------------------------- analyze
+echo "==> analyzing"
+ANALYZE_STATUS=0
+node "$REPO_ROOT/scripts/bench/analyze.mjs" \
+  --samples "$OUT_DIR/samples.jsonl" \
+  --driver "$OUT_DIR/driver.json" \
+  --out "$OUT_DIR/report.json" \
+  >/dev/null || ANALYZE_STATUS=$?
+
+echo "==> artifacts in $OUT_DIR"
+exit $ANALYZE_STATUS
