@@ -350,6 +350,60 @@ test('clipping is skipped when it would leave too little to analyze', () => {
   assert.equal(report.window.loadWindowSamples, 200);
 });
 
+test('a core that stops serving fails, and its resource passes are qualified', () => {
+  // The regression this guards: a run where the core died two thirds of the way
+  // in reported PASS on every resource check. All of them were true, and all of
+  // them were true BECAUSE nothing was happening — flat memory, fallen CPU,
+  // stable threads. A dead process looks exactly like a healthy idle one unless
+  // liveness is judged on completed work.
+  const samples = buildSamples({ count: 200, rssKib: () => 120_000 });
+  const turns = buildTurns(50_000, (t) => (t < 33_000 ? 20 : 0));
+
+  const { report, exitCode } = runAnalyzer(samples, driver(), [], turns);
+
+  assert.equal(report.throughput.verdict, 'fail', report.throughput.reason);
+  assert.match(report.throughput.reason, /stopped serving/);
+  assert.equal(report.livenessBroken, true);
+  assert.match(report.livenessNote, /idle process/);
+  assert.equal(report.overall, 'fail');
+  assert.equal(exitCode, 1);
+});
+
+test('severe throughput degradation fails even when the core is still alive', () => {
+  // Still serving, but at a fraction of its starting rate under constant load.
+  const samples = buildSamples({ count: 200, rssKib: () => 120_000 });
+  const turns = buildTurns(50_000, (t) => (t < 12_500 ? 40 : 5));
+
+  const { report } = runAnalyzer(samples, driver(), [], turns);
+
+  assert.equal(report.throughput.verdict, 'fail', report.throughput.reason);
+  assert.match(report.throughput.reason, /degrading/);
+  assert.ok(report.throughput.retainedFraction < 0.5);
+  assert.equal(report.overall, 'fail');
+});
+
+test('steady throughput passes and is not flagged as a liveness break', () => {
+  const samples = buildSamples({ count: 200, rssKib: () => 120_000 });
+  const turns = buildTurns(50_000, () => 20);
+
+  const { report, exitCode } = runAnalyzer(samples, driver(), [], turns);
+
+  assert.equal(report.throughput.verdict, 'pass', report.throughput.reason);
+  assert.equal(report.livenessBroken, false);
+  assert.equal(report.livenessNote, null);
+  assert.equal(report.overall, 'pass');
+  assert.equal(exitCode, 0);
+});
+
+test('throughput is simply unavailable when no turn log is supplied', () => {
+  const samples = buildSamples({ count: 200, rssKib: () => 120_000 });
+  const { report, exitCode } = runAnalyzer(samples, driver());
+
+  assert.equal(report.throughput.available, false);
+  assert.equal(report.livenessBroken, false);
+  assert.equal(exitCode, 0, 'a missing turn log is not a failure');
+});
+
 test('a series too short to analyze exits non-zero rather than guessing', () => {
   const samples = buildSamples({ count: 4, rssKib: () => 120_000 });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-analyze-'));
