@@ -161,11 +161,21 @@ const skip = Math.floor(loadSamples.length * opts.warmupFrac);
 const samples = loadSamples.slice(skip);
 if (samples.length < 4) {
   process.stderr.write(
-    `[analyze] only ${samples.length} samples after dropping ${skip} warm-up ` +
-      `samples — run longer or lower --warmup-frac\n`,
+    `[analyze] only ${samples.length} samples after clipping to the load window ` +
+      `and dropping ${skip} warm-up samples — run longer, sample more often, or ` +
+      `lower --warmup-frac\n`,
   );
   process.exit(1);
 }
+
+// A leak verdict drawn from a handful of samples over a couple of seconds is
+// not worth the confidence the word "pass" conveys. Warn rather than fail: the
+// throughput and latency figures are still useful at this size.
+const UNDERPOWERED_SAMPLES = 40;
+const UNDERPOWERED_MS = 30_000;
+const underpowered =
+  samples.length < UNDERPOWERED_SAMPLES ||
+  samples[samples.length - 1].tMs - samples[0].tMs < UNDERPOWERED_MS;
 
 const durationMs = samples[samples.length - 1].tMs - samples[0].tMs;
 const durationMin = durationMs / 60_000;
