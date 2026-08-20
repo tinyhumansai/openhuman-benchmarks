@@ -56,7 +56,6 @@ function parseArgs(argv) {
     '--out': ['out', String],
     '--rss-kib-per-turn': ['rssKibPerTurn', Number],
     '--warmup-frac': ['warmupFrac', Number],
-    '--plateau-tolerance': ['plateauTolerance', Number],
     '--max-thread-growth': ['maxThreadGrowth', Number],
     '--max-fd-growth': ['maxFdGrowth', Number],
   };
