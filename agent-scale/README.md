@@ -82,6 +82,43 @@ The mock also must not listen on 11434, 8000, 8080, 1234 or 8888 — the core
 classifies those as local-AI endpoints and routes around them. `mock-llm.mjs`
 refuses to start on one rather than failing mysteriously later.
 
+Three further details the runner handles, each of which silently ruins a run if
+you reproduce this setup by hand:
+
+- **The approval gate must be off** (`OPENHUMAN_APPROVAL_GATE=0`). It is on by
+  default and parks interactive chat turns pending a human decision, with a
+  10-minute TTL that resolves to Deny.
+- **The daily cost limit must be raised.** The core prices the mock's reported
+  token usage against a $10/day managed-inference budget and a sustained run
+  exhausts it in a few hundred turns, after which every turn fails instantly.
+  The runner raises the limit rather than disabling the check, so the budget
+  check's own cost stays in the measurement.
+- **The embedding width must match** (`--embed-dims`, default 1024). A mismatch
+  is only a warning: chunks are stored without vectors and the memory write path
+  runs degraded for the entire run.
+
+## Baseline
+
+From a 5-minute run at concurrency 8, tool-depth 1, on one machine — indicative,
+not a target, and not yet reproduced across hosts:
+
+| Measure                | Value                          |
+| ---------------------- | ------------------------------ |
+| Turns                  | ~8,500 (0 failed)              |
+| Throughput             | ~29 turns/s mean               |
+| Latency                | p50 260 ms, p99 570 ms         |
+| CPU                    | ~6.9 cores mean, ~245 ms/turn  |
+| RSS                    | 1.48 → 2.33 GiB                |
+| Threads / FDs          | stable                         |
+| Workspace written      | ~5 GB                          |
+
+Two findings from that run reproduced across repeats and are worth chasing
+rather than treating as harness noise: RSS grew ~115 KiB/turn and was **still
+growing at the end** (confounded by the 5 GB of workspace growth — needs the
+memory-disabled comparison to settle), and **throughput fell to ~37% of its
+starting rate** under constant offered load, which the workspace growth does not
+obviously explain.
+
 ## Reading a verdict
 
 Memory gets three outcomes, and the middle one is the point:
