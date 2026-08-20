@@ -169,16 +169,33 @@ function analyzeMemory(field, label) {
   if (ys.length < 4) return { field, label, available: false };
 
   const fit = linearFit(xs, ys);
-  const kibPerMin = fit.slope === null ? null : fit.slope * 60_000;
-  const kibPerTurn =
-    kibPerMin !== null && turnsInWindow && turnsInWindow > 0 && durationMin > 0
-      ? (kibPerMin * durationMin) / turnsInWindow
+
+  /** Convert a KiB-per-ms slope into KiB per turn, or null if not derivable. */
+  const perTurn = (slope) =>
+    slope !== null && turnsInWindow && turnsInWindow > 0 && durationMs > 0
+      ? (slope * durationMs) / turnsInWindow
       : null;
+
+  const kibPerMin = fit.slope === null ? null : fit.slope * 60_000;
+  const kibPerTurn = perTurn(fit.slope);
+
+  // Whether growth has STOPPED is a question about the end of the run, not
+  // about early-vs-late averages: a series that never grew and one that grew
+  // and then flattened have the same early-vs-late delta, but only the second
+  // is a plateau. So fit the final third separately and ask whether the line
+  // is still climbing there.
+  const tailStart = Math.floor(ys.length * (2 / 3));
+  const tailFit = linearFit(xs.slice(tailStart), ys.slice(tailStart));
+  const tailKibPerTurn = perTurn(tailFit.slope);
 
   const { early, late } = windowMeans(ys);
   const relativeGrowth = early && early > 0 ? (late - early) / early : null;
-  const plateaued =
-    relativeGrowth !== null && relativeGrowth <= opts.plateauTolerance;
+
+  const overBudget = kibPerTurn !== null && kibPerTurn > opts.rssKibPerTurn;
+  const tailWithinBudget =
+    tailFit.slope !== null &&
+    (tailFit.slope <= 0 ||
+      (tailKibPerTurn !== null && tailKibPerTurn <= opts.rssKibPerTurn));
 
   let verdict;
   let reason;
@@ -191,24 +208,29 @@ function analyzeMemory(field, label) {
   } else if (fit.slope === null || fit.slope <= 0) {
     verdict = 'pass';
     reason = 'no positive growth trend in the steady-state window.';
-  } else if (plateaued) {
-    verdict = 'plateau';
-    reason =
-      `grew then leveled off (final window ${(relativeGrowth * 100).toFixed(2)}% ` +
-      `above the early window, within the ${(opts.plateauTolerance * 100).toFixed(0)}% ` +
-      `plateau tolerance). Consistent with caches reaching a working set.`;
-  } else if (kibPerTurn !== null && kibPerTurn > opts.rssKibPerTurn) {
-    verdict = 'fail';
-    reason =
-      `grew ${kibPerTurn.toFixed(2)} KiB/turn without plateauing, over the ` +
-      `${opts.rssKibPerTurn} KiB/turn budget.`;
-  } else {
+  } else if (!overBudget) {
     verdict = 'pass';
     reason =
       kibPerTurn !== null
         ? `growth ${kibPerTurn.toFixed(2)} KiB/turn is within the ` +
           `${opts.rssKibPerTurn} KiB/turn budget.`
         : 'positive slope but no turn count available to normalize against.';
+  } else if (tailWithinBudget) {
+    // It grew past the budget overall, but stopped climbing by the end — the
+    // shape of a cache filling to its working set rather than an unbounded leak.
+    verdict = 'plateau';
+    reason =
+      `grew ${kibPerTurn.toFixed(2)} KiB/turn overall but leveled off: the final ` +
+      `third of the window grew ${tailKibPerTurn === null ? 'not at all' : `${tailKibPerTurn.toFixed(2)} KiB/turn`}` +
+      `, within the ${opts.rssKibPerTurn} KiB/turn budget. Consistent with a ` +
+      `cache reaching its working set rather than an unbounded leak. Run longer ` +
+      `to confirm the plateau holds.`;
+  } else {
+    verdict = 'fail';
+    reason =
+      `grew ${kibPerTurn.toFixed(2)} KiB/turn and was still growing ` +
+      `${tailKibPerTurn === null ? '' : `${tailKibPerTurn.toFixed(2)} KiB/turn `}` +
+      `in the final third, over the ${opts.rssKibPerTurn} KiB/turn budget.`;
   }
 
   return {
