@@ -397,10 +397,12 @@ const checks = [...memory.filter((m) => m.available), threads, fds, cpu, through
 );
 const failed = checks.filter((c) => c.verdict === 'fail');
 
-// If the core stopped serving, every resource check is describing an idle
-// process and none of their verdicts mean what they appear to. Say so instead
-// of letting a row of "pass" lines stand unqualified next to the failure.
-const livenessBroken = throughput.available && throughput.verdict === 'fail';
+// If the core STOPPED, every resource check is describing an idle process and
+// none of their verdicts mean what they appear to. Degradation is different:
+// the core was still working, just less, so the resource numbers remain real
+// even though the run is unhealthy. Conflating the two would put "the core
+// stopped serving" on a report where it plainly kept serving.
+const livenessBroken = throughput.available && throughput.stopped === true;
 // PSS and Private track RSS closely; the headline verdict keys off RSS, with
 // the others reported for corroboration.
 const overall = failed.length > 0 ? 'fail' : 'pass';
