@@ -637,6 +637,12 @@ for (const m of memory) {
       (m.kibPerTurn !== null ? `  (${m.kibPerTurn.toFixed(2)} KiB/turn)` : ''),
   );
   lines.push(`               ${m.reason}`);
+  if (m.verdict === 'fail' && memoryConfounded) {
+    lines.push(
+      `               CAVEAT: the workspace grew ${workspace.growthMib} MiB — some of ` +
+        `this is likely index over real data, not a leak.`,
+    );
+  }
 }
 for (const c of [threads, fds]) {
   if (!c.available) continue;
