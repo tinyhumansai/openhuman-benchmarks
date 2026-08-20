@@ -112,7 +112,26 @@ fi
 # "Failed to write auth profile lock owner" and SQLite "disk I/O error", and
 # throughput collapses to zero — a failure that reads like a leak-induced
 # meltdown rather than a full disk.
-WORKSPACE="$OUT_DIR/workspace"
+#
+# --workspace reuses an existing (already populated) workspace instead of
+# starting empty. That turns the harness into a controlled experiment: run once
+# to accumulate state, then point a FRESH core process at the result. If
+# per-turn latency starts where the previous run ended, the cost is a function
+# of accumulated DATA (an O(N) path over stored state); if it starts low again,
+# the cost was a function of process uptime (an in-process leak). The two have
+# entirely different fixes, and nothing else in this harness separates them.
+if [[ -n "$REUSE_WORKSPACE" ]]; then
+  if [[ ! -d "$REUSE_WORKSPACE" ]]; then
+    echo "error: --workspace $REUSE_WORKSPACE does not exist" >&2
+    exit 1
+  fi
+  WORKSPACE="$(cd "$REUSE_WORKSPACE" && pwd)"
+  # Never delete a workspace the caller supplied.
+  KEEP_WORKSPACE=1
+  echo "==> reusing workspace: $WORKSPACE"
+else
+  WORKSPACE="$OUT_DIR/workspace"
+fi
 mkdir -p "$WORKSPACE"
 
 WORKSPACE_FS="$(findmnt -no FSTYPE --target "$WORKSPACE" 2>/dev/null || echo unknown)"
