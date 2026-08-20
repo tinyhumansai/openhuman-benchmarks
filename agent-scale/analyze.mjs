@@ -436,6 +436,74 @@ function analyzeSettle() {
 
 const settle = analyzeSettle();
 
+/**
+ * Did the core keep serving at a steady rate for the whole run?
+ *
+ * This check exists because the analyzer once reported a confident PASS on a
+ * run where the core had stopped answering entirely two thirds of the way in.
+ * Every other check agreed: memory was flat, CPU had fallen, threads were
+ * stable — all true, and all because nothing was happening. A dead process is
+ * indistinguishable from a healthy idle one on resource metrics alone, so
+ * liveness has to be judged on whether work was actually completing.
+ *
+ * Reads the driver's per-turn log rather than the resource series, since that
+ * is the only record of when turns completed.
+ */
+function analyzeThroughput(turnsPath) {
+  let turns;
+  try {
+    turns = readJsonl(turnsPath);
+  } catch {
+    return { available: false };
+  }
+  if (turns.length < 20) return { available: false };
+
+  const okTurns = turns.filter((t) => t.ok);
+  if (okTurns.length < 20) return { available: false };
+
+  const lastT = turns[turns.length - 1].tMs;
+  const quarter = lastT / 4;
+  const firstQuarter = okTurns.filter((t) => t.tMs < quarter).length;
+  const lastQuarter = okTurns.filter((t) => t.tMs >= 3 * quarter).length;
+
+  const firstRate = firstQuarter / (quarter / 1000);
+  const lastRate = lastQuarter / (quarter / 1000);
+  const retained = firstRate > 0 ? lastRate / firstRate : null;
+
+  let verdict;
+  let reason;
+  if (lastQuarter === 0) {
+    verdict = 'fail';
+    reason =
+      `the core completed NO successful turns in the final quarter of the run ` +
+      `(${firstQuarter} in the first quarter). It stopped serving — every other ` +
+      `check in this report describes an idle process, not a healthy one.`;
+  } else if (retained !== null && retained < 0.5) {
+    verdict = 'fail';
+    reason =
+      `throughput fell to ${(retained * 100).toFixed(0)}% of its starting rate ` +
+      `(${firstRate.toFixed(1)} → ${lastRate.toFixed(1)} turns/s) under constant ` +
+      `offered load — the core is degrading as the run proceeds.`;
+  } else {
+    verdict = 'pass';
+    reason =
+      retained === null
+        ? 'no starting rate to compare against.'
+        : `held ${(retained * 100).toFixed(0)}% of its starting rate ` +
+          `(${firstRate.toFixed(1)} → ${lastRate.toFixed(1)} turns/s).`;
+  }
+  return {
+    available: true,
+    verdict,
+    reason,
+    firstQuarterTurnsPerSec: firstRate,
+    lastQuarterTurnsPerSec: lastRate,
+    retainedFraction: retained,
+  };
+}
+
+const throughput = opts.turns ? analyzeThroughput(opts.turns) : { available: false };
+
 const report = {
   overall,
   threadMode,
