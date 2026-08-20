@@ -102,6 +102,23 @@ has a legitimate reason to climb without bound under steady load, so they are
 straight thresholds rather than trend tests, and they fail independently of
 memory. In practice they are the least ambiguous leak signal available.
 
+**Memory verdicts can be `confounded`.** `fresh` thread mode stops conversation
+history accumulating, but it does not stop the agent persisting memory chunks
+and embeddings every turn — a 5-minute run writes gigabytes. An index over data
+that genuinely grew is not a leak. So when RSS fails alongside large workspace
+growth, the report marks the verdict `confounded` and says what it cannot rule
+out, rather than asserting a leak it cannot distinguish from correct behaviour.
+To separate the two: re-run with memory capture disabled, or run long enough
+that on-disk growth levels off while RSS keeps climbing.
+
+**Throughput held / liveness.** The analyzer checks that turns kept completing,
+because on resource metrics alone a dead process is indistinguishable from a
+healthy idle one — flat memory, no CPU, stable threads. An early version of this
+report gave a confident PASS on a run where the core had stopped answering two
+thirds of the way in. A total outage additionally marks `livenessBroken`, which
+qualifies every other verdict; mere degradation does not, because the process
+was still working and its resource numbers remain real.
+
 **CPU drift** compares CPU consumed per unit wall time between the start and
 end of the window. Under constant offered load a rising figure means each turn
 is costing more than the last — the CPU analogue of a memory leak, typically an
