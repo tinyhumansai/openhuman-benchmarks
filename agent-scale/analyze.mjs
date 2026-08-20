@@ -514,6 +514,14 @@ if (cpu.available) {
   );
   lines.push(`               ${cpu.reason}`);
 }
+if (settle.available) {
+  lines.push('');
+  lines.push(
+    `  after load (${(settle.idleWindowMs / 1000).toFixed(1)}s idle): ` +
+      `released ${(settle.releasedKib / 1024).toFixed(1)} MiB, ` +
+      `idle CPU ${settle.idleCpuFraction === null ? 'n/a' : `${(settle.idleCpuFraction * 100).toFixed(1)}% of one core`}`,
+  );
+}
 lines.push('');
 process.stderr.write(`${lines.join('\n')}\n`);
 process.stdout.write(`${rendered}\n`);
