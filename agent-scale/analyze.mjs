@@ -28,6 +28,13 @@
  * those modes; it reports the growth rate and says the mode cannot distinguish
  * a leak from intended retention. Use `fresh` for a leak verdict.
  *
+ * `fresh` is necessary but NOT sufficient. It removes accumulating conversation
+ * history; it does not stop the agent persisting memory chunks and embeddings
+ * every turn, which a real run does to the tune of gigabytes. An index over data
+ * that genuinely grew is not a leak. So when RSS fails alongside large workspace
+ * growth, the verdict is marked `confounded` and says so, rather than asserting
+ * a leak it cannot distinguish from correct behaviour.
+ *
  * Usage:
  *   node scripts/bench/analyze.mjs --samples samples.jsonl --driver summary.json \
  *     [--out report.json] [--rss-kib-per-turn 8] [--warmup-frac 0.25]
