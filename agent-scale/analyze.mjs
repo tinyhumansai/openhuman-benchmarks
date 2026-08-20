@@ -582,7 +582,21 @@ const report = {
         errors: driver.errors,
       }
     : null,
-  memory,
+  memory: memory.map((m) =>
+    m.available && m.verdict === 'fail' && memoryConfounded
+      ? {
+          ...m,
+          confounded: true,
+          confoundNote:
+            `the workspace grew ${workspace.growthMib} MiB during this run, so some ` +
+            `of this RSS growth is likely an index over data that genuinely ` +
+            `accumulated rather than a leak. To separate the two, re-run with ` +
+            `memory capture disabled, or run long enough that on-disk growth ` +
+            `levels off while RSS does not.`,
+        }
+      : m,
+  ),
+  workspace,
   threads,
   fds,
   cpu,
