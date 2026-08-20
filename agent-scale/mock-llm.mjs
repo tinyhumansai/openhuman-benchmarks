@@ -327,12 +327,18 @@ const server = http.createServer((req, res) => {
         return;
       }
       if (req.method === 'POST' && path.endsWith('/embeddings')) {
-        handleEmbeddings(res, body);
+        handleEmbeddings(res, body, opts);
         return;
       }
       if (req.method === 'POST' && path.includes('/telemetry/')) {
         stats.telemetry += 1;
         sendJson(res, 200, {});
+        return;
+      }
+      const stub = ANCILLARY_ROUTES[`${req.method} ${path}`];
+      if (stub) {
+        stats.ancillary += 1;
+        sendJson(res, 200, stub());
         return;
       }
       // Anything else is a route the core reached for that we did not
