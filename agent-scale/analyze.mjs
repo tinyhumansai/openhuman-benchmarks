@@ -39,6 +39,7 @@ function parseArgs(argv) {
   const opts = {
     samples: null,
     driver: null,
+    turns: null,
     out: null,
     // Growth budget per turn before RSS growth is called a leak. Default is
     // deliberately loose; tighten it per scenario once a baseline exists.
