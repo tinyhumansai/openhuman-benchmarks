@@ -390,6 +390,8 @@ const threads = analyzeCounter('threads', 'Threads', opts.maxThreadGrowth);
 const fds = analyzeCounter('openFds', 'Open FDs', opts.maxFdGrowth);
 const cpu = analyzeCpu();
 
+const throughput = opts.turns ? analyzeThroughput(opts.turns) : { available: false };
+
 const checks = [...memory.filter((m) => m.available), threads, fds, cpu, throughput].filter(
   (c) => c.available !== false,
 );
