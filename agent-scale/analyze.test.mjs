@@ -107,6 +107,9 @@ function runAnalyzer(samplesText, driverSummary, extraArgs = [], turnsText = nul
 
 const driver = (overrides = {}) => ({
   config: { concurrency: 8, turns: 400, threadMode: 'fresh', warmupTurns: 10 },
+  // The measured run lasted 50s — the same span the synthetic turn logs cover.
+  // The throughput check keys off this rather than the last logged turn.
+  wallMs: 50_000,
   turnsOk: 400,
   turnsFailed: 0,
   throughputTurnsPerSec: 10,
