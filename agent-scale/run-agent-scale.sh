@@ -282,11 +282,34 @@ try {
   process.exit(1);
 }
 const turns = driver.turnsOk ?? 0;
+const failed = driver.turnsFailed ?? 0;
+const total = turns + failed;
 console.error(
   `  driver: ${turns} ok turns | mock: ${stats.completions} completions, ` +
   `${stats.toolCallsEmitted} tool calls, ${stats.embeddings} embeddings, ` +
   `${stats.telemetry} telemetry`,
 );
+
+// A run where most turns errored is not a measurement of agent work — it is a
+// measurement of the error path, and its memory curve says nothing about a
+// leak in normal operation. This check exists because a run that failed 96% of
+// its turns on an exhausted cost budget still produced a confident verdict:
+// the failures were fast, so throughput looked high and nothing else complained.
+const FAILURE_BUDGET = 0.05;
+if (total > 0 && failed / total > FAILURE_BUDGET) {
+  console.error(
+    `  ERROR: ${failed}/${total} turns failed ` +
+    `(${((failed / total) * 100).toFixed(1)}%), over the ${FAILURE_BUDGET * 100}% budget. ` +
+    `This run measured the failure path, not agent work. Distinct errors:`,
+  );
+  for (const [msg, count] of Object.entries(driver.errors ?? {}).slice(0, 5)) {
+    console.error(`    ${count} x ${msg.slice(0, 180)}`);
+  }
+  process.exit(1);
+}
+if (failed > 0) {
+  console.error(`  note: ${failed}/${total} turns failed, within the tolerated budget.`);
+}
 if (stats.unknownRoutes > 0) {
   console.error(
     `  WARNING: the core called ${stats.unknownRoutes} route(s) the mock does not ` +
