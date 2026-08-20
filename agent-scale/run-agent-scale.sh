@@ -74,6 +74,7 @@ while [[ $# -gt 0 ]]; do
     --thread-mode) THREAD_MODE="$2"; shift 2 ;;
     --interval-ms) INTERVAL_MS="$2"; shift 2 ;;
     --tree) TREE="--tree"; shift ;;
+    --memory-off) MEMORY_OFF=1; shift ;;
     --keep-workspace) KEEP_WORKSPACE=1; shift ;;
     --workspace) REUSE_WORKSPACE="$2"; shift 2 ;;
     --out-dir) OUT_DIR="$2"; shift 2 ;;
