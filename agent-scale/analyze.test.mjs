@@ -58,7 +58,24 @@ function buildSamples({ count, rssKib, threads, openFds, cpuMs }) {
   return `${lines.join('\n')}\n`;
 }
 
-function runAnalyzer(samplesText, driverSummary, extraArgs = []) {
+/**
+ * Build a turn log at a given rate over time.
+ * @param {(tMs: number) => number} ratePerSec turns/sec at a point in the run
+ */
+function buildTurns(durationMs, ratePerSec, { failFrom = null } = {}) {
+  const lines = [];
+  const stepMs = 100;
+  for (let tMs = 0; tMs < durationMs; tMs += stepMs) {
+    const n = Math.round((ratePerSec(tMs) * stepMs) / 1000);
+    for (let k = 0; k < n; k += 1) {
+      const ok = failFrom === null || tMs < failFrom;
+      lines.push(JSON.stringify({ tMs, workerId: 0, index: lines.length, latencyMs: 50, ok }));
+    }
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function runAnalyzer(samplesText, driverSummary, extraArgs = [], turnsText = null) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-analyze-'));
   try {
     const samplesPath = path.join(dir, 'samples.jsonl');
@@ -67,6 +84,11 @@ function runAnalyzer(samplesText, driverSummary, extraArgs = []) {
     fs.writeFileSync(driverPath, JSON.stringify(driverSummary));
 
     const args = [ANALYZE, '--samples', samplesPath, '--driver', driverPath, ...extraArgs];
+    if (turnsText !== null) {
+      const turnsPath = path.join(dir, 'turns.jsonl');
+      fs.writeFileSync(turnsPath, turnsText);
+      args.push('--turns', turnsPath);
+    }
     let stdout;
     let exitCode = 0;
     try {
