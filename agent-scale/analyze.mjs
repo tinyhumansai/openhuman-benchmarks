@@ -486,8 +486,10 @@ function analyzeThroughput(turnsPath) {
 
   let verdict;
   let reason;
+  let stopped = false;
   if (lastQuarter === 0) {
     verdict = 'fail';
+    stopped = true;
     reason =
       `the core completed NO successful turns in the final quarter of the run ` +
       `(${firstQuarter} in the first quarter). It stopped serving — every other ` +
