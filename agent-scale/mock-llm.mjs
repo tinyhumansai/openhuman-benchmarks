@@ -61,6 +61,7 @@ function parseArgs(argv) {
     toolDepth: 0,
     replyChars: 240,
     failRate: 0,
+    embedDims: 1024,
   };
   const numeric = {
     '--port': 'port',
@@ -69,6 +70,7 @@ function parseArgs(argv) {
     '--tool-depth': 'toolDepth',
     '--reply-chars': 'replyChars',
     '--fail-rate': 'failRate',
+    '--embed-dims': 'embedDims',
   };
   for (let i = 2; i < argv.length; i += 1) {
     const key = numeric[argv[i]];
