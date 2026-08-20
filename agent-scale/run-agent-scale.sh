@@ -57,6 +57,7 @@ THREAD_MODE=fresh
 INTERVAL_MS=250
 TREE=""
 KEEP_WORKSPACE=""
+REUSE_WORKSPACE=""
 OUT_DIR=""
 
 while [[ $# -gt 0 ]]; do
