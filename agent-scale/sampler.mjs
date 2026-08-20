@@ -14,6 +14,7 @@
  *
  * Fields per sample:
  *   tMs           ms since sampling started
+ *   epochMs       wall-clock ms, for aligning against the driver's turn log
  *   rssKib        resident set size
  *   vmHwmKib      peak RSS the kernel has ever seen for this process
  *   pssKib        proportional set size (smaps_rollup; null if unreadable)
