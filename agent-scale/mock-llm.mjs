@@ -53,6 +53,29 @@ const LOCAL_AI_PORTS = new Set([11434, 8000, 8080, 1234, 8888]);
 // an unknown name here is inert rather than an error.
 const TOOL_PREFERENCE = ['memory_search', 'glob'];
 
+/**
+ * Background routes the core polls that are not part of a turn.
+ *
+ * Left un-stubbed these 404, and the core handles that gracefully — but not
+ * freely: `/teams/me/usage` routes its 404 through the observability
+ * error-reporting path, and the rest log warnings. That is CPU and allocation
+ * spent on failure handling rather than on agent work, in a run whose entire
+ * purpose is to attribute CPU and allocation. Answering them with empty,
+ * well-shaped payloads keeps the process on its normal path.
+ *
+ * These are counted separately from `unknownRoutes` so the distinction between
+ * "deliberately stubbed" and "we did not anticipate this" stays visible.
+ */
+const ANCILLARY_ROUTES = {
+  'GET /teams/me/usage': () => ({
+    success: true,
+    data: { credits: 1_000_000, used: 0, plan: 'bench' },
+  }),
+  'GET /agent-integrations/composio/connections': () => ({ success: true, data: [] }),
+  'GET /agent-integrations/composio/toolkits': () => ({ success: true, data: [] }),
+  'GET /orchestration/v1/sessions': () => ({ success: true, data: [] }),
+};
+
 function parseArgs(argv) {
   const opts = {
     port: 18700,
