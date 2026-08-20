@@ -545,7 +545,14 @@ const report = {
   threads,
   fds,
   cpu,
-  failedChecks: failed.map((c) => `${c.label ?? 'CPU'}: ${c.reason}`),
+  throughput,
+  livenessBroken,
+  livenessNote: livenessBroken
+    ? 'The core stopped serving during this run, so the memory, CPU, thread and ' +
+      'FD verdicts above describe an idle process and must not be read as a ' +
+      'clean bill of health. Fix the liveness failure and re-run.'
+    : null,
+  failedChecks: failed.map((c) => `${c.label ?? 'check'}: ${c.reason}`),
 };
 
 const rendered = JSON.stringify(report, null, 2);
