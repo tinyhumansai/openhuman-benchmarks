@@ -284,6 +284,8 @@ DRIVER_STATUS=0
 node "$REPO_ROOT/scripts/bench/driver.mjs" "${DRIVER_ARGS[@]}" \
   >"$OUT_DIR/driver.stdout" 2>"$OUT_DIR/driver.log" || DRIVER_STATUS=$?
 
+WORKSPACE_MIB_AFTER="$(du -sm "$WORKSPACE" 2>/dev/null | awk '{print $1}')"
+
 # Let the sampler capture the post-load tail. Memory that is only released once
 # work stops shows up here, and so does a process that keeps burning CPU after
 # the last turn — which is itself a finding.
