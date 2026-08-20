@@ -237,6 +237,50 @@ if [[ $DRIVER_STATUS -ne 0 ]]; then
   exit $DRIVER_STATUS
 fi
 
+# ---------------------------------------------------------------- cross-check
+# A turn can return 200 while the inference call behind it silently degraded —
+# the RPC succeeds, the agent answers with an error string, and the run looks
+# green having measured nothing. Comparing what the driver thinks it ran against
+# what the mock was actually asked for is the cheapest way to catch that, and
+# without it a misconfigured BACKEND_URL would produce a confident, meaningless
+# "no leak detected".
+echo "==> verifying the mock actually served the load"
+node -e '
+const fs = require("node:fs");
+const [statsPath, driverPath] = process.argv.slice(1);
+let stats, driver;
+try {
+  stats = JSON.parse(fs.readFileSync(statsPath, "utf8"));
+  driver = JSON.parse(fs.readFileSync(driverPath, "utf8"));
+} catch (err) {
+  console.error(`  could not cross-check: ${err.message}`);
+  process.exit(1);
+}
+const turns = driver.turnsOk ?? 0;
+console.error(
+  `  driver: ${turns} ok turns | mock: ${stats.completions} completions, ` +
+  `${stats.toolCallsEmitted} tool calls, ${stats.embeddings} embeddings, ` +
+  `${stats.telemetry} telemetry`,
+);
+if (stats.unknownRoutes > 0) {
+  console.error(
+    `  WARNING: the core called ${stats.unknownRoutes} route(s) the mock does not ` +
+    `implement (see mock-llm.log). Those calls failed, so some path ran degraded.`,
+  );
+}
+if (turns > 0 && stats.completions < turns) {
+  console.error(
+    `  ERROR: ${turns} turns reported ok but the mock served only ` +
+    `${stats.completions} completions. Turns are not reaching the mocked LLM, ` +
+    `so these numbers do not describe agent work.`,
+  );
+  process.exit(1);
+}
+' "$OUT_DIR/mock-stats.json" "$OUT_DIR/driver.json" || {
+  echo "error: cross-check failed — refusing to report a verdict on this run" >&2
+  exit 1
+}
+
 # ---------------------------------------------------------------- analyze
 echo "==> analyzing"
 ANALYZE_STATUS=0
