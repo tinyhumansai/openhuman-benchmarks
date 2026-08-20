@@ -41,6 +41,9 @@
  *   --reply-chars <n>   assistant reply size, to vary serde/alloc pressure (default 240)
  *   --fail-rate <n>     fraction [0,1) of completions answered 500, to exercise
  *                       the core's retry/error path (default 0)
+ *   --embed-dims <n>    embedding width (default 1024). MUST match what the
+ *                       memory store expects — a mismatch is only a warning,
+ *                       and the run silently stores chunks without vectors.
  */
 
 import http from 'node:http';
