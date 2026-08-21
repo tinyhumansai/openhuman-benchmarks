@@ -181,7 +181,6 @@ pub struct SubagentMock {
 }
 
 impl SubagentMock {
-
     /// K researchers with per-researcher latency drawn from the env knobs, driven
     /// directly against the orchestrator agent (full agent-aware chain).
     pub fn with_width(width: usize) -> Arc<Self> {
