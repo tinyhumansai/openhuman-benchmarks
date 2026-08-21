@@ -367,6 +367,12 @@ The pool is configured in `[runtime_pool]` (master switch + per-language
 `max_queue_depth`); `enabled = false` reverts every caller to the legacy
 per-call spawn.
 
+The workers themselves now live in the `tinyruntime` module rather than in this
+process, so the resident cost this measures has moved with them: a pooled worker
+is still one interpreter child of the host, but it is spawned and supervised
+across the bus. The configuration keys, the backpressure behaviour, and the
+`enabled = false` escape hatch are unchanged.
+
 Watch-items from the sweep: thread count grows ~0.35/agent (needs
 attribution + cap before real 1000-agent runs), and p95 latency at N=500 on
 2 workers shows CPU saturation is the load constraint, not memory.
