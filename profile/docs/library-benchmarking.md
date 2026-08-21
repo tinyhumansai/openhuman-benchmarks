@@ -367,10 +367,11 @@ The pool is configured in `[runtime_pool]` (master switch + per-language
 `max_queue_depth`); `enabled = false` reverts every caller to the legacy
 per-call spawn.
 
-The workers themselves now live in the `tinyruntime` module rather than in this
-process, so the resident cost this measures has moved with them: a pooled worker
-is still one interpreter child of the host, but it is spawned and supervised
-across the bus. The configuration keys, the backpressure behaviour, and the
+The pool itself now lives in the `tinyruntime` module. That does **not** change
+what this scenario measures: a TinyBus module is a `cdylib` loaded into this
+process, so a worker it spawns is still a child of the host and still shows up in
+the process-tree sample the gate asserts on. What changed is which code spawns
+it. The configuration keys, the backpressure behaviour, and the
 `enabled = false` escape hatch are unchanged.
 
 Watch-items from the sweep: thread count grows ~0.35/agent (needs
