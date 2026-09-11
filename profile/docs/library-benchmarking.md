@@ -14,7 +14,7 @@ This document describes the benchmark environment built to measure that: a
 pinned `library-profile` binary with eight scenarios, four driver scripts
 under `scripts/profile/`, and the comparison point the team cares about
 (ZeroClaw). It builds on the manual investigation in
-[`docs/resource-profiling-session-2026-07-21.md`](resource-profiling-session-2026-07-21.md);
+`docs/resource-profiling-session-2026-07-21.md`;
 read that document for the deep memory/CPU attribution work. This document is
 about running repeatable benchmarks, not re-deriving those findings.
 
@@ -140,7 +140,7 @@ visible directly.
 footprint, 3.18 MiB live heap, 18.7 MiB resident executable text, and ~9.4 MiB
 of resident-but-mostly-inactive malloc pages (allocator high-water
 retention). See
-[`docs/resource-profiling-session-2026-07-21.md`](resource-profiling-session-2026-07-21.md#deep-memory-attribution)
+`docs/resource-profiling-session-2026-07-21.md`
 for the full breakdown, the executable-paging finding (a cold turn faults in
 ~15 MiB of previously nonresident OpenHuman code), and the warmed-process
 control showing steady-state turns cost ~0.5-1.9 MiB once warm rather than
@@ -373,6 +373,6 @@ attribution + cap before real 1000-agent runs), and p95 latency at N=500 on
 
 ## See also
 
-- [`docs/resource-profiling-session-2026-07-21.md`](resource-profiling-session-2026-07-21.md) — the full manual investigation (deep attribution, cold-path CPU, library-design implications, recommended optimization order).
+- `docs/resource-profiling-session-2026-07-21.md` — the full manual investigation (deep attribution, cold-path CPU, library-design implications, recommended optimization order).
 - [`scripts/profile/README.md`](../scripts/profile/README.md) — script quick reference.
 - `src/bin/library_profile/main.rs` — the scenario implementations.
