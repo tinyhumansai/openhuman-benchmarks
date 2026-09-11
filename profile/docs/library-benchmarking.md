@@ -98,7 +98,7 @@ Six scripts under `scripts/profile/` (each has `-h`/`--help`):
 
 ### Default vs slim builds
 
-Default-feature builds link every compile-time domain gate (`voice`, `web3`,
+The Product/desktop feature set links every compile-time domain gate (`voice`, `web3`,
 `media`, `meet`, `skills`, `flows`, `mcp`, `tui`) — the byte-identical desktop
 recipe. The slim recipe drops everything not required by the harness:
 
@@ -245,14 +245,9 @@ extrapolation estimate:
 means running the same binary under real `cgroup` memory limits (e.g.
 `docker run --memory=2g`) on a Linux host and observing whether it survives
 or gets OOM-killed at the target instance count — not projecting from local
-sum-RSS. That is follow-up work, and it belongs on a Linux box: this repo's
-own `openhuman-core` Docker build is currently blocked on Apple Silicon (the
-`whisper-rs-sys`/whisper.cpp NEON fp16 intrinsics fail to compile under
-arm64-Linux emulation with GCC 12 — see the umbrella repo's root `CLAUDE.md`
-gotchas and `docs/resource-profiling-session-2026-07-21.md`). The path
-around that blocker is either building for `linux/amd64` under emulation (the
-whisper AVX path has no NEON bug) or running the validation on a native Linux
-host rather than macOS Docker Desktop.
+sum-RSS. That is follow-up work, and it belongs on a Linux box. Run the
+validation on a native Linux host or under a Linux container with the target
+memory limit rather than relying on macOS Docker Desktop.
 
 ## Profiling escalation path
 
