@@ -13,10 +13,10 @@ startup cost, steady-state footprint, and growth curve.
 This document describes the benchmark environment built to measure that: a
 pinned `library-profile` binary with eight scenarios, four driver scripts
 under `scripts/profile/`, and the comparison point the team cares about
-(ZeroClaw). It builds on the manual investigation in
-`docs/resource-profiling-session-2026-07-21.md`;
-read that document for the deep memory/CPU attribution work. This document is
-about running repeatable benchmarks, not re-deriving those findings.
+(ZeroClaw). It builds on an earlier manual investigation into deep memory/CPU
+attribution (removed from the tree; see git history at `0017c58d86~1` for the
+original write-up). This document is about running repeatable benchmarks, not
+re-deriving those findings.
 
 ## The eight scenarios
 
@@ -371,4 +371,4 @@ attribution + cap before real 1000-agent runs), and p95 latency at N=500 on
 
 - `docs/resource-profiling-session-2026-07-21.md` — the full manual investigation (deep attribution, cold-path CPU, library-design implications, recommended optimization order).
 - [`scripts/profile/README.md`](../scripts/profile/README.md) — script quick reference.
-- `src/bin/library_profile/main.rs` — the scenario implementations.
+- `crates/openhuman-core/src/bin/library_profile/main.rs` — the scenario implementations.
