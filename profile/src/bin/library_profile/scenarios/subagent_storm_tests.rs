@@ -1,6 +1,5 @@
 use super::*;
 
-
 #[test]
 fn percentiles_nearest_rank() {
     let v: Vec<u128> = (1..=100).collect();

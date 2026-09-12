@@ -376,7 +376,6 @@ async fn main() -> Result<()> {
     }
 }
 
-
 #[cfg(test)]
 #[path = "rss_bench_tests.rs"]
 mod tests;
