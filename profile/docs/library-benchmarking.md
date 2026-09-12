@@ -11,7 +11,7 @@ subconscious pass, a memory ingest, a bare embed) that each have their own
 startup cost, steady-state footprint, and growth curve.
 
 This document describes the benchmark environment built to measure that: a
-pinned `library-profile` binary with eight scenarios, four driver scripts
+pinned `library-profile` binary with eight scenarios, the driver scripts
 under `scripts/profile/`, and the comparison point the team cares about
 (ZeroClaw). It builds on an earlier manual investigation into deep memory/CPU
 attribution (removed from the tree; see git history at `0017c58d86~1` for the
