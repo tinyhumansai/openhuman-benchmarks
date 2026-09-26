@@ -111,7 +111,7 @@ function parseArgs(argv) {
   }
   if (LOCAL_AI_PORTS.has(opts.port)) {
     throw new Error(
-      `--port ${opts.port} is in the core's LOCAL_AI_PORTS set; the core would ` +
+      `--port ${opts.port} is in the transport's LOCAL_AI_PORTS set; the core would ` +
         `treat this as a local-AI endpoint and not route managed inference here. ` +
         `Pick another port.`,
     );
