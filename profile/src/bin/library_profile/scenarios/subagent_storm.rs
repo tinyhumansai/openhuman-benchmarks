@@ -52,7 +52,7 @@ const DEFAULT_SUBAGENTS: usize = 8;
 /// fans out to K agent_memory workers.
 const STORM_PROMPT: &str = "Research every subsystem in parallel and merge the findings.";
 
-/// Positive identity anchor for a agent_memory *worker* turn — its own
+/// Positive identity anchor for an agent_memory *worker* turn — its own
 /// system prompt (`memory/agent/agent/prompt.md`) names it. Distinguishes a real worker
 /// from the orchestrator turns that also echo every task marker in the fan-out
 /// tool call / result.
