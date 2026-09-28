@@ -294,9 +294,7 @@ impl SubagentMock {
     fn reply_orchestrator_driven(&self, joined: &str) -> ChatResponse {
         // presentation_agent worker: return its finding.
         if self.is_worker_turn(joined) {
-            let i = self
-                .worker_index(joined)
-                .expect("worker turn has a marker");
+            let i = self.worker_index(joined).expect("worker turn has a marker");
             return response(&finding_text(i));
         }
         // Orchestrator: fan out, then merge once every finding is back.
