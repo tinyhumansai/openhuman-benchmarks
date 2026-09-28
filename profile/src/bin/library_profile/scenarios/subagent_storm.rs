@@ -1,6 +1,6 @@
 //! `subagent-storm`: fuzz the *width* of delegation inside ONE core instance.
 //!
-//! One orchestrator turn fans out to **K** parallel `planner` subagents (all
+//! One orchestrator turn fans out to **K** parallel `presentation_agent` subagents (all
 //! in-process tokio tasks, not child processes) via `spawn_parallel_agents`.
 //! K comes from `OPENHUMAN_PROFILE_SUBAGENTS` (default 8; tested up to 32), and
 //! each worker carries per-subagent mock latency drawn from the shared
@@ -14,9 +14,9 @@
 //! machinery is effectively one-shot per process. Once a fan-out's run ledger is
 //! finalized, a second `spawn_parallel_agents` returns an empty result and the
 //! orchestrator just re-calls the tool without re-running the workers. Worse,
-//! merely *constructing* an orchestrator/planner agent beforehand perturbs
+//! merely *constructing* an orchestrator/presentation_agent agent beforehand perturbs
 //! the fan-out the same way. The only shape that reliably executes all K real
-//! planner subagents is a single fan-out as the process's first agent
+//! presentation_agent subagents is a single fan-out as the process's first agent
 //! activity.
 //!
 //! So this scenario measures exactly that: one cold width-K fan-out. `retained_delta_kib`
@@ -30,12 +30,13 @@
 //!
 //! Reported fields: `subagents = K`, `marginal_rss_kib_per_agent` (retained/K,
 //! upper bound), `checkpoints` (baseline → storm-turn-done), and
-//! `turn_latency_ms` (percentiles across the K planner child executions).
-//! The workload asserts all K planner subagents actually executed.
+//! `turn_latency_ms` (percentiles across the K presentation_agent child executions).
+//! The workload asserts all K presentation_agent subagents actually executed.
 //!
-//! The worker is `planner`: read-only, no spawn tools, and in the orchestrator's
-//! `[subagents] allowlist` — the closest surviving fit for the retired
-//! `researcher` archetype this scenario used to fan out to.
+//! The worker is `presentation_agent`: a worker-tier agent with a web tool
+//! surface, no spawn tools, and in the orchestrator's `[subagents] allowlist` —
+//! the closest surviving fit for the retired `researcher` archetype this
+//! scenario used to fan out to.
 
 use anyhow::Result;
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
@@ -48,14 +49,14 @@ use crate::mock::{subagent_marker, SubagentMock};
 const DEFAULT_SUBAGENTS: usize = 8;
 
 /// The orchestrator's top-level task. The mock ignores the wording and always
-/// fans out to K planner workers.
+/// fans out to K presentation_agent workers.
 const STORM_PROMPT: &str = "Research every subsystem in parallel and merge the findings.";
 
-/// Positive identity anchor for a planner *worker* turn — its own system
-/// prompt (`agents/planner/prompt.md`) names it. Distinguishes a real worker
+/// Positive identity anchor for a presentation_agent *worker* turn — its own
+/// system prompt (`agents/presentation_agent/prompt.md`) names it. Distinguishes a real worker
 /// from the orchestrator turns that also echo every task marker in the fan-out
 /// tool call / result.
-const WORKER_IDENTITY: &str = "You are the **Planner** agent";
+const WORKER_IDENTITY: &str = "You are the presentation specialist.";
 
 fn env_usize(key: &str, default: usize) -> usize {
     std::env::var(key)
@@ -105,9 +106,9 @@ pub async fn run() -> Result<ProfileResult> {
     eprintln!("[library-profile] subagent-storm: width={width} — single cold width-K fan-out");
 
     // We drive the `orchestrator` agent directly: it owns `spawn_parallel_agents`
-    // and allows the `planner` subagent (the chat-tier subconscious has
+    // and allows the `presentation_agent` subagent (the chat-tier subconscious has
     // neither, and would reject the fan-out). One orchestrator turn fans out to
-    // K real planner subagents via the parallel graph. This fan-out MUST be
+    // K real presentation_agent subagents via the parallel graph. This fan-out MUST be
     // the process's first agent activity — see the module docs for why prewarming
     // is not possible here.
     let config = fixture.config.clone();
@@ -118,9 +119,9 @@ pub async fn run() -> Result<ProfileResult> {
         let reply = agent.run_single(STORM_PROMPT).await?;
         rec.checkpoint("storm-turn-done")?;
         anyhow::ensure!(!reply.trim().is_empty(), "empty storm-turn response");
-        // Every one of the K planner subagents must have actually executed as
+        // Every one of the K presentation_agent subagents must have actually executed as
         // its own worker turn: for each i there must be a prompt that carries the
-        // planner identity anchor AND that worker's task marker — not
+        // presentation_agent identity anchor AND that worker's task marker — not
         // merely an orchestrator turn echoing every marker in the fan-out call.
         let prompts = mock_for_workload.prompts.lock().expect("mock prompt lock");
         for i in 1..=width {
@@ -128,7 +129,7 @@ pub async fn run() -> Result<ProfileResult> {
                 prompts
                     .iter()
                     .any(|p| p.contains(WORKER_IDENTITY) && p.contains(&subagent_marker(i))),
-                "planner subagent {i}/{width} never executed as its own worker turn"
+                "presentation_agent subagent {i}/{width} never executed as its own worker turn"
             );
         }
         Ok(())
