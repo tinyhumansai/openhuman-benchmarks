@@ -141,21 +141,21 @@ pub async fn run() -> Result<ProfileResult> {
     let config = fixture.config.clone();
     let mut result = measure_with_tree("skill-run", concurrency, None, move |rec| async move {
         rec.checkpoint("turn-start")?;
-        // Drive K code_executor turns concurrently. `join_all` gives real
+        // Drive K orchestrator turns concurrently. `join_all` gives real
         // process-level parallelism (each node_exec awaits its own child /
         // pooled job) without requiring the agent future to be `Send`.
         let futures = (0..concurrency).map(|idx| {
             let config = config.clone();
             async move {
                 let mut agent = OpenHumanSessionHost::from_config_for_agent(&config, CODE_AGENT)
-                    .with_context(|| format!("building code_executor agent #{idx}"))?;
+                    .with_context(|| format!("building {CODE_AGENT} agent #{idx}"))?;
                 let reply = agent
                     .run_single(
                         "Run a short JavaScript computation with node_exec and report the JSON it prints.",
                     )
                     .await
-                    .with_context(|| format!("code_executor turn #{idx}"))?;
-                anyhow::ensure!(!reply.trim().is_empty(), "empty code_executor reply #{idx}");
+                    .with_context(|| format!("{CODE_AGENT} turn #{idx}"))?;
+                anyhow::ensure!(!reply.trim().is_empty(), "empty {CODE_AGENT} reply #{idx}");
                 Ok::<(), anyhow::Error>(())
             }
         });
