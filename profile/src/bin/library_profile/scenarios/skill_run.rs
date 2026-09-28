@@ -4,19 +4,17 @@
 //!
 //! ## What it actually runs
 //!
-//! A skill run's orchestrator (`spawn_workflow_run_background` → the
-//! `orchestrator` agent) deliberately owns **no** `node_exec` tool: the
-//! chat-tier orchestrator never executes code itself, it delegates every code
-//! step to the `code_executor` specialist (the only builtin whose allow-list
-//! carries `node_exec` / `npm_exec`). So the agent that genuinely spawns the
-//! language runtime *is* `code_executor`. This scenario drives that specialist
-//! directly — one turn, one scripted `node_exec` call — which is the real
-//! node-executing path, not a bare `std::process` spawn.
+//! The orchestrator carries `node_exec` as a `Deferred` tool: off the wire,
+//! found through `tool_search` (or skill `coding`), and callable by name once
+//! found. There is no separate code-executing specialist any more, so the
+//! agent that genuinely spawns the language runtime *is* the orchestrator. This
+//! scenario drives it directly — one turn, one scripted `node_exec` call —
+//! which is the real node-executing path, not a bare `std::process` spawn.
 //!
 //! ## Concurrency knob (K parallel skill runs)
 //!
 //! `OPENHUMAN_PROFILE_SKILL_RUN_CONCURRENCY=K` (default 1) drives **K**
-//! `code_executor` turns in parallel, each emitting its own `node_exec` call.
+//! orchestrator turns in parallel, each emitting its own `node_exec` call.
 //! The point of #5106: with the runtime pool **on**, K concurrent skill runs
 //! share a small bounded set of warm `node` workers, so the process tree grows
 //! by ~one pooled worker — **not** K interpreters. This scenario asserts that
@@ -50,8 +48,9 @@ use openhuman_core::security::AutonomyLevel;
 use crate::harness::{fixture, measure_with_tree, EnvGuard, ProfileResult};
 use crate::mock::SkillRunMock;
 
-/// The specialist agent that owns `node_exec` and spawns the runtime child.
-const CODE_AGENT: &str = "code_executor";
+/// The agent that reaches `node_exec` (a `Deferred` tool) and spawns the
+/// runtime child.
+const CODE_AGENT: &str = "orchestrator";
 
 /// Probe for a usable system `node`. Returns its version on success; on failure
 /// prints a clear `[library-profile]` stderr error and returns `Err` (which
