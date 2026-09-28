@@ -1,9 +1,9 @@
 //! `subagent-storm`: fuzz the *width* of delegation inside ONE core instance.
 //!
-//! One orchestrator turn fans out to **K** parallel researcher subagents (all
+//! One orchestrator turn fans out to **K** parallel `planner` subagents (all
 //! in-process tokio tasks, not child processes) via `spawn_parallel_agents`.
 //! K comes from `OPENHUMAN_PROFILE_SUBAGENTS` (default 8; tested up to 32), and
-//! each researcher carries per-subagent mock latency drawn from the shared
+//! each worker carries per-subagent mock latency drawn from the shared
 //! `OPENHUMAN_PROFILE_MOCK_LATENCY_MS` / `_JITTER_MS` knobs.
 //!
 //! ## Measurement shape (and a hard constraint we hit)
@@ -14,9 +14,9 @@
 //! machinery is effectively one-shot per process. Once a fan-out's run ledger is
 //! finalized, a second `spawn_parallel_agents` returns an empty result and the
 //! orchestrator just re-calls the tool without re-running the workers. Worse,
-//! merely *constructing* an orchestrator/researcher agent beforehand perturbs
+//! merely *constructing* an orchestrator/planner agent beforehand perturbs
 //! the fan-out the same way. The only shape that reliably executes all K real
-//! researcher subagents is a single fan-out as the process's first agent
+//! planner subagents is a single fan-out as the process's first agent
 //! activity.
 //!
 //! So this scenario measures exactly that: one cold width-K fan-out. `retained_delta_kib`
@@ -30,8 +30,12 @@
 //!
 //! Reported fields: `subagents = K`, `marginal_rss_kib_per_agent` (retained/K,
 //! upper bound), `checkpoints` (baseline → storm-turn-done), and
-//! `turn_latency_ms` (percentiles across the K researcher child executions).
-//! The workload asserts all K researcher subagents actually executed.
+//! `turn_latency_ms` (percentiles across the K planner child executions).
+//! The workload asserts all K planner subagents actually executed.
+//!
+//! The worker is `planner`: read-only, no spawn tools, and in the orchestrator's
+//! `[subagents] allowlist` — the closest surviving fit for the retired
+//! `researcher` archetype this scenario used to fan out to.
 
 use anyhow::Result;
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
@@ -44,13 +48,14 @@ use crate::mock::{subagent_marker, SubagentMock};
 const DEFAULT_SUBAGENTS: usize = 8;
 
 /// The orchestrator's top-level task. The mock ignores the wording and always
-/// fans out to K researchers.
+/// fans out to K planner workers.
 const STORM_PROMPT: &str = "Research every subsystem in parallel and merge the findings.";
 
-/// Positive identity anchor for a researcher *worker* turn — its own system
-/// prompt names it. Distinguishes a real worker from the orchestrator turns that
-/// also echo every task marker in the fan-out tool call / result.
-const RESEARCHER_IDENTITY: &str = "You are the **Researcher** agent";
+/// Positive identity anchor for a planner *worker* turn — its own system
+/// prompt (`agents/planner/prompt.md`) names it. Distinguishes a real worker
+/// from the orchestrator turns that also echo every task marker in the fan-out
+/// tool call / result.
+const WORKER_IDENTITY: &str = "You are the **Planner** agent";
 
 fn env_usize(key: &str, default: usize) -> usize {
     std::env::var(key)
@@ -100,9 +105,9 @@ pub async fn run() -> Result<ProfileResult> {
     eprintln!("[library-profile] subagent-storm: width={width} — single cold width-K fan-out");
 
     // We drive the `orchestrator` agent directly: it owns `spawn_parallel_agents`
-    // and allows the `researcher` subagent (the chat-tier subconscious has
+    // and allows the `planner` subagent (the chat-tier subconscious has
     // neither, and would reject the fan-out). One orchestrator turn fans out to
-    // K real researcher subagents via the parallel graph. This fan-out MUST be
+    // K real planner subagents via the parallel graph. This fan-out MUST be
     // the process's first agent activity — see the module docs for why prewarming
     // is not possible here.
     let config = fixture.config.clone();
@@ -113,17 +118,17 @@ pub async fn run() -> Result<ProfileResult> {
         let reply = agent.run_single(STORM_PROMPT).await?;
         rec.checkpoint("storm-turn-done")?;
         anyhow::ensure!(!reply.trim().is_empty(), "empty storm-turn response");
-        // Every one of the K researcher subagents must have actually executed as
+        // Every one of the K planner subagents must have actually executed as
         // its own worker turn: for each i there must be a prompt that carries the
-        // researcher identity anchor AND that researcher's task marker — not
+        // planner identity anchor AND that worker's task marker — not
         // merely an orchestrator turn echoing every marker in the fan-out call.
         let prompts = mock_for_workload.prompts.lock().expect("mock prompt lock");
         for i in 1..=width {
             anyhow::ensure!(
                 prompts
                     .iter()
-                    .any(|p| p.contains(RESEARCHER_IDENTITY) && p.contains(&subagent_marker(i))),
-                "researcher subagent {i}/{width} never executed as its own worker turn"
+                    .any(|p| p.contains(WORKER_IDENTITY) && p.contains(&subagent_marker(i))),
+                "planner subagent {i}/{width} never executed as its own worker turn"
             );
         }
         Ok(())
@@ -139,13 +144,13 @@ pub async fn run() -> Result<ProfileResult> {
         None
     };
     let latencies = mock
-        .researcher_latencies_ms
+        .worker_latencies_ms
         .lock()
         .expect("mock latency lock")
         .clone();
     eprintln!(
         "[library-profile] subagent-storm: width={width} retained_delta_kib={} \
-         marginal_rss_kib_per_agent={:?} researcher_executions={}",
+         marginal_rss_kib_per_agent={:?} worker_executions={}",
         result.retained_delta_kib,
         marginal,
         latencies.len()
