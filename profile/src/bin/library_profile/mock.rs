@@ -31,6 +31,7 @@ fn joined_request(request: &ModelRequest) -> String {
                 Message::User(_) => "user",
                 Message::Assistant(_) => "assistant",
                 Message::Tool(_) => "tool",
+                Message::Custom(_) => "custom",
             };
             format!("{role}: {}", message.text())
         })
@@ -62,6 +63,7 @@ fn model_response(response: ChatResponse) -> ModelResponse {
             content,
             tool_calls,
             usage: None,
+            origin: None,
         },
         usage: None,
         raw: None,
