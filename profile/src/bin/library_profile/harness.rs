@@ -114,7 +114,7 @@ pub struct ProfileResult {
     pub budget: Option<FleetBudget>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkpoints: Option<Vec<Checkpoint>>,
-    /// (`subagent-storm`) K parallel researcher subagents fanned out in the turn.
+    /// (`subagent-storm`) K parallel `planner` subagents fanned out in the turn.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subagents: Option<usize>,
     /// (`skill-run`) process-tree RSS including interpreter child processes.

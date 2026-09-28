@@ -10,7 +10,7 @@
 //! - `workflow`      — a real flows trigger->transform->agent graph, end to end.
 //! - `fleet`         — N live agents: marginal RSS, idle CPU, fd/thread growth, turn latency.
 //! - `skill-run`     — a skill step executing on a real `node` child: process-tree RSS.
-//! - `subagent-storm`— K parallel researcher subagents in one instance: marginal RSS per subagent.
+//! - `subagent-storm`— K parallel `planner` subagents in one instance: marginal RSS per subagent.
 //!
 //! `memory-ingest` and `cold-phases` were removed with the in-process memory
 //! engine (openhuman#6161); see `scenarios/mod.rs`.

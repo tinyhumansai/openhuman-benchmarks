@@ -28,7 +28,7 @@ pub async fn run() -> Result<ProfileResult> {
             { "id": "prep", "kind": "transform", "name": "Prep",
               "config": { "set": { "topic": "Phoenix migration" } } },
             { "id": "summarize", "kind": "agent", "name": "Summarize",
-              "config": { "agent_ref": "researcher",
+              "config": { "agent_ref": "planner",
                           "prompt": "Summarise the Phoenix migration status in one line." } }
         ],
         "edges": [
