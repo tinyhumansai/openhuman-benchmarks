@@ -33,11 +33,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # The scenarios `library-profile` actually dispatches — keep in sync with
 # `crates/openhuman-cli/src/bin/library_profile/scenarios/mod.rs`, which is the source of truth.
 #
-# This list had drifted before openhuman#6161 touched it: `subagents` and
-# `subconscious` are named here and neither has been a scenario for some time
-# (the subconscious domain was removed from the product outright). `dispatch`
-# answers "unknown scenario: …" for those, so a full sweep exited non-zero on
-# two entries that could never run. `memory-ingest` and `cold-phases` leave now
+# This list had drifted before openhuman#6161 touched it: it named two
+# scenarios that had not existed for some time. `dispatch` answers "unknown
+# scenario: …" for those, so a full sweep exited non-zero on two entries that
+# could never run. `memory-ingest` and `cold-phases` leave now
 # for a different reason: both measured the in-process memory engine, which
 # this binary no longer links.
 ALL_SCENARIOS="agent-turn,long-agent,workflow,fleet,skill-run,subagent-storm"
