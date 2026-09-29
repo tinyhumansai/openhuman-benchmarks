@@ -106,8 +106,7 @@ pub async fn run() -> Result<ProfileResult> {
     eprintln!("[library-profile] subagent-storm: width={width} — single cold width-K fan-out");
 
     // We drive the `orchestrator` agent directly: it owns `spawn_parallel_agents`
-    // and allows the `agent_memory` subagent (the chat-tier subconscious has
-    // neither, and would reject the fan-out). One orchestrator turn fans out to
+    // and allows the `agent_memory` subagent. One orchestrator turn fans out to
     // K real agent_memory subagents via the parallel graph. This fan-out MUST be
     // the process's first agent activity — see the module docs for why prewarming
     // is not possible here.
