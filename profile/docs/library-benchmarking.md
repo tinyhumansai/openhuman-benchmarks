@@ -20,7 +20,11 @@ re-deriving those findings.
 
 ## The seven scenarios
 
-All scenarios run in `target/release/library-profile <scenario>`, replace
+The default `library-bench.sh` sweep runs the six scenarios currently linked
+into the binary. `memory-ingest` and `cold-phases` remain documented workload
+designs, but are excluded because the binary no longer links the in-process
+memory engine they measured. All runnable scenarios run in
+`target/release/library-profile <scenario>`, replace
 network inference with a deterministic provider (`rss-bench` feature), and
 print one pretty-printed JSON result object to stdout (diagnostics go to
 stderr). Each models a distinct embedding use case:
