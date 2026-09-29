@@ -215,7 +215,7 @@ call 15 because they spent rounds on Cause 1.
 
 `turn_run_finalize.rs:210` computes `hit_cap`, and it does reach some consumers
 — `flows/ops/builder.rs:336` reads `last_turn_hit_cap`. But `grep hit_cap` over
-`web_chat/` returns nothing, and `TurnUsagePayload` (`core/socketio.rs:353`)
+`web_chat/` returns nothing, and `TurnUsagePayload` (`openhuman-rpc/src/server/socketio.rs:353`)
 carries `input_tokens`, `output_tokens`, `cached_input_tokens`, `cost_usd`,
 `context_window`, `subagents` — and no cap flag.
 

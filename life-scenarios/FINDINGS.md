@@ -232,7 +232,7 @@ do.
 
 **Still open:** the other half of this finding — **the caller cannot tell.** `turn_run_finalize.rs:210` computes `hit_cap` and
 `flows/ops/builder.rs:336` consumes it, but `grep hit_cap` over `web_chat/`
-finds nothing and `TurnUsagePayload` (`core/socketio.rs:353`) has no cap field.
+finds nothing and `TurnUsagePayload` (`openhuman-rpc/src/server/socketio.rs:353`) has no cap field.
 On the path the desktop app uses, a truncated turn arrives as an ordinary
 `chat_done` — indistinguishable from a complete answer except by reading the
 prose.
