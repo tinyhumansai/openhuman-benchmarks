@@ -206,8 +206,7 @@ impl SubagentMock {
     /// every marker). The memory agent's system
     /// prompt names it a memory retrieval specialist, so it matches neither header.
     fn is_worker_turn(&self, joined: &str) -> bool {
-        self.worker_index(joined).is_some()
-            && !joined.contains("Agent: orchestrator")
+        self.worker_index(joined).is_some() && !joined.contains("Agent: orchestrator")
     }
 
     /// Build the fan-out tool call delegating to K parallel `agent_memory` workers. Only
