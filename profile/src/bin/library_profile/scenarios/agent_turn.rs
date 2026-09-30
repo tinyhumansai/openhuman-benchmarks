@@ -21,7 +21,7 @@ pub async fn run() -> Result<ProfileResult> {
 
     measure("agent-turn", 1, None, |_rec| async {
         let mut agent =
-            OpenHumanSessionHost::from_config_for_agent(&fixture.config, "subconscious")?;
+            OpenHumanSessionHost::from_config_for_agent(&fixture.config, "orchestrator")?;
         let reply = agent
             .run_single("Give me a one-line status on the Phoenix migration.")
             .await?;

@@ -606,7 +606,7 @@ class ApprovalResponder {
 /**
  * `openhuman.cost_get_usage_log` returns one row per provider call. Diffing
  * row ids across a turn is exact where a timestamp window would not be: the
- * background services (memory, learning, heartbeat) bill against the same log
+ * background services (memory, learning) bill against the same log
  * while a turn runs, and a window would sweep them in.
  */
 async function usageIds(core) {

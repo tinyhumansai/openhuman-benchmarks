@@ -347,14 +347,16 @@ fn jev_ranker(
 /// catalogue cache in the scratch workspace so repeated runs embed only the
 /// intents.
 fn embedding_retriever() -> Arc<dyn ToolRanker> {
-    use openhuman_core::agent::tinyagents::discovery::EmbeddingToolRanker;
+    use openhuman_core::agent::tinyagents::discovery::{
+        embedding_provider_is_usable, embedding_tool_ranker,
+    };
     let config = tokio::task::block_in_place(|| {
         tokio::runtime::Handle::current().block_on(openhuman_core::config::Config::load_or_init())
     })
     .expect("load config for the embedding provider");
     let provider =
         openhuman_core::inference::embedding_host::default_embedding_provider_with_config(&config);
-    if !EmbeddingToolRanker::provider_is_usable(provider.as_ref()) {
+    if !embedding_provider_is_usable(provider.as_ref()) {
         eprintln!(
             "embedding: provider `{}` cannot embed; the bench retriever stays bm25",
             provider.name()
@@ -363,7 +365,7 @@ fn embedding_retriever() -> Arc<dyn ToolRanker> {
     }
     eprintln!("embedding: {} / {}", provider.name(), provider.model_id());
     Arc::new(
-        EmbeddingToolRanker::new(provider).with_disk_cache(
+        embedding_tool_ranker(provider).with_disk_cache(
             repo_root()
                 .join("target")
                 .join("tool_search_bench_embeddings.json"),
