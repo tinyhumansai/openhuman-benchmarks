@@ -17,9 +17,10 @@ import subprocess
 
 from datasets import load_dataset
 
-DATASET = "princeton-nlp/SWE-bench_Verified"
+# The SWE-bench org copy carries the `image` column the 5.x evaluator needs.
+DATASET = "SWE-bench/SWE-bench_Verified"
 # Pin so "the same 10 tasks" stays true if the dataset is later edited.
-REVISION = "c104f840cc67f8b6eec6f759ebc8b2693d585d4a"  # pinned dataset commit
+REVISION = "78f471bf655a3137b2e8a75af1501690ec009ec3"  # pinned dataset commit
 
 # Identical for every harness. No hints about tests or the harness's own tools.
 WRAPPER = """You are working in a git checkout of the repository at {workdir}. Resolve the following issue by editing the source code in place.
@@ -60,7 +61,7 @@ def main() -> None:
             WRAPPER.format(workdir="/testbed", problem_statement=row["problem_statement"].strip())
         )
         tasks.append(
-            {"id": row["instance_id"], "image": image_for(row["instance_id"]), "workdir": "/testbed", "dir": str(d)}
+            {"id": row["instance_id"], "image": row["image"], "workdir": "/testbed", "dir": str(d)}
         )
     (out / "tasks.json").write_text(json.dumps(tasks, indent=2))
 

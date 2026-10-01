@@ -38,7 +38,7 @@ const r = spawnSync(
   py,
   [
     "-m", "swebench.harness.run_evaluation",
-    "--dataset_name", "princeton-nlp/SWE-bench_Verified",
+    "--dataset_name", "SWE-bench/SWE-bench_Verified",
     "--predictions_path", predPath,
     "--max_workers", workers,
     "--run_id", `${runId}-${harness}`,
