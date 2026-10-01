@@ -19,7 +19,7 @@ from datasets import load_dataset
 
 DATASET = "princeton-nlp/SWE-bench_Verified"
 # Pin so "the same 10 tasks" stays true if the dataset is later edited.
-REVISION = None  # set by --revision; recorded in instances-<n>.txt header
+REVISION = "c104f840cc67f8b6eec6f759ebc8b2693d585d4a"  # pinned dataset commit
 
 # Identical for every harness. No hints about tests or the harness's own tools.
 WRAPPER = """You are working in a git checkout of the repository at {workdir}. Resolve the following issue by editing the source code in place.
@@ -42,7 +42,7 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=10)
     ap.add_argument("--seed", type=int, default=20261001)
     ap.add_argument("--out", default="tasks/generated/swe")
-    ap.add_argument("--revision", default=None)
+    ap.add_argument("--revision", default=REVISION)
     ap.add_argument("--pull", action="store_true")
     args = ap.parse_args()
 
