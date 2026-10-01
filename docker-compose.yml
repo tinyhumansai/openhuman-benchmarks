@@ -41,7 +41,7 @@ services:
   # never has to know which harness is running.
   task:
     profiles: ["task"]
-      image: ${TASK_IMAGE:-unset}
+    image: ${TASK_IMAGE:-unset}
     entrypoint: ["/opt/harness/node/bin/node", "/opt/bench/runner/entry.mjs"]
     cpus: ${BENCH_CPUS:-4}
     mem_limit: ${BENCH_MEM:-8g}
