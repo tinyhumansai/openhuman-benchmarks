@@ -1,0 +1,11 @@
+# princeton-nlp/SWE-bench_Verified revision=default seed=20261001
+django__django-13569
+django__django-14672
+django__django-15277
+django__django-15572
+matplotlib__matplotlib-24570
+psf__requests-5414
+pylint-dev__pylint-4970
+scikit-learn__scikit-learn-14141
+sympy__sympy-13031
+sympy__sympy-16766
