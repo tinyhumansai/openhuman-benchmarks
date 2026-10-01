@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { aggregate, percentile, toMarkdown } from "./report.mjs";
+
+const call = (over) => ({
+  harness: "h", task: "t1", status: 200, at: "2026-01-01T00:00:01.000Z",
+  prompt_tokens: 1000, cached_tokens: 500, completion_tokens: 10,
+  cost_usd: 0.001, first_token_ms: 100, total_ms: 300, ...over,
+});
+
+test("percentile picks nearest-rank and ignores non-numbers", () => {
+  assert.equal(percentile([10, 20, 30, 40], 50), 20);
+  assert.equal(percentile([null, 5], 95), 5);
+  assert.equal(percentile([], 50), null);
+});
+
+test("aggregate computes cache %, cost per resolved, cold start and resources", () => {
+  const meter = [
+    call({ system_prompt_tokens: 1200, tool_schema_tokens: 800, tool_count: 12 }),
+    call({ cached_tokens: 900 }),
+  ];
+  const tasks = [
+    {
+      harness: "h", task_key: "t1", task: "t1",
+      result: {
+        started_epoch_ms: Date.parse("2026-01-01T00:00:00.000Z"),
+        wall_ms: 5000, exit_code: 0, timed_out: false, patch_bytes: 10,
+        resources: { cpu_seconds: 2, avg_cpu_cores: 0.5, peak_mem_bytes: 2 * 1048576, avg_mem_bytes: 1048576 },
+        check: { passed: true },
+      },
+      grade: { resolved: true },
+    },
+  ];
+  const s = aggregate(meter, tasks).h;
+  assert.equal(s.cache_pct, (100 * 1400) / 2000);
+  assert.equal(s.cost_per_resolved_usd, 0.002);
+  assert.equal(s.cold_start_ms_p50, 1000);
+  assert.equal(s.system_prompt_tokens, 1200);
+  assert.equal(s.tool_count, 12);
+  assert.equal(s.peak_mem_mb_max, 2);
+  assert.equal(s.swe_resolved, 1);
+  assert.equal(s.harness_errors, 0);
+});
+
+test("a task with no result counts as a harness error, and unpriced calls are surfaced", () => {
+  const s = aggregate([call({ cost_usd: null })], [
+    { harness: "h", task_key: "t1", task: "t1", result: null, grade: null },
+  ]).h;
+  assert.equal(s.harness_errors, 1);
+  assert.equal(s.cost_unpriced_calls, 1);
+  assert.equal(s.cost_per_resolved_usd, null);
+});
+
+test("toMarkdown renders one column per harness", () => {
+  const md = toMarkdown(
+    { run_id: "r", suite: "micro", model: "m", reasoning: "medium", cpus: "4", mem: "8g" },
+    { a: aggregate([], [{ harness: "a", task_key: "t", task: "t", result: null, grade: null }]).a },
+  );
+  assert.match(md, /\| metric \| a \|/);
+});
