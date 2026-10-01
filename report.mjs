@@ -147,6 +147,26 @@ export function toMarkdown(meta, summary) {
   ].join("\n");
 }
 
+/**
+ * A task re-run under the same run id (after fixing a driver bug, say) appends a
+ * second index row and a second set of proxy records. Keep only the newest
+ * attempt per (harness, task) so nothing is double counted.
+ */
+export function latestAttempts(index, meter) {
+  const newest = new Map();
+  for (const row of index) {
+    const key = `${row.harness}/${row.task_key}`;
+    if (!newest.has(key) || row.started_epoch_ms > newest.get(key).started_epoch_ms) newest.set(key, row);
+  }
+  return {
+    index: [...newest.values()],
+    meter: meter.filter((r) => {
+      const row = newest.get(`${r.harness}/${r.task}`);
+      return !row || Date.parse(r.at) >= row.started_epoch_ms;
+    }),
+  };
+}
+
 function readJsonl(file) {
   if (!fs.existsSync(file)) return [];
   return fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
@@ -157,8 +177,10 @@ function main() {
   const runId = args[args.indexOf("--run-id") + 1];
   if (!runId) throw new Error("--run-id is required");
   const runDir = path.join(here, "results", runId);
-  const index = readJsonl(path.join(runDir, "runs.jsonl"));
-  const meter = readJsonl(path.join(here, "results", "meter.jsonl")).filter((r) => r.run_id === runId);
+  const { index, meter } = latestAttempts(
+    readJsonl(path.join(runDir, "runs.jsonl")),
+    readJsonl(path.join(here, "results", "meter.jsonl")).filter((r) => r.run_id === runId),
+  );
 
   const tasks = index.map((row) => {
     const dir = path.join(runDir, row.harness, row.task_key);

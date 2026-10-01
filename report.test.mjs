@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { aggregate, percentile, toMarkdown } from "./report.mjs";
+import { aggregate, latestAttempts, percentile, toMarkdown } from "./report.mjs";
 
 const call = (over) => ({
   harness: "h", task: "t1", status: 200, at: "2026-01-01T00:00:01.000Z",
@@ -57,4 +57,19 @@ test("toMarkdown renders one column per harness", () => {
     { a: aggregate([], [{ harness: "a", task_key: "t", task: "t", result: null, grade: null }]).a },
   );
   assert.match(md, /\| metric \| a \|/);
+});
+
+test("latestAttempts keeps only the newest attempt's index row and proxy records", () => {
+  const index = [
+    { harness: "h", task_key: "t", started_epoch_ms: 1000 },
+    { harness: "h", task_key: "t", started_epoch_ms: 5000 },
+  ];
+  const meter = [
+    { harness: "h", task: "t", at: new Date(2000).toISOString() },
+    { harness: "h", task: "t", at: new Date(6000).toISOString() },
+  ];
+  const out = latestAttempts(index, meter);
+  assert.equal(out.index.length, 1);
+  assert.equal(out.index[0].started_epoch_ms, 5000);
+  assert.equal(out.meter.length, 1);
 });
