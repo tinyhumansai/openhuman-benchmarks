@@ -12,7 +12,7 @@ cat > "$HOME/openclaw.json5" <<JSON
         baseUrl: "$PROXY_URL/v1",
         apiKey: "$DUMMY_API_KEY",
         api: "openai-completions",
-        models: [{ id: "$BENCH_MODEL", name: "bench" }]
+        models: [{ id: "$BENCH_MODEL", name: "bench", reasoning: true, compat: { supportedReasoningEfforts: ["minimal", "low", "medium", "high"] } }]
       }
     }
   }
