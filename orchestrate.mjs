@@ -76,6 +76,7 @@ async function main() {
     if (b.status !== 0) throw new Error("building bench-micro failed");
   }
 
+  fs.mkdirSync(path.join(here, "results"), { recursive: true });
   const up = sh("docker", ["compose", "up", "-d", "--build", "--wait", "meter-proxy"], { stdio: "inherit" });
   if (up.status !== 0) throw new Error("meter-proxy failed to start");
   const port = process.env.METER_HOST_PORT || "18080";
