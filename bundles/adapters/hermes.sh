@@ -2,7 +2,7 @@
 . "$(dirname "$0")/_common.sh"
 # The installer put Python, Node and hermes under /opt/harness/home (read-only
 # mount); give it a writable copy. This copy is part of hermes's measured cold start.
-cp -a /opt/harness/home/. "$HOME/"
+cp -a /opt/harness/home/. "$HOME/"   # same absolute path the installer used
 export PATH="$HOME/.local/bin:$PATH"
 export HERMES_HOME="$HOME/.hermes"
 mkdir -p "$HERMES_HOME"

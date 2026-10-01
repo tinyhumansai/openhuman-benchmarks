@@ -39,12 +39,15 @@ ARG OPENCLAW_VERSION
 RUN npm install -g --prefix /opt/harness/openclaw --no-audit --no-fund openclaw@${OPENCLAW_VERSION}
 COPY adapters/openclaw.sh /opt/harness/adapter.sh
 
-# Hermes ships its own installer, which stages Python and Node. Point HOME at
-# the bundle so everything it installs lands under /opt/harness; the adapter
-# copies that tree to a writable HOME at run time (counted in its cold start).
+# Hermes ships its own installer, which stages Python and Node and records
+# absolute paths. It must therefore be installed at the exact path it will run
+# from: install under /tmp/bench-home (the HOME every adapter uses), stash the
+# tree in the bundle, and have the adapter copy it back to /tmp/bench-home. The
+# copy is part of hermes's measured cold start.
 FROM base AS hermes
 ARG HERMES_VERSION
-ENV HOME=/opt/harness/home
+ENV HOME=/tmp/bench-home
 RUN mkdir -p "$HOME" && curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash \
-    && (/opt/harness/home/.local/bin/hermes --version || true)
+    && (/tmp/bench-home/.local/bin/hermes --version || true) \
+    && mv /tmp/bench-home /opt/harness/home
 COPY adapters/hermes.sh /opt/harness/adapter.sh

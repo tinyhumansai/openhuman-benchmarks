@@ -87,6 +87,10 @@ export function aggregate(meter, tasks) {
       cold_start_ms_p50: percentile(coldStart, 50),
       cpu_seconds_mean: mean(mine.map((t) => t.result?.resources?.cpu_seconds)),
       avg_cpu_cores_mean: mean(mine.map((t) => t.result?.resources?.avg_cpu_cores)),
+      peak_anon_mb_max: (() => {
+        const v = mine.map((t) => t.result?.resources?.peak_anon_bytes).filter((x) => typeof x === "number");
+        return v.length ? Math.max(...v) / 1048576 : null;
+      })(),
       peak_mem_mb_max: (() => {
         const v = mine.map((t) => t.result?.resources?.peak_mem_bytes).filter((x) => typeof x === "number");
         return v.length ? Math.max(...v) / 1048576 : null;
@@ -122,7 +126,8 @@ export function toMarkdown(meta, summary) {
     ["cold start to first call p50 (ms)", (s) => f(s.cold_start_ms_p50)],
     ["CPU-seconds / task", (s) => f(s.cpu_seconds_mean, 1)],
     ["avg CPU cores", (s) => f(s.avg_cpu_cores_mean, 2)],
-    ["peak RAM max (MB)", (s) => f(s.peak_mem_mb_max)],
+    ["peak RAM, process memory (MB)", (s) => f(s.peak_anon_mb_max)],
+    ["peak RAM incl. page cache (MB)", (s) => f(s.peak_mem_mb_max)],
     ["avg RAM (MB)", (s) => f(s.avg_mem_mb_mean)],
     ["LLM calls (errors)", (s) => `${s.llm_calls} (${s.llm_call_errors})`],
     ["prompt / completion tokens", (s) => `${s.prompt_tokens} / ${s.completion_tokens}`],
@@ -137,7 +142,7 @@ export function toMarkdown(meta, summary) {
     head,
     body,
     "",
-    "Small samples: treat differences as indicative, not a ranking. CPU/RAM are cgroup-wide per container (memory includes page cache). Cache % = cached / prompt tokens across all calls.",
+    "Small samples: treat differences as indicative, not a ranking. CPU/RAM are cgroup-wide per container; process memory is the cgroup's anon bytes (2 Hz poll), the page-cache figure is the kernel high-water mark. Cache % = cached / prompt tokens across all calls.",
     "",
   ].join("\n");
 }

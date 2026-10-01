@@ -17,6 +17,17 @@ function readNumber(file) {
   }
 }
 
+/** Anonymous (process-owned) memory: what a harness's own RSS adds up to, without page cache. */
+function readAnonBytes() {
+  try {
+    const text = fs.readFileSync(`${ROOT}/memory.stat`, "utf8");
+    const m = text.match(/^anon\s+(\d+)/m);
+    return m ? Number(m[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
 function readCpuUsec() {
   try {
     const text = fs.readFileSync(`${ROOT}/cpu.stat`, "utf8");
@@ -34,6 +45,7 @@ export function readSample(now = Date.now()) {
     cpu_usec: readCpuUsec(),
     mem_bytes: readNumber("memory.current"),
     mem_peak_bytes: readNumber("memory.peak"),
+    anon_bytes: readAnonBytes(),
   };
 }
 
@@ -71,6 +83,7 @@ export function summarize(samples) {
     ...samples.map((s) => s.mem_peak_bytes).filter((v) => v !== null),
   );
   const polledPeak = mems.length ? Math.max(...mems) : 0;
+  const anons = samples.map((s) => s.anon_bytes).filter((v) => v != null);
   const wallSeconds = (last.epoch_ms - first.epoch_ms) / 1000;
   const cpuSeconds = (last.cpu_usec - first.cpu_usec) / 1e6;
   return {
@@ -78,6 +91,9 @@ export function summarize(samples) {
     // 1.0 == one fully busy vCPU for the whole window
     avg_cpu_cores: wallSeconds > 0 ? cpuSeconds / wallSeconds : null,
     peak_mem_bytes: Math.max(kernelPeak, polledPeak) || null,
+    // anon excludes page cache (file reads, copies), so it is the fairer "RAM the harness used"
+    peak_anon_bytes: anons.length ? Math.max(...anons) : null,
+    avg_anon_bytes: anons.length ? anons.reduce((a, b) => a + b, 0) / anons.length : null,
     avg_mem_bytes: mems.length ? mems.reduce((a, b) => a + b, 0) / mems.length : null,
     wall_seconds: wallSeconds,
     samples: samples.length,
