@@ -42,8 +42,7 @@ const r = spawnSync(
     "--predictions_path", predPath,
     "--max_workers", workers,
     "--run_id", `${runId}-${harness}`,
-    "--namespace", "swebench",
-    "--cache_level", "instance",
+    "--instance_ids", ...preds.map((p) => p.instance_id),
   ],
   { cwd: dir, stdio: "inherit" },
 );
