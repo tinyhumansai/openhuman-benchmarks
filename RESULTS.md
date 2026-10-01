@@ -11,14 +11,14 @@ Hermes (installer `main` at build time; see README caveats), OpenHuman built fro
 
 ## What stands out
 
-- **OpenHuman's low score is mostly turns that end early, not wrong patches.** In the default variant, 4 of the
-  5 empty-patch tasks ended with the model's tool call returned as the final reply text
+- **OpenHuman's low score is mostly turns that end early, not wrong patches.** In the default variant, all 5
+  empty-patch tasks ended with the model's tool call returned as the final reply text
   (`<tool_call>read_file(...)</tool_call>`, a run of repeated `<tool_call>` tags, and a DeepSeek `<｜DSML｜tool_calls>`
   block) instead of being parsed and executed, so the turn stopped after one or two calls. Switching to native
   tool calls fixed those but the native variant still ended 4 tasks with a "Let me trace..." narration and no
   edit. Both are worth a look in the harness; neither is a capability measurement of the model.
 - **OpenHuman is the lightest on CPU and RAM by a wide margin** (1.4 CPU-s and ~100 MB per task vs 5-16 CPU-s and
-  0.5-1.7 GB for the others) and the cheapest per task, partly because it makes fewer calls.
+  0.5-1.7 GB for the others) and among the cheapest per task (with OpenCode), partly because it makes fewer calls.
 - **Cache hit % is OpenHuman's weakest column** (63% default, 81% native vs 77-96% elsewhere), and its TTFT p95 is
   ~30 s vs ~2-3 s. Cold start to first model call is ~6 s, against 0.2-0.3 s for Claude Code and Codex.
 - **Claude Code and Hermes resolved the most (8/10).** Hermes uses ~3.5 GB average RAM including page cache
