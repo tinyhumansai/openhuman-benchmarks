@@ -35,4 +35,5 @@ COPY bench/harnesses/bundles/adapters/_common.sh /opt/harness/_common.sh
 COPY bench/harnesses/bundles/adapters/openhuman-base.sh /opt/harness/openhuman-base.sh
 COPY bench/harnesses/bundles/${ADAPTER} /opt/harness/adapter.sh
 COPY bench/harnesses/bundles/forward.mjs /opt/harness/forward.mjs
+COPY bench/harnesses/bundles/oh-turn.mjs /opt/harness/oh-turn.mjs
 RUN echo "${GIT_SHA}" > /opt/harness/openhuman/GIT_SHA

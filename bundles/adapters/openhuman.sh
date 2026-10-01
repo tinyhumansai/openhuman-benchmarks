@@ -5,7 +5,6 @@ proxy_host="${PROXY_URL#http://}"; proxy_host="${proxy_host%%:*}"
 proxy_port="${PROXY_URL##*:}"
 node /opt/harness/forward.mjs 18080 "$proxy_host" "$proxy_port" &
 fwd=$!
-trap 'kill $fwd 2>/dev/null || true' EXIT
 for _ in $(seq 1 50); do (echo > /dev/tcp/127.0.0.1/18080) 2>/dev/null && break; sleep 0.1; done
 
 export OPENHUMAN_WORKSPACE="$HOME/oh-workspace"
@@ -18,15 +17,11 @@ mkdir -p "$OPENHUMAN_WORKSPACE"
 # inference itself goes to the metering proxy through the per-call route.
 export OPENHUMAN_BACKEND_API_KEY="${OPENHUMAN_BACKEND_API_KEY:-$DUMMY_API_KEY}"
 
-params="$(node -e '
-  const fs = require("fs");
-  process.stdout.write(JSON.stringify({
-    message: fs.readFileSync(process.env.PROMPT_FILE, "utf8"),
-    cwd: process.env.PWD,
-    inference_url: "http://127.0.0.1:18080/v1",
-    api_key: process.env.DUMMY_API_KEY,
-    model_override: process.env.BENCH_MODEL,
-  }));
-')"
-/opt/harness/openhuman/openhuman-core call \
-  --method openhuman.inference_agent_chat --params "$params"
+# Headless core, the way a product host runs it; the turn goes over JSON-RPC.
+export OH_PORT=7788 OH_TOKEN=bench-core-token OPENHUMAN_CORE_TOKEN=bench-core-token
+export INFERENCE_URL="http://127.0.0.1:18080/v1"
+/opt/harness/openhuman/openhuman-core run --headless-api --host 127.0.0.1 --port "$OH_PORT" \
+  > "$HOME/core.log" 2>&1 &
+core=$!
+trap 'kill $core $fwd 2>/dev/null || true' EXIT
+node /opt/harness/oh-turn.mjs
