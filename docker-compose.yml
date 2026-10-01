@@ -20,7 +20,7 @@ services:
     build:
       context: ./meter-proxy
     environment:
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY in .env}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY (env or .env)}
       BENCH_MODEL: ${BENCH_MODEL:-deepseek/deepseek-v4-flash}
       BENCH_REASONING: ${BENCH_REASONING:-medium}
       METER_LOG: /results/meter.jsonl
@@ -41,7 +41,7 @@ services:
   # never has to know which harness is running.
   task:
     profiles: ["task"]
-    image: ${TASK_IMAGE:?set by orchestrate.mjs}
+      image: ${TASK_IMAGE:-unset}
     entrypoint: ["/opt/harness/node/bin/node", "/opt/bench/runner/entry.mjs"]
     cpus: ${BENCH_CPUS:-4}
     mem_limit: ${BENCH_MEM:-8g}
@@ -53,8 +53,8 @@ services:
         condition: service_healthy
     networks: [bench]
     environment:
-      BENCH_HARNESS: ${HARNESS:?}
-      BENCH_TASK_ID: ${TASK_ID:?}
+      BENCH_HARNESS: ${HARNESS:-unset}
+      BENCH_TASK_ID: ${TASK_ID:-unset}
       WORKDIR: ${WORKDIR:-/testbed}
       TASK_TIMEOUT_S: ${TASK_TIMEOUT_S:-1800}
       RESULT_DIR: /results
@@ -73,7 +73,7 @@ services:
     volumes:
       - ./.cache/harness/${HARNESS}:/opt/harness:ro
       - ./runner:/opt/bench/runner:ro
-      - ${TASK_DIR:?}:/bench/task:ro
+      - ${TASK_DIR:-./tasks}:/bench/task:ro
       - ./results/${RUN_ID:-dev}/${HARNESS}/${TASK_ID}:/results
 
   # Task image for the micro suite (fixed, tiny, no per-task env). Same Ubuntu
