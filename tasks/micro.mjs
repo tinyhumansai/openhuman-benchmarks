@@ -71,7 +71,8 @@ export function writeMicroSuite(outDir) {
     const dir = path.join(outDir, t.id);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "prompt.txt"), `${t.prompt}\n`);
-    fs.writeFileSync(path.join(dir, "setup.sh"), `set -e\n${t.setup}\n`);
+    // git init: the entry diffs the harness's edits against a baseline commit, and checks use that diff
+    fs.writeFileSync(path.join(dir, "setup.sh"), `set -e\ngit init -q\n${t.setup}\n`);
     fs.writeFileSync(path.join(dir, "check.sh"), `${t.check}\n`);
     tasks.push({ id: t.id, image: "bench-micro:latest", workdir: "/work", dir });
   }
