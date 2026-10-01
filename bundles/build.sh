@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build a harness bundle and extract it to .cache/harness/<name>/.
-#   ./bundles/build.sh claude-code|codex|opencode|openclaw|hermes|openhuman|openhuman-jev
+#   ./bundles/build.sh claude-code|codex|opencode|openclaw|hermes|openhuman|openhuman-jev|openhuman-native
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 repo="$(cd "$here/../.." && pwd)"
@@ -13,7 +13,7 @@ done < "$here/harnesses.lock"
 
 image="bench-bundle-$name"
 case "$name" in
-  openhuman|openhuman-jev)
+  openhuman|openhuman-jev|openhuman-native)
     docker build -f "$here/bundles/Dockerfile.openhuman" \
       --build-arg "ADAPTER=adapters/$name.sh" \
       --build-arg "GIT_SHA=$(git -C "$repo" rev-parse --short HEAD)" \
