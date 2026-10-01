@@ -11,8 +11,8 @@ export const MICRO_TASKS = [
     id: "m1-hello",
     prompt: "Reply with the single word READY and do not touch any files.",
     setup: "echo seed > seed.txt",
-    // nothing should change
-    check: 'test "$(cat seed.txt)" = seed && test -z "$(git status --porcelain | grep -v bench)"',
+    // nothing should change (entry.mjs stages the harness's edits against the baseline commit)
+    check: 'test "$(cat seed.txt)" = seed && test -z "$(git diff --cached --name-only)"',
   },
   {
     id: "m2-read",
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     unittest.main()
 PY`,
     check:
-      "python3 -m unittest test_calc >/dev/null 2>&1 && git diff --quiet bench-baseline -- test_calc.py 2>/dev/null; python3 -m unittest test_calc >/dev/null 2>&1",
+      "python3 -m unittest test_calc >/dev/null 2>&1 && git diff --cached --quiet HEAD -- test_calc.py",
   },
 ];
 
