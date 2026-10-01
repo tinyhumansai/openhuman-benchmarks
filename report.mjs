@@ -67,6 +67,12 @@ export function aggregate(meter, tasks) {
       system_prompt_tokens: percentile(firstCalls.map((r) => r.system_prompt_tokens), 50),
       tool_schema_tokens: percentile(firstCalls.map((r) => r.tool_schema_tokens), 50),
       tool_count: percentile(firstCalls.map((r) => r.tool_count), 50),
+      // Harnesses differ in where the tool catalogue goes (API `tools` vs text inside
+      // the system prompt), so the comparable number is the sum.
+      static_prompt_tokens: percentile(
+        firstCalls.map((r) => (r.system_prompt_tokens ?? 0) + (r.tool_schema_tokens ?? 0)),
+        50,
+      ),
       prompt_tokens: prompt,
       completion_tokens: sum(ok.map((r) => r.completion_tokens)),
       cache_pct: prompt ? (100 * cached) / prompt : null,
@@ -105,6 +111,7 @@ export function toMarkdown(meta, summary) {
     ["harness errors / timeouts", (s) => `${s.harness_errors} / ${s.timeouts}`],
     ["system prompt tokens", (s) => f(s.system_prompt_tokens)],
     ["tool schema tokens (count)", (s) => `${f(s.tool_schema_tokens)} (${f(s.tool_count)})`],
+    ["static prompt total (system + tools)", (s) => f(s.static_prompt_tokens)],
     ["cost / task", (s) => money(s.cost_per_task_usd)],
     ["cost / resolved", (s) => money(s.cost_per_resolved_usd)],
     ["total cost", (s) => `${money(s.cost_usd)}${s.cost_unpriced_calls ? ` (+${s.cost_unpriced_calls} unpriced)` : ""}`],
