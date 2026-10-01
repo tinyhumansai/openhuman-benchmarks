@@ -1,11 +1,10 @@
-#!/opt/harness/node/bin/node
 // entry.mjs — runs inside the task container. Executes one task with one
 // harness: optional setup, the harness adapter under a wall-clock budget, a
 // container-wide CPU/memory sampler around it, then captures the produced
 // patch and runs the (uncharged) check. Writes result.json for the host.
 //
 // Env: BENCH_HARNESS BENCH_TASK_ID WORKDIR PROMPT_FILE RESULT_DIR
-//      TASK_TIMEOUT_S (default 1800)  SETUP_SCRIPT CHECK_SCRIPT (optional)
+//      TASK_TIMEOUT_S (default 1800). /bench/task/{setup,check}.sh run when present.
 
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -54,9 +53,16 @@ function runShell(script, { cwd, timeout, outFile }) {
   });
 }
 
-if (process.env.SETUP_SCRIPT) {
+const setupScript =
+  process.env.SETUP_SCRIPT ||
+  (fs.existsSync("/bench/task/setup.sh") ? "/bench/task/setup.sh" : null);
+const checkScript =
+  process.env.CHECK_SCRIPT ||
+  (fs.existsSync("/bench/task/check.sh") ? "/bench/task/check.sh" : null);
+
+if (setupScript) {
   log("setup");
-  const r = await runShell(`bash ${process.env.SETUP_SCRIPT}`, {
+  const r = await runShell(`bash ${setupScript}`, {
     cwd: workdir,
     timeout: 300_000,
     outFile: path.join(resultDir, "setup.log"),
@@ -89,8 +95,8 @@ const diff = spawnSync("git", ["diff", "--cached", baseline], {
 fs.writeFileSync(path.join(resultDir, "patch.diff"), diff.stdout ?? "");
 
 let check = null;
-if (process.env.CHECK_SCRIPT) {
-  const c = await runShell(`bash ${process.env.CHECK_SCRIPT}`, {
+if (checkScript) {
+  const c = await runShell(`bash ${checkScript}`, {
     cwd: workdir,
     timeout: 300_000,
     outFile: path.join(resultDir, "check.log"),
