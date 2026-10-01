@@ -15,6 +15,7 @@ RUN set -eux; mkdir -p /opt/harness/node; \
     file="$(curl -fsSL "$base/SHASUMS256.txt" | awk '/linux-x64.tar.xz/{print $2}')"; \
     curl -fsSL "$base/$file" | tar -xJ --strip-components=1 -C /opt/harness/node; \
     /opt/harness/node/bin/node --version
+COPY adapters/_common.sh /opt/harness/_common.sh
 ENV PATH=/opt/harness/node/bin:$PATH
 
 FROM base AS claude-code
