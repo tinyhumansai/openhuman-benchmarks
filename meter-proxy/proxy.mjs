@@ -14,7 +14,7 @@
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
 //
 // Control plane (loopback of the compose network only):
-//   POST /__bench/run  {"harness":"..","task":".."}  tag subsequent calls
+//   POST /__bench/run  {"run_id":"..","harness":"..","task":".."}  tag subsequent calls
 //   GET  /__bench/runs                                 per-run first-request sizes
 
 import fs from "node:fs";
@@ -50,7 +50,7 @@ export function createProxy(opts) {
   const effort = opts.effort ?? "medium";
   const apiKey = opts.apiKey;
   let pricing = opts.pricing ?? null;
-  let run = { harness: "untagged", task: "untagged" };
+  let run = { run_id: "untagged", harness: "untagged", task: "untagged" };
   let seq = 0;
   const firstRequests = new Map(); // `${harness}/${task}` -> prompt sizes
   const transport = upstream.protocol === "https:" ? https : http;
@@ -61,7 +61,7 @@ export function createProxy(opts) {
   }
 
   function promptSizes(format, body) {
-    const key = `${run.harness}/${run.task}`;
+    const key = `${run.run_id}/${run.harness}/${run.task}`;
     if (firstRequests.has(key)) return null;
     const parts = extractPromptParts(format, body);
     const sizes = {
@@ -79,6 +79,7 @@ export function createProxy(opts) {
       try {
         const next = JSON.parse(body.toString("utf8"));
         run = {
+          run_id: String(next.run_id ?? "untagged"),
           harness: String(next.harness ?? "untagged"),
           task: String(next.task ?? "untagged"),
         };

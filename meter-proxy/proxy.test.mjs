@@ -47,7 +47,7 @@ test("proxy pins model/reasoning, swaps the credential, tags and logs usage", as
 
   await fetch(`${base}/__bench/run`, {
     method: "POST",
-    body: JSON.stringify({ harness: "demo", task: "t1" }),
+    body: JSON.stringify({ run_id: "r1", harness: "demo", task: "t1" }),
   });
   const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
@@ -75,6 +75,7 @@ test("proxy pins model/reasoning, swaps the credential, tags and logs usage", as
     .trim()
     .split("\n")
     .map((l) => JSON.parse(l));
+  assert.equal(record.run_id, "r1");
   assert.equal(record.harness, "demo");
   assert.equal(record.task, "t1");
   assert.equal(record.prompt_tokens, 100);
@@ -87,7 +88,7 @@ test("proxy pins model/reasoning, swaps the credential, tags and logs usage", as
   assert.ok(record.first_token_ms !== null);
 
   const runs = await (await fetch(`${base}/__bench/runs`)).json();
-  assert.ok(runs["demo/t1"].system_prompt_tokens > 0);
+  assert.ok(runs["r1/demo/t1"].system_prompt_tokens > 0);
 
   proxy.server.close();
   fake.close();
