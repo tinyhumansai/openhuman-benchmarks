@@ -97,9 +97,9 @@ async function run(id) {
   const d = await api(`/api/runs/${e(id)}`);
   const kids = [h("h1", {}, id), crumbs(link("#/", "runs"), id), h("h2", {}, "Harnesses (from the meter proxy, on the wire)")];
   kids.push(table(
-    ["harness", "tasks", "turns", "prompt tok", "completion tok", "cached %", "cost $", "system tok", "tool schema tok", "tools", "errors", "overridden", "system prompt"],
+    ["harness", "tasks", "turns", "side turns", "prompt tok", "completion tok", "cached %", "cost $", "system tok", "tool schema tok", "tools", "errors", "overridden", "system prompt"],
     d.harnesses.map((x) => [
-      x.harness, x.tasks, count(x.calls), count(x.prompt_tokens), count(x.completion_tokens), fpct(x.cache_pct), usd(x.cost_usd),
+      x.harness, x.tasks, count(x.calls), count(x.side_turns), count(x.prompt_tokens), count(x.completion_tokens), fpct(x.cache_pct), usd(x.cost_usd),
       count(x.system_prompt_tokens), count(x.tool_schema_tokens), count(x.tool_count),
       x.errors ? h("span", { class: "bad" }, x.errors) : 0, x.overridden,
       x.sample_task ? link(`#/call/${e(id)}/${e(x.harness)}/${e(x.sample_task)}/${x.sample_seq}`, `~${count(estTok(x.system_chars))} tokens`) : "–",
@@ -127,10 +127,10 @@ async function task(id, harness, t) {
     crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), harness, t),
     h("h2", {}, "Full task transcript (Markdown)"),
     transcriptBox(`/api/runs/${e(id)}/transcript/${e(harness)}/${e(t)}/last`),
-    h("p", { class: "mut" }, "A turn is one request to the model and its response; a task is made of several. ‘prefix reused’ is how many of the previous call’s messages this call re-sent byte-for-byte; below the previous count, history was rewritten and provider prefix caching is lost from there."),
-    table(["turn", "status", "messages", "prefix reused", "system", "tools", "cache ctl", "prompt tok", "cached tok", "cached %", "completion", "first token ms", "total ms", "cost $"],
+    h("p", { class: "mut" }, "A turn is one request to the model and its response; a task is made of several. ‘agent’ separates the main agent from side requests (titles, summaries) and sub-agents, which carry their own system prompt and tools. ‘prefix reused’ is how many of the previous call’s messages this call re-sent byte-for-byte; below the previous count, history was rewritten and provider prefix caching is lost from there."),
+    table(["turn", "agent", "status", "messages", "prefix reused", "system", "tools", "cache ctl", "prompt tok", "cached tok", "cached %", "completion", "first token ms", "total ms", "cost $"],
       calls.map((c, i) => [
-        link(`#/call/${e(id)}/${e(harness)}/${e(t)}/${c.seq}`, i + 1), c.status ?? "–", c.messages,
+        link(`#/call/${e(id)}/${e(harness)}/${e(t)}/${c.seq}`, i + 1), h("span", { class: c.agent === "main" ? "" : "tag" }, c.agent ?? "main"), c.status ?? "–", c.messages,
         c.prefix_reused_messages == null ? "–" : `${c.prefix_reused_messages}/${c.prev_messages}`,
         flag(c.same_system_as_prev), flag(c.same_tools_as_prev), c.cache_control_markers,
         count(c.usage?.prompt_tokens), count(c.usage?.cached_tokens), ratio(c.usage?.cached_tokens, c.usage?.prompt_tokens), count(c.usage?.completion_tokens),

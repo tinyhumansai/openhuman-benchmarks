@@ -14,6 +14,7 @@ import http from "node:http";
 import path from "node:path";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
+import { classify } from "../contexts.mjs";
 import { orderHarnesses } from "../format.mjs";
 import { toMarkdown } from "./transcript.mjs";
 
@@ -55,6 +56,18 @@ async function meterRecords(run) {
 
 const sum = (xs, f) => xs.reduce((a, x) => a + (f(x) ?? 0), 0);
 
+/** Calls that are not the main agent (side requests, sub-agents), classified per task. */
+function sideTurns(records) {
+  const tasks = new Map();
+  for (const r of records) (tasks.get(r.task) ?? tasks.set(r.task, []).get(r.task)).push(r);
+  let n = 0;
+  for (const calls of tasks.values()) {
+    const { main, contexts } = classify(calls);
+    for (const c of contexts.values()) if (c.id !== main) n += c.calls.length;
+  }
+  return n;
+}
+
 function aggregate(records) {
   const by = {};
   for (const r of records) {
@@ -78,6 +91,7 @@ function aggregate(records) {
       system_prompt_tokens: first?.system_prompt_tokens ?? null,
       tool_schema_tokens: first?.tool_schema_tokens ?? null,
       tool_count: first?.tool_count ?? null,
+      side_turns: sideTurns(h.records),
       errors: h.records.filter((r) => r.error || (r.status && r.status >= 400)).length,
       overridden: h.records.filter((r) => r.overridden && Object.keys(r.overridden).length).length,
     };
@@ -144,11 +158,17 @@ const routes = [
 
   [/^\/api\/runs\/([^/]+)\/calls\/([^/]+)\/([^/]+)$/, ([run, harness, task]) => {
     const d = capDir(run, harness, task);
-    return fs.readdirSync(d).sort().map((f) => {
-      const c = readJson(path.join(d, f));
+    const full = fs.readdirSync(d).sort().map((f) => readJson(path.join(d, f)));
+    // Label each turn main / side N from its system prompt + tool list (tools dominate the size tie-break).
+    const { contexts } = classify(full.map((c) => ({
+      context: `${c.system_sha}.${c.tools_sha}`,
+      system_prompt_tokens: (c.system_chars ?? 0) / 3,
+      tool_schema_tokens: (c.tool_count ?? 0) * 1000,
+    })));
+    return full.map((c) => {
       // Per-call summary only; the heavy fields stay on disk until a call is opened.
       const { response, params, headers, message_shas, ...rest } = c;
-      return { ...rest, messages: message_shas.length };
+      return { ...rest, messages: message_shas.length, agent: contexts.get(`${c.system_sha}.${c.tools_sha}`)?.label ?? "main" };
     });
   }],
 
