@@ -12,6 +12,8 @@
 //   BENCH_REASONING    pinned reasoning effort (default medium)
 //   METER_LOG          JSONL output (default /results/meter.jsonl)
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
+//   METER_CAPTURE=0    do not store request captures (system prompt, tools, messages);
+//                      default stores them under <dir of METER_LOG>/<run_id>/captures/
 //
 // Control plane (loopback of the compose network only):
 //   POST /__bench/run  {"run_id":"..","harness":"..","task":".."}  tag subsequent calls
@@ -22,6 +24,7 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { buildCapture, capResponse, writeCapture } from "./capture.mjs";
 import { computeCost, fetchPricing } from "./pricing.mjs";
 import {
   FORMATS,
@@ -52,6 +55,8 @@ export function createProxy(opts) {
   let pricing = opts.pricing ?? null;
   let run = { run_id: "untagged", harness: "untagged", task: "untagged" };
   let seq = 0;
+  const captureRoot = opts.capture === false ? null : path.dirname(logPath);
+  const prevState = new Map(); // `${run}/${harness}/${task}` -> last call state, for prefix diffs
   const firstRequests = new Map(); // `${harness}/${task}` -> prompt sizes
   const transport = upstream.protocol === "https:" ? https : http;
 
@@ -116,6 +121,7 @@ export function createProxy(opts) {
 
       let outBody = body;
       let record = null;
+      let built = null;
       if (format) {
         let parsed = null;
         try {
@@ -125,6 +131,16 @@ export function createProxy(opts) {
         }
         if (parsed) {
           const sizes = promptSizes(format, parsed);
+          if (captureRoot) {
+            const key = `${tag.run_id}/${tag.harness}/${tag.task}`;
+            built = buildCapture({
+              format,
+              body: parsed,
+              headers: req.headers,
+              prev: prevState.get(key) ?? null,
+            });
+            prevState.set(key, built.state);
+          }
           const rewritten = rewriteRequest(format, parsed, { model, effort });
           outBody = Buffer.from(JSON.stringify(rewritten.body));
           record = {
@@ -184,6 +200,7 @@ export function createProxy(opts) {
               format,
               Buffer.concat(pieces).toString("utf8"),
             );
+            const responseText = Buffer.concat(pieces).toString("utf8");
             const reported = usage.cost_usd;
             const computed = computeCost(pricing, usage);
             append({
@@ -201,6 +218,18 @@ export function createProxy(opts) {
               ...tokens.result(),
               total_ms: Date.now() - startedAt,
             });
+            if (built) {
+              try {
+                writeCapture(captureRoot, tag, callSeq, built, {
+                  at: new Date(startedAt).toISOString(),
+                  status: upstreamRes.statusCode || 502,
+                  usage,
+                  response: capResponse(responseText),
+                });
+              } catch (error) {
+                process.stderr.write(`[meter] capture failed: ${error.message}\n`);
+              }
+            }
             res.end();
           });
           upstreamRes.on("error", () => res.end());
@@ -245,6 +274,7 @@ if (isMain) {
     effort: process.env.BENCH_REASONING || "medium",
     apiKey: process.env.OPENROUTER_API_KEY,
     logPath: process.env.METER_LOG || "/results/meter.jsonl",
+    capture: process.env.METER_CAPTURE !== "0",
   });
   if (process.env.METER_PRICING !== "0") {
     try {
