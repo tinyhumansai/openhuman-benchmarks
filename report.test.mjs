@@ -73,3 +73,35 @@ test("latestAttempts keeps only the newest attempt's index row and proxy records
   assert.equal(out.index[0].started_epoch_ms, 5000);
   assert.equal(out.meter.length, 1);
 });
+
+test("per-task KPIs use only solved tasks; cost per solved task includes failed spend", () => {
+  const meter = [
+    // task a: solved, fast. task b: failed, slow and expensive.
+    call({ task: "a", prompt_tokens: 1000, cached_tokens: 900, first_token_ms: 100, total_ms: 200, cost_usd: 0.01, system_prompt_tokens: 500, tool_schema_tokens: 0, tool_count: 0 }),
+    call({ task: "b", prompt_tokens: 1000, cached_tokens: 0, first_token_ms: 9000, total_ms: 9000, cost_usd: 0.03 }),
+  ];
+  const result = (wall, cpu) => ({
+    started_epoch_ms: Date.parse("2026-01-01T00:00:00.000Z"), wall_ms: wall, exit_code: 0, timed_out: false, patch_bytes: 1,
+    resources: { cpu_seconds: cpu, peak_anon_bytes: cpu * 1048576 }, check: { passed: false },
+  });
+  const tasks = [
+    { harness: "h", task_key: "a", task: "a", result: result(10_000, 2), grade: { resolved: true } },
+    { harness: "h", task_key: "b", task: "b", result: result(90_000, 50), grade: { resolved: false } },
+  ];
+  const s = aggregate(meter, tasks).h;
+  assert.equal(s.solved_tasks, 1);
+  assert.equal(s.cost_per_solved_usd, 0.04); // all spend / 1 solved
+  assert.equal(s.solved_cache_pct, 90);
+  assert.equal(s.solved_ttft_ms_p50, 100);
+  assert.equal(s.solved_task_wall_s_p50, 10);
+  assert.equal(s.solved_cpu_seconds_mean, 2);
+  assert.equal(s.solved_peak_anon_mb_max, 2);
+  assert.equal(s.solved_static_prompt_tokens, 500);
+});
+
+test("a harness that solved nothing has null solved-task KPIs, not zeros", () => {
+  const s = aggregate([call({})], [{ harness: "h", task_key: "t1", task: "t1", result: null, grade: { resolved: false } }]).h;
+  assert.equal(s.cost_per_solved_usd, null);
+  assert.equal(s.solved_cache_pct, null);
+  assert.equal(s.solved_task_wall_s_p50, null);
+});
