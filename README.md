@@ -64,6 +64,22 @@ node report.mjs --run-id swe-1
 Harnesses run one at a time on purpose: two harnesses sharing the host would
 contend for CPU and distort the CPU and latency columns.
 
+## Charts
+
+```bash
+node report.mjs --run-id swe-1                 # writes results/swe-1/summary.json
+node charts.mjs --run swe-1 --png              # results/swe-1/charts.{svg,png}
+node charts.mjs --run swe-1 --theme dark --png
+node charts.mjs --run swe-1 --only resolved,cost_task,cache   # a subset of panels
+```
+
+One panel per KPI, one column per harness, OpenHuman highlighted, each panel on its own
+scale from zero, with a star on the best column (direction-aware). The SVG has no
+dependencies; `--png` installs `@resvg/resvg-js` into `.cache/` on first use. Rendered
+examples are in `charts/`.
+
+![swe-1](charts/swe-1.png)
+
 ## Metrics
 
 - **CPU / RAM**: container-wide cgroup v2 (`cpu.stat usage_usec`, `memory.current`,
