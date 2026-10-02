@@ -35,7 +35,8 @@ cache hit rate is ~95%+ everywhere after call 1. Cache is not where they differ;
    memory tools. opencode: `task`/`todowrite` unused in a one-step task. Fix: lazy-load by
    capability or intent, not a flat catalog.
 3. **Lazy tool loading exists in three harnesses, all with the same shape**
-   (`tool_search` -> `tool_describe` -> `tool_call`): openclaw, hermes, openhuman. Pitfalls seen:
+   (`tool_search` -> `tool_call`; openclaw and hermes add a `tool_describe` step between them,
+   openhuman's `tool_search` returns the full argument schemas directly): openclaw, hermes, openhuman. Pitfalls seen:
    hermes defers cheap-and-relevant tools (`todo_list`, `process_manage`) while always shipping
    browser/TTS/vision (~2k tokens in a coding run); openhuman's `tool_call` takes arguments as a
    JSON *string*, so the provider cannot validate them; openclaw still lists 30 deferred names
