@@ -118,7 +118,6 @@ export function renderSvg({ meta, summary }, opts = {}) {
   for (const [name, c] of Object.entries(HERO)) {
     defs.push(`<linearGradient id="${gid(name)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.top}"/><stop offset="1" stop-color="${c.bottom}"/></linearGradient>`);
   }
-  defs.push(`<filter id="winner-glow" x="-60%" y="-30%" width="220%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="4.5" flood-color="${t.goldGlow}" flood-opacity="0.65"/></filter>`);
   defs.push(`<linearGradient id="${gid("muted")}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.mutedTop}"/><stop offset="1" stop-color="${t.mutedBottom}"/></linearGradient>`);
 
   const parts = [];
@@ -160,11 +159,12 @@ export function renderSvg({ meta, summary }, opts = {}) {
         const label = esc(m.format(v));
         const tip = `${h.label.join("")} (${h.id}): ${m.format(v)}`;
         const isBest = best != null && v === best;
-        // The winning column(s): bold gold outline plus a soft glow, so the best
+        // The winning column(s): bold gold outline plus a soft halo (a wide translucent stroke,
+        // since SVG filters are not rendered everywhere), so the best
         // harness reads at a glance and not only through a small marker.
         g.push(
           isBest
-            ? `<g><title>${esc(tip)} (best)</title><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="${fill}" stroke="${t.gold}" stroke-width="3" stroke-linejoin="round" filter="url(#winner-glow)"/>`
+            ? `<g><title>${esc(tip)} (best)</title><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="none" stroke="${t.gold}" stroke-opacity="0.28" stroke-width="11" stroke-linejoin="round"/><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="${fill}" stroke="${t.gold}" stroke-width="3.5" stroke-linejoin="round"/>`
             : `<g><title>${esc(tip)}</title><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="${fill}"/>`,
         );
         if (hgt >= 26) {
