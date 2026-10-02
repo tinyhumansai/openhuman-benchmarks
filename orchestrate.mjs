@@ -69,7 +69,10 @@ async function waitForQuietHost() {
       if (!/^\d+$/.test(name) || Number(name) === process.pid) continue;
       try {
         const argv = fs.readFileSync(`/proc/${name}/cmdline`, "utf8").split("\0");
-        if (path.basename(argv[0]) === "node" && argv.slice(1, 3).some((a) => a.endsWith("orchestrate.mjs"))) pids.push(name);
+        const isRun = path.basename(argv[0]) === "node" && argv.slice(1, 3).some((a) => a.endsWith("orchestrate.mjs"));
+        // grading starts and removes many containers: as noisy as a run
+        const isGrading = argv.some((a) => a === "swebench.harness.run_evaluation");
+        if (isRun || isGrading) pids.push(name);
       } catch {
         // process exited
       }
