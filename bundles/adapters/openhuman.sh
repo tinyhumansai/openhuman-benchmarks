@@ -11,6 +11,9 @@ for _ in $(seq 1 50); do (echo > /dev/tcp/127.0.0.1/18080) 2>/dev/null && break;
 # the other harnesses. The product's older `python` text dispatcher leaked tool calls into
 # the reply on this model, so it is not what this benchmark measures.
 export OPENHUMAN_TOOL_DISPATCHER=native
+# No Composio account in the bench: skip the hosted integrations fetch (a 401 on the
+# dummy key) that otherwise sits on the first turn's critical path.
+export OPENHUMAN_COMPOSIO_MODE=disabled
 export OPENHUMAN_WORKSPACE="$HOME/oh-workspace"
 export OPENHUMAN_ACTION_DIR="$WORKDIR_ABS"
 mkdir -p "$OPENHUMAN_WORKSPACE"
