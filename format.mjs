@@ -51,3 +51,13 @@ export function usd(v) {
 }
 
 export const pct = (v, d = 1) => (has(v) ? `${grouped(Number(v), d)}%` : NONE);
+
+// OpenHuman is the harness under test, so it always leads; the rest follow the lineup order
+// (the same as the charts), and anything unknown goes last, alphabetically.
+const LINEUP = ["openhuman", "claude-code", "codex", "opencode", "openclaw", "hermes", "deepseek-harness", "deepseek-harness-minimal"];
+const slot = (name) => (LINEUP.includes(name) ? LINEUP.indexOf(name) : LINEUP.length);
+
+/** Sort harness names (or objects, with `key`) into display order. Does not mutate. */
+export function orderHarnesses(items, key = (x) => x) {
+  return [...items].sort((a, b) => slot(key(a)) - slot(key(b)) || String(key(a)).localeCompare(String(key(b))));
+}

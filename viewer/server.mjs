@@ -14,6 +14,7 @@ import http from "node:http";
 import path from "node:path";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
+import { orderHarnesses } from "../format.mjs";
 import { toMarkdown } from "./transcript.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -113,7 +114,7 @@ const routes = [
   [/^\/api\/runs\/([^/]+)$/, async ([run]) => {
     seg(run);
     const summaryMd = path.join(RESULTS, run, "summary.md");
-    const harnesses = aggregate(await meterRecords(run));
+    const harnesses = orderHarnesses(aggregate(await meterRecords(run)), (h) => h.harness);
     // The system prompt the first call of each harness sent, from the captures.
     for (const h of harnesses) {
       const tasks = dirs(capDir(run, h.harness));

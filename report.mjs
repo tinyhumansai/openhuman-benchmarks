@@ -140,7 +140,7 @@ export function aggregate(meter, tasks) {
   return out;
 }
 
-import { count, mem, ms, pct, secs, usd } from "./format.mjs";
+import { count, mem, ms, orderHarnesses, pct, secs, usd } from "./format.mjs";
 
 const f = (v, d = 0) => (v === null || v === undefined ? "-" : Number(v).toFixed(d));
 const money = (v) => (v === null || v === undefined ? "-" : usd(v));
@@ -164,7 +164,7 @@ export function rankRow(values, better) {
 const rate = (num, den) => (den ? num / den : null);
 
 export function toMarkdown(meta, summary) {
-  const names = Object.keys(summary);
+  const names = orderHarnesses(Object.keys(summary));
   // [label, display(s), raw(s) used for ranking, better: "low" | "high" | null]
   const rows = [
     ["resolved (SWE) / checks passed", (s) => (s.swe_resolved === null ? `${s.check_passed}/${s.tasks} checks` : `${s.swe_resolved}/${s.swe_graded} resolved`), (s) => (s.swe_resolved === null ? rate(s.check_passed, s.tasks) : rate(s.swe_resolved, s.swe_graded)), "high"],
@@ -266,7 +266,8 @@ function main() {
     return { ...row, result: read("result.json"), grade: grades?.[row.task] ?? null };
   });
 
-  const summary = aggregate(meter, tasks);
+  const aggregated = aggregate(meter, tasks);
+  const summary = Object.fromEntries(orderHarnesses(Object.keys(aggregated)).map((n) => [n, aggregated[n]]));
   const meta = {
     run_id: runId,
     suite: [...new Set(index.map((r) => r.suite))].join(","),

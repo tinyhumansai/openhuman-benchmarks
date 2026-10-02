@@ -33,3 +33,13 @@ test("usd and pct", () => {
   assert.equal(usd(1.5), "$1.50");
   assert.equal(pct(97.31), "97.3%");
 });
+
+import { orderHarnesses } from "./format.mjs";
+
+test("orderHarnesses puts openhuman first, then the lineup, unknowns last", () => {
+  assert.deepEqual(
+    orderHarnesses(["hermes", "zeta", "codex", "openhuman", "claude-code", "alpha"]),
+    ["openhuman", "claude-code", "codex", "hermes", "alpha", "zeta"],
+  );
+  assert.deepEqual(orderHarnesses([{ h: "codex" }, { h: "openhuman" }], (x) => x.h).map((x) => x.h), ["openhuman", "codex"]);
+});
