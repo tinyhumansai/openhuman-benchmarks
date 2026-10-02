@@ -20,6 +20,8 @@ services:
     build:
       context: ./meter-proxy
     user: "${BENCH_UID:-1000}:${BENCH_GID:-1000}" # results/ stays owned by the invoking user
+    cpus: 1 # the proxy only forwards and hashes; keep it off the harness's CPU budget
+    mem_limit: 512m
     environment:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY (env or .env)}
       BENCH_MODEL: ${BENCH_MODEL:-deepseek/deepseek-v4-flash}

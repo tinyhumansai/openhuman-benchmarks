@@ -25,7 +25,8 @@ normalised.
 
 ```
 docker-compose.yml     meter-proxy + the `task` service (limits live here)
-meter-proxy/           wire parsers (chat / Anthropic / Responses), pricing, proxy
+meter-proxy/           wire parsers (chat / Anthropic / Responses), pricing, proxy, capture
+viewer/                zero-dependency web UI over results/ (prompts, tools, cache diagnostics)
 runner/                in-container entry (cgroup CPU/RAM sampler, patch capture, check)
 bundles/               per-harness build (/opt/harness) + adapters/*.sh headless entry points
 tasks/micro.mjs        5-task micro suite generator
@@ -63,6 +64,27 @@ node report.mjs --run-id swe-1
 
 Harnesses run one at a time on purpose: two harnesses sharing the host would
 contend for CPU and distort the CPU and latency columns.
+
+## Seeing what each harness sends
+
+The proxy sits between every harness and OpenRouter, so it records the request as the
+harness built it (before model/reasoning are pinned). Per run, under
+`results/<run>/captures/`: one JSON per call (`<harness>/<task>/<seq>.json`) holding the
+sampling parameters, headers (credentials dropped), `cache_control` marker count, any
+`prompt_cache_key`, the raw response, and, for caching, whether the system prompt and tool
+list matched the previous call and how many earlier messages were re-sent byte-for-byte.
+System prompts, tool schemas and messages are stored once each in `captures/blobs/`, so a long
+task costs the system prompt once. `METER_CAPTURE=0` turns it off.
+
+```bash
+node viewer/server.mjs            # http://127.0.0.1:8787, read-only, loopback, reads files on demand
+node viewer/server.mjs --port 9000 --results /path/to/results
+./run-deepseek.sh                 # DeepSeek harness (minimal + full) micro suite, one at a time
+```
+
+The viewer shows per-harness aggregates (tokens, cache %, cost, system-prompt and tool-schema
+size, rejected overrides), the system prompt each harness actually sent, tool schemas, every
+call's cache diagnostics, the conversation, and the provider's raw response.
 
 ## Charts
 
