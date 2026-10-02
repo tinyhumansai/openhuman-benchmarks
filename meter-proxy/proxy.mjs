@@ -10,6 +10,7 @@
 //   OPENROUTER_API_KEY real key; injected upstream, harnesses carry a dummy
 //   BENCH_MODEL        pinned model slug (required)
 //   BENCH_REASONING    pinned reasoning effort (default medium)
+//   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (keeps the prompt cache warm)
 //   METER_LOG          JSONL output (default /results/meter.jsonl)
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
 //   METER_CAPTURE=0    do not store request captures (system prompt, tools, messages);
@@ -63,6 +64,7 @@ export function createProxy(opts) {
   const logPath = path.resolve(opts.logPath ?? "/results/meter.jsonl");
   const model = opts.model;
   const effort = opts.effort ?? "medium";
+  const provider = opts.provider || null;
   const apiKey = opts.apiKey;
   let pricing = opts.pricing ?? null;
   let run = { run_id: "untagged", harness: "untagged", task: "untagged" };
@@ -153,7 +155,7 @@ export function createProxy(opts) {
             });
             prevState.set(key, built.state);
           }
-          const rewritten = rewriteRequest(format, parsed, { model, effort });
+          const rewritten = rewriteRequest(format, parsed, { model, effort, provider });
           outBody = Buffer.from(JSON.stringify(rewritten.body));
           record = {
             seq: callSeq,
@@ -162,6 +164,7 @@ export function createProxy(opts) {
             format,
             model,
             reasoning_effort: effort,
+            provider_pinned: provider,
             overridden: rewritten.overridden,
             stream: parsed.stream === true,
             messages: Array.isArray(parsed.messages)
@@ -305,6 +308,7 @@ if (isMain) {
     upstream: upstreamUrl,
     model,
     effort: process.env.BENCH_REASONING || "medium",
+    provider: process.env.BENCH_PROVIDER || null,
     apiKey: process.env.OPENROUTER_API_KEY,
     logPath: process.env.METER_LOG || "/results/meter.jsonl",
     capture: process.env.METER_CAPTURE !== "0",

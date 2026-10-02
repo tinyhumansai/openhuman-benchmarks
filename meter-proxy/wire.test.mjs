@@ -147,3 +147,15 @@ test("computeCost discounts cached tokens and never reports unpriced as free", (
     null,
   );
 });
+
+test("rewriteRequest pins the provider with no fallbacks and reports a harness preference it overrode", () => {
+  const { body, overridden } = rewriteRequest(
+    "chat",
+    { model: "x", messages: [], provider: { order: ["Other"], allow_fallbacks: true } },
+    { model: "m", effort: "medium", provider: "DeepInfra" },
+  );
+  assert.deepEqual(body.provider, { order: ["DeepInfra"], allow_fallbacks: false });
+  assert.deepEqual(overridden.provider, { order: ["Other"], allow_fallbacks: true });
+  const unpinned = rewriteRequest("chat", { model: "m", messages: [] }, { model: "m", effort: "medium" });
+  assert.equal(unpinned.body.provider, undefined);
+});

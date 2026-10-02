@@ -26,6 +26,7 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY (env or .env)}
       BENCH_MODEL: ${BENCH_MODEL:-deepseek/deepseek-v4-flash}
       BENCH_REASONING: ${BENCH_REASONING:-medium}
+      BENCH_PROVIDER: ${BENCH_PROVIDER:-DeepInfra} # pinned, no fallbacks; empty = let OpenRouter route
       METER_LOG: /results/meter.jsonl
     volumes:
       - ./results:/results

@@ -10,6 +10,7 @@ latency, cache efficiency, prompt size, cost and SWE-bench Verified resolve rate
 | Control | Mechanism |
 |---|---|
 | Same model | The metering proxy rewrites `model` on every request to `BENCH_MODEL`. |
+| Same provider | The proxy pins `provider: {order: [BENCH_PROVIDER], allow_fallbacks: false}` on every request, so the prompt cache is not split across OpenRouter backends. |
 | Same reasoning level | The proxy strips each protocol's own spelling (`thinking`, `reasoning_effort`, ...) and injects `reasoning: {effort: BENCH_REASONING}`. |
 | Same key | Only the proxy holds `OPENROUTER_API_KEY`; harnesses get a dummy token. |
 | Same resources | One compose `task` service: `cpus: 4`, `mem_limit: 8g`, no swap, same for every harness. |
