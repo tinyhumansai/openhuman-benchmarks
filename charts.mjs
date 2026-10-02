@@ -27,6 +27,8 @@ export const HARNESSES = [
   { id: "opencode", label: ["Open", "Code"] },
   { id: "openclaw", label: ["Open", "Claw"] },
   { id: "hermes", label: ["Hermes"] },
+  { id: "deepseek-harness", label: ["DeepSeek", "Harness"] },
+  { id: "deepseek-harness-minimal", label: ["DS Harn.", "minimal"] },
 ];
 
 // Cents keep cost labels short enough to sit inside a column ($0.0032 -> 0.32¢).
