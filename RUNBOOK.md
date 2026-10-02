@@ -52,9 +52,8 @@ Add `claude-code codex opencode openclaw hermes deepseek-harness-minimal` for th
 lineup. OpenHuman compiles the Rust core (10-20 minutes cold). It is built from this
 checkout, so the report records this checkout's git SHA as its version.
 
-**Gate:** each build finishes, and `ls .cache/harness/<name>` shows the bundle. If the
-OpenHuman build fails in `whisper-rs-sys`, stop and report the error; do not work around it
-silently.
+**Gate:** each build finishes, and `ls .cache/harness/<name>` shows the bundle. If a build
+fails, stop and report the exact error; do not work around it silently.
 
 ## 3. Smoke test (micro suite)
 
