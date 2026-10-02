@@ -26,6 +26,7 @@ const flag = (name, dflt) => {
 };
 const RESULTS = path.resolve(flag("--results", path.join(here, "..", "results")));
 const PORT = Number(flag("--port", process.env.VIEWER_PORT ?? 8787));
+const HOST = flag("--host", process.env.VIEWER_HOST ?? "127.0.0.1");
 
 const SEG = /^[A-Za-z0-9._#@=-]+$/;
 const seg = (s) => {
@@ -212,6 +213,6 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  process.stdout.write(`[viewer] http://127.0.0.1:${PORT}  results=${RESULTS}\n`);
+server.listen(PORT, HOST, () => {
+  process.stdout.write(`[viewer] http://${HOST}:${PORT}  results=${RESULTS}\n`);
 });
