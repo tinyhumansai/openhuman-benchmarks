@@ -14,8 +14,6 @@ export OPENHUMAN_TOOL_DISPATCHER=native
 export OPENHUMAN_WORKSPACE="$HOME/oh-workspace"
 export OPENHUMAN_ACTION_DIR="$WORKDIR_ABS"
 mkdir -p "$OPENHUMAN_WORKSPACE"
-# Variant knob: `openhuman-jev` exports the TinyHumans credential that lets the
-# JEV tool ranker run (see openhuman-jev.sh); plain `openhuman` falls back to BM25.
 # The core needs *a* credential before it will run a turn even on a BYOK route;
 # a dummy API key satisfies that without granting any backend access, and
 # inference itself goes to the metering proxy through the per-call route.

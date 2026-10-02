@@ -32,7 +32,6 @@ RUN set -eux; mkdir -p /opt/harness/node; \
     curl -fsSL "$base/$file" | tar -xJ --strip-components=1 -C /opt/harness/node
 COPY --from=builder /out/openhuman /opt/harness/openhuman
 COPY bench/harnesses/bundles/adapters/_common.sh /opt/harness/_common.sh
-COPY bench/harnesses/bundles/adapters/openhuman-base.sh /opt/harness/openhuman-base.sh
 COPY bench/harnesses/bundles/${ADAPTER} /opt/harness/adapter.sh
 COPY bench/harnesses/bundles/forward.mjs /opt/harness/forward.mjs
 COPY bench/harnesses/bundles/oh-turn.mjs /opt/harness/oh-turn.mjs
