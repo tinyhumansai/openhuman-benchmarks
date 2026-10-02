@@ -61,11 +61,11 @@ export const METRICS = [
 const THEMES = {
   light: {
     bg: "#ffffff", ink: "#14172b", sub: "#5b6177", muted: "#8a90a6", base: "#c9cddb",
-    mutedTop: "#98a1bd", mutedBottom: "#eef0fa", mutedText: "#1b2038", star: "#d99a00",
+    mutedTop: "#98a1bd", mutedBottom: "#eef0fa", mutedText: "#1b2038", star: "#d99a00", gold: "#f2a900", goldGlow: "#f2a900",
   },
   dark: {
     bg: "#0e1120", ink: "#eef0fa", sub: "#a4aac2", muted: "#7f86a1", base: "#343a55",
-    mutedTop: "#7d86a8", mutedBottom: "#262c46", mutedText: "#f3f5ff", star: "#ffc83d",
+    mutedTop: "#7d86a8", mutedBottom: "#262c46", mutedText: "#f3f5ff", star: "#ffc83d", gold: "#ffc83d", goldGlow: "#ffc83d",
   },
 };
 const HERO = {
@@ -118,6 +118,7 @@ export function renderSvg({ meta, summary }, opts = {}) {
   for (const [name, c] of Object.entries(HERO)) {
     defs.push(`<linearGradient id="${gid(name)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.top}"/><stop offset="1" stop-color="${c.bottom}"/></linearGradient>`);
   }
+  defs.push(`<filter id="winner-glow" x="-60%" y="-30%" width="220%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="4.5" flood-color="${t.goldGlow}" flood-opacity="0.65"/></filter>`);
   defs.push(`<linearGradient id="${gid("muted")}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.mutedTop}"/><stop offset="1" stop-color="${t.mutedBottom}"/></linearGradient>`);
 
   const parts = [];
@@ -127,7 +128,7 @@ export function renderSvg({ meta, summary }, opts = {}) {
   parts.push(
     `<text x="40" y="76" font-size="14" fill="${t.sub}">${esc(meta.model)} · reasoning ${esc(meta.reasoning)} · ${esc(meta.cpus)} vCPU / ${esc(meta.mem)} per task · same key, same model, same container limits</text>`,
   );
-  parts.push(`<text x="40" y="96" font-size="12" fill="${t.muted}">Each panel has its own scale from zero. ★ marks the best column in a panel.</text>`);
+  parts.push(`<text x="40" y="96" font-size="12" fill="${t.muted}">Each panel has its own scale from zero. Gold outline + ★ marks the best column in a panel.</text>`);
 
   metrics.forEach((m, i) => {
     const col = i % cols;
@@ -158,16 +159,23 @@ export function renderSvg({ meta, summary }, opts = {}) {
         const yTop = baseY - hgt;
         const label = esc(m.format(v));
         const tip = `${h.label.join("")} (${h.id}): ${m.format(v)}`;
-        g.push(`<g><title>${esc(tip)}</title><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="${fill}"/>`);
+        const isBest = best != null && v === best;
+        // The winning column(s): bold gold outline plus a soft glow, so the best
+        // harness reads at a glance and not only through a small marker.
+        g.push(
+          isBest
+            ? `<g><title>${esc(tip)} (best)</title><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="${fill}" stroke="${t.gold}" stroke-width="3" stroke-linejoin="round" filter="url(#winner-glow)"/>`
+            : `<g><title>${esc(tip)}</title><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="${fill}"/>`,
+        );
         if (hgt >= 26) {
-          g.push(`<text x="${cx}" y="${yTop + 18}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${valText}">${label}</text>`);
+          g.push(`<text x="${cx}" y="${yTop + 18}" text-anchor="middle" font-size="12.5" font-weight="${isBest ? 800 : 700}" fill="${valText}">${label}</text>`);
           nameBottom = yTop - 8;
         } else {
           g.push(`<text x="${cx}" y="${yTop - 7}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${t.ink}">${label}</text>`);
           nameBottom = yTop - 26;
         }
         g.push("</g>");
-        if (best != null && v === best) g.push(star(cx, nameBottom - h.label.length * 12 - 12, 5.5, t.star));
+        if (isBest) g.push(star(cx, nameBottom - h.label.length * 12 - 12, 6.5, t.gold));
       }
       h.label.forEach((line, li) => {
         const y = nameBottom - (h.label.length - 1 - li) * 12 - 2;

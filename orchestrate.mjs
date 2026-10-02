@@ -61,10 +61,21 @@ function sh(cmd, args, opts = {}) {
  */
 async function waitForQuietHost() {
   if (process.env.BENCH_ALLOW_CONCURRENT === "1") return;
-  const others = () =>
-    spawnSync("pgrep", ["-f", "node .*orchestrate\\.mjs"], { encoding: "utf8" })
-      .stdout.split("\n")
-      .filter((pid) => pid && Number(pid) !== process.pid && Number(pid) !== process.ppid);
+  // Only real `node .../orchestrate.mjs` processes count; a wrapper shell whose command
+  // line merely mentions the script must not block (or deadlock) its own child.
+  const others = () => {
+    const pids = [];
+    for (const name of fs.readdirSync("/proc")) {
+      if (!/^\d+$/.test(name) || Number(name) === process.pid) continue;
+      try {
+        const argv = fs.readFileSync(`/proc/${name}/cmdline`, "utf8").split("\0");
+        if (path.basename(argv[0]) === "node" && argv.slice(1, 3).some((a) => a.endsWith("orchestrate.mjs"))) pids.push(name);
+      } catch {
+        // process exited
+      }
+    }
+    return pids;
+  };
   let waited = 0;
   while (others().length) {
     if (waited % 60 === 0) process.stdout.write(`[bench] another benchmark run is active (pid ${others().join(",")}); waiting for a quiet host\n`);
