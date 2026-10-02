@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Harness bench viewer</title>
 <style>
-:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--line:#ddd;--card:#f6f6f6;--acc:#0a5fd6;--bad:#c0392b;--ok:#1e8449}
-@media (prefers-color-scheme:dark){:root{--bg:#141414;--fg:#e8e8e8;--mut:#999;--line:#333;--card:#1f1f1f;--acc:#6aa8ff;--bad:#ff7b6b;--ok:#5fd18a}}
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--line:#ddd;--card:#f6f6f6;--acc:#0a5fd6;--bad:#c0392b;--ok:#1e8449;--warn:#b7791f}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--fg:#e8e8e8;--mut:#999;--line:#333;--card:#1f1f1f;--acc:#6aa8ff;--bad:#ff7b6b;--ok:#5fd18a;--warn:#e6b84a}}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
 main{max-width:1200px;margin:0 auto;padding:16px}
 a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
@@ -19,7 +19,7 @@ th{color:var(--mut);font-weight:500}
 .wrap{overflow-x:auto}
 pre{background:var(--card);border:1px solid var(--line);padding:10px;overflow:auto;max-height:560px;white-space:pre-wrap;word-break:break-word;margin:6px 0}
 .tag{display:inline-block;padding:0 6px;border-radius:9px;background:var(--card);border:1px solid var(--line);font-size:12px;margin-right:4px}
-.bad{color:var(--bad)}td strong{font-weight:700}.ok{color:var(--ok)}.mut{color:var(--mut)}
+.bad{color:var(--bad)}td strong{font-weight:700}.ok{color:var(--ok)}.warn{color:var(--warn)}.mut{color:var(--mut)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
 .card{background:var(--card);border:1px solid var(--line);padding:10px;border-radius:6px}
 .md h1,.md h2,.md h3,.md h4{margin:16px 0 6px}.md h1{font-size:17px}.md h2{font-size:15px}.md h3{font-size:14px}.md h4{font-size:13px;color:var(--mut)}
@@ -67,10 +67,10 @@ async function runs() {
 }
 
 // Render summary.md's pipe tables as tables and everything else as text (still textContent only).
-// The report writes the best cell as `**x** 🟢` and the worst as `**x** 🔴`; show them bold green / red.
+// The report writes the best cell as `**x** 🟢`, runners-up as 🟡 and the worst as 🔴; show them bold green / yellow / red.
 function mark(text) {
-  const m = text.match(/^\*\*(.+)\*\* (🟢|🔴)$/);
-  return m ? h("strong", { class: m[2] === "🟢" ? "ok" : "bad" }, m[1]) : text;
+  const m = text.match(/^\*\*(.+)\*\* (🟢|🟡|🔴)$/);
+  return m ? h("strong", { class: { "🟢": "ok", "🟡": "warn", "🔴": "bad" }[m[2]] }, m[1]) : text;
 }
 function mdView(md) {
   const out = h("div", {});

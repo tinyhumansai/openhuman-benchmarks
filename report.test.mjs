@@ -109,8 +109,11 @@ test("a harness that solved nothing has null solved-task KPIs, not zeros", () =>
 import { rankRow } from "./report.mjs";
 
 test("rankRow marks best and worst per direction, skips ties and single values", () => {
-  assert.deepEqual(rankRow([3, 1, 2], "low"), ["worst", "best", null]);
-  assert.deepEqual(rankRow([3, 1, 2], "high"), ["best", "worst", null]);
+  assert.deepEqual(rankRow([3, 1, 2], "low"), ["worst", "best", "runner"]);
+  assert.deepEqual(rankRow([3, 1, 2], "high"), ["best", "worst", "runner"]);
+  assert.deepEqual(rankRow([4, 1, 2, 3], "low"), ["worst", "best", "runner", null]);
+  assert.deepEqual(rankRow([1, 2, 2, 3], "low"), ["best", "runner", "runner", "worst"]);
+  assert.deepEqual(rankRow([1, 2], "low"), ["best", "worst"]);
   assert.deepEqual(rankRow([5, 5], "low"), [null, null]);
   assert.deepEqual(rankRow([5, null], "low"), [null, null]);
   assert.deepEqual(rankRow([1, 1, 9], "low"), ["best", "best", "worst"]);
