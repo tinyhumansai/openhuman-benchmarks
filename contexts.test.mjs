@@ -24,3 +24,9 @@ test("records without a context id fall back to their measured sizes", () => {
   const { contexts } = classify(calls);
   assert.equal(contexts.size, 2);
 });
+
+test("unsized legacy records continue the previous call's context instead of forming a new one", () => {
+  const calls = [{ system_prompt_tokens: 100, tool_schema_tokens: 50, tool_count: 2 }, {}, {}, {}];
+  const { contexts } = classify(calls);
+  assert.equal(contexts.size, 1);
+});

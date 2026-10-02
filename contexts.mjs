@@ -20,8 +20,13 @@ const staticSize = (r) => (r.system_prompt_tokens ?? 0) + (r.tool_schema_tokens 
  */
 export function classify(calls) {
   const contexts = new Map();
+  let last = null;
   for (const r of calls) {
-    const id = contextOf(r);
+    // Records from before every call was tagged and sized say nothing about their context:
+    // they continue whatever the previous call of the task was.
+    const unknown = r.context == null && r.system_prompt_tokens == null;
+    const id = unknown && last !== null ? last : contextOf(r);
+    last = id;
     if (!contexts.has(id)) contexts.set(id, { id, calls: [], role: "side" });
     contexts.get(id).calls.push(r);
   }
