@@ -14,6 +14,7 @@ import http from "node:http";
 import path from "node:path";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
+import { toMarkdown } from "./transcript.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -85,6 +86,18 @@ function aggregate(records) {
 const capDir = (run, ...rest) => path.join(RESULTS, seg(run), "captures", ...rest.map(seg));
 const blob = (run, id) => readJson(path.join(RESULTS, seg(run), "captures", "blobs", `${seg(id)}.json`));
 
+const loadCall = (run, harness, task, seq) => {
+  const dir = capDir(run, harness, task);
+  const file = seq === "last" ? fs.readdirSync(dir).sort().pop() : `${String(seq).padStart(5, "0")}.json`;
+  const c = readJson(path.join(dir, file));
+  return {
+    ...c,
+    system: c.system_sha ? blob(run, c.system_sha) : "",
+    tools: c.tools_sha ? blob(run, c.tools_sha) : [],
+    messages: c.message_shas.map((id) => blob(run, id)),
+  };
+};
+
 const routes = [
   [/^\/api\/runs$/, () =>
     dirs(RESULTS).filter((d) => fs.existsSync(path.join(RESULTS, d, "runs.jsonl")) || dirs(path.join(RESULTS, d, "captures")).length)
@@ -136,15 +149,11 @@ const routes = [
     });
   }],
 
-  [/^\/api\/runs\/([^/]+)\/call\/([^/]+)\/([^/]+)\/(\d+)$/, ([run, harness, task, seq]) => {
-    const c = readJson(path.join(capDir(run, harness, task), `${String(seq).padStart(5, "0")}.json`));
-    return {
-      ...c,
-      system: c.system_sha ? blob(run, c.system_sha) : "",
-      tools: c.tools_sha ? blob(run, c.tools_sha) : [],
-      messages: c.message_shas.map((id) => blob(run, id)),
-    };
-  }],
+  [/^\/api\/runs\/([^/]+)\/call\/([^/]+)\/([^/]+)\/(\d+)$/, ([run, harness, task, seq]) => loadCall(run, harness, task, seq)],
+
+  // Raw transcript as Markdown; `last` is the final call, i.e. the whole conversation of the task.
+  [/^\/api\/runs\/([^/]+)\/transcript\/([^/]+)\/([^/]+)\/(\d+|last)$/, ([run, harness, task, seq]) =>
+    ({ markdown: toMarkdown(loadCall(run, harness, task, seq)) })],
 
   // Two harnesses' system prompts side by side.
   [/^\/api\/runs\/([^/]+)\/prompt\/([^/]+)$/, ([run, sha]) => ({ text: blob(run, sha) })],
@@ -164,7 +173,12 @@ const server = http.createServer(async (req, res) => {
     }
     for (const [re, fn] of routes) {
       const m = url.pathname.match(re);
-      if (m) return send(200, await fn(m.slice(1).map(decodeURIComponent)));
+      if (m) {
+        const out = await fn(m.slice(1).map(decodeURIComponent));
+        // ?format=md serves the transcript as a plain Markdown document (curl / download).
+        if (url.searchParams.get("format") === "md" && out.markdown) return send(200, out.markdown, "text/markdown; charset=utf-8");
+        return send(200, out);
+      }
     }
     send(404, { error: "not found" });
   } catch (e) {

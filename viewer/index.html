@@ -109,6 +109,8 @@ async function task(id, harness, t) {
   const flag = (v) => v === null ? "" : v ? h("span", { class: "ok" }, "same") : h("span", { class: "bad" }, "CHANGED");
   app.replaceChildren(h("h1", {}, `${harness} · ${t}`),
     crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), harness, t),
+    h("h2", {}, "Full task transcript (Markdown)"),
+    transcriptBox(`/api/runs/${e(id)}/transcript/${e(harness)}/${e(t)}/last`),
     h("p", { class: "mut" }, "‘prefix reused’ is how many of the previous call’s messages this call re-sent byte-for-byte; below the previous count, history was rewritten and provider prefix caching is lost from there."),
     table(["#", "status", "msgs", "prefix reused", "system", "tools", "cache ctl", "prompt", "cached", "completion", "first token ms", "total ms", "cost $", "req KB"],
       calls.map((c, i) => [
@@ -122,12 +124,31 @@ async function task(id, harness, t) {
 
 const text = (c) => typeof c === "string" ? c : Array.isArray(c) ? c.map((p) => p?.text ?? p?.content ?? JSON.stringify(p)).join("\n") : JSON.stringify(c, null, 2);
 
+// Collapsed by default (it can be large); loads on first open. Same text the Copy and Download buttons use.
+function transcriptBox(apiPath) {
+  const box = h("div", {});
+  const d = h("details", {}, h("summary", {}, "Show exactly what the provider received and returned"));
+  const holder = h("div", {});
+  d.append(holder);
+  d.addEventListener("toggle", async () => {
+    if (!d.open || holder.childNodes.length) return;
+    const { markdown } = await api(apiPath);
+    const copy = h("button", {}, "Copy");
+    copy.onclick = () => navigator.clipboard.writeText(markdown).then(() => { copy.textContent = "Copied"; });
+    holder.append(h("div", {}, copy, " ", h("a", { href: `${apiPath}?format=md`, target: "_blank" }, "open as .md")), pre(markdown));
+  });
+  box.append(d);
+  return box;
+}
+
 async function call(id, harness, t, seq) {
   const c = await api(`/api/runs/${e(id)}/call/${e(harness)}/${e(t)}/${seq}`);
   const kids = [h("h1", {}, `${harness} · ${t} · call ${seq}`),
     crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), link(`#/task/${e(id)}/${e(harness)}/${e(t)}`, `${harness}/${t}`), `call ${seq}`),
     h("div", {}, [["format", c.format], ["status", c.status], ["msgs", c.message_shas.length], ["tools", c.tool_count],
       ["cache_control markers", c.cache_control_markers], ["prompt_cache_key", c.prompt_cache_key]].map(([k, v]) => h("span", { class: "tag" }, `${k}: ${v ?? "–"}`))),
+    h("h2", {}, "Raw transcript (Markdown)"),
+    transcriptBox(`/api/runs/${e(id)}/transcript/${e(harness)}/${e(t)}/${seq}`),
     h("h2", {}, `System prompt (${fmt(c.system_chars)} chars, ${c.system_sha ?? "none"})`), pre(c.system || "(no system prompt)"),
     h("h2", {}, "Sampling & provider params"), pre(c.params),
     h("h2", {}, "Request headers"), pre(c.headers),
