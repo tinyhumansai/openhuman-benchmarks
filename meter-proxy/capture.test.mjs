@@ -86,7 +86,7 @@ test("proxy writes a capture file with the system prompt as sent", async () => {
 import zlib from "node:zlib";
 import { forwardHeaders } from "./headers.mjs";
 
-test("forwardHeaders keeps every header verbatim, swapping only host/length/credentials/hop-by-hop", () => {
+test("forwardHeaders keeps every header verbatim, replacing only host/length, dropping the dummy credential and hop-by-hop", () => {
   const raw = [
     "Host", "meter-proxy:8080", "Authorization", "Bearer dummy", "X-Api-Key", "dummy",
     "X-Session-Affinity", "abc", "HTTP-Referer", "https://x", "anthropic-beta", "a,b",

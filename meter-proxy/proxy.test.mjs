@@ -12,7 +12,7 @@ function listen(server) {
   );
 }
 
-test("proxy pins model/reasoning, swaps the credential, tags and logs usage", async () => {
+test("proxy pins model/reasoning, authenticates itself, tags and logs usage", async () => {
   let seen = null;
   const fake = http.createServer((req, res) => {
     const chunks = [];

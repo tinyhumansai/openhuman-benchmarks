@@ -9,7 +9,9 @@
 //   host            -> the upstream host
 //   content-length  -> the (possibly rewritten) body length
 //   hop-by-hop      -> per RFC 9110 they describe one connection, not the request
-//   credentials     -> swapped for the real key (harnesses only carry a dummy)
+//   credentials     -> the proxy is the credentialled party: harnesses carry a dummy
+//                      key (so their own startup checks pass), which is not forwarded;
+//                      the proxy authenticates the request itself
 
 const HOP_BY_HOP = new Set([
   "connection", "keep-alive", "proxy-connection", "transfer-encoding", "te",
