@@ -29,7 +29,8 @@ export const HARNESSES = [
   { id: "hermes", label: ["Hermes"] },
 ];
 
-const fmtMoney = (v) => (v < 0.01 ? `$${v.toFixed(4)}` : `$${v.toFixed(3)}`);
+// Cents keep cost labels short enough to sit inside a column ($0.0032 -> 0.32¢).
+const fmtMoney = (v) => (v >= 0.1 ? `$${v.toFixed(2)}` : v >= 0.1 / 10 ? `${(v * 100).toFixed(1)}¢` : `${(v * 100).toFixed(2)}¢`);
 const fmtSecs = (ms) => (ms >= 10000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 1000).toFixed(1)}s`);
 const fmtTokens = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`);
 
@@ -43,8 +44,8 @@ export const METRICS = [
       s.swe_graded ? (100 * s.swe_resolved) / s.swe_graded : s.tasks ? (100 * s.check_passed) / s.tasks : null,
     format: (v) => `${v.toFixed(0)}%`,
   },
-  { id: "cost_task", title: "Cost per task", better: "lower", value: (s) => s.cost_per_task_usd, format: fmtMoney },
-  { id: "cost_resolved", title: "Cost per resolved task", better: "lower", value: (s) => s.cost_per_resolved_usd, format: fmtMoney },
+  { id: "cost_task", title: "Cost per task (cents)", better: "lower", value: (s) => s.cost_per_task_usd, format: fmtMoney },
+  { id: "cost_resolved", title: "Cost per resolved task (cents)", better: "lower", value: (s) => s.cost_per_resolved_usd, format: fmtMoney },
   { id: "static_prompt", title: "System prompt + tools (tokens)", better: "lower", value: (s) => s.static_prompt_tokens, format: fmtTokens },
   { id: "cache", title: "Prompt cache hit", better: "higher", value: (s) => s.cache_pct, format: (v) => `${v.toFixed(0)}%` },
   { id: "ttft", title: "Time to first token (p50)", better: "lower", value: (s) => s.ttft_ms_p50, format: fmtSecs },
@@ -101,12 +102,12 @@ export function renderSvg({ meta, summary }, opts = {}) {
   const cols = Math.min(5, metrics.length);
   const rows = Math.ceil(metrics.length / cols);
   const panelW = 396;
-  const panelH = 372;
+  const panelH = 344;
   const headerH = 112;
   const footerH = 52;
   const W = cols * panelW + 80;
   const H = headerH + rows * panelH + footerH;
-  const barW = 34;
+  const barW = 38;
   const slot = Math.min(52, (panelW - 48) / harnesses.length);
   const plotH = 188;
   const baseY = 268; // baseline within a panel
@@ -125,7 +126,7 @@ export function renderSvg({ meta, summary }, opts = {}) {
   parts.push(
     `<text x="40" y="76" font-size="14" fill="${t.sub}">${esc(meta.model)} · reasoning ${esc(meta.reasoning)} · ${esc(meta.cpus)} vCPU / ${esc(meta.mem)} per task · same key, same model, same container limits</text>`,
   );
-  parts.push(`<text x="40" y="96" font-size="12" fill="${t.muted}">Each panel has its own scale from zero.★ marks the best column in a panel.</text>`);
+  parts.push(`<text x="40" y="96" font-size="12" fill="${t.muted}">Each panel has its own scale from zero. ★ marks the best column in a panel.</text>`);
 
   metrics.forEach((m, i) => {
     const col = i % cols;
