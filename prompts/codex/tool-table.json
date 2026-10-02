@@ -1,0 +1,64 @@
+[
+ {
+  "name": "exec_command",
+  "desc_chars": 82,
+  "params": 10,
+  "required": 1,
+  "schema_chars": 1395
+ },
+ {
+  "name": "write_stdin",
+  "desc_chars": 80,
+  "params": 4,
+  "required": 1,
+  "schema_chars": 618
+ },
+ {
+  "name": "request_user_input",
+  "desc_chars": 120,
+  "params": 1,
+  "required": 1,
+  "schema_chars": 1142
+ },
+ {
+  "name": "view_image",
+  "desc_chars": 124,
+  "params": 1,
+  "required": 1,
+  "schema_chars": 162
+ },
+ {
+  "name": "multi_agent_v1",
+  "desc_chars": 43,
+  "params": 0,
+  "required": 0,
+  "schema_chars": 2
+ },
+ {
+  "name": "get_goal",
+  "desc_chars": 122,
+  "params": 0,
+  "required": 0,
+  "schema_chars": 76
+ },
+ {
+  "name": "create_goal",
+  "desc_chars": 265,
+  "params": 2,
+  "required": 1,
+  "schema_chars": 408
+ },
+ {
+  "name": "update_goal",
+  "desc_chars": 1541,
+  "params": 1,
+  "required": 1,
+  "schema_chars": 536
+ },
+ {
+  "desc_chars": 0,
+  "params": 0,
+  "required": 0,
+  "schema_chars": 2
+ }
+]
