@@ -219,10 +219,6 @@ export function createProxy(opts) {
             else meter(chunk);
             res.write(chunk);
           });
-          upstreamRes.on("end", () => {
-            decoder?.end();
-            finish();
-          });
           const finish = () => {
             const usage = parseResponse(
               format,
@@ -252,6 +248,7 @@ export function createProxy(opts) {
                   at: new Date(startedAt).toISOString(),
                   status: upstreamRes.statusCode || 502,
                   usage,
+                  response_headers: upstreamRes.headers,
                   response: capResponse(responseText),
                 });
               } catch (error) {
@@ -260,6 +257,14 @@ export function createProxy(opts) {
             }
             res.end();
           };
+          // With a decoder, metering completes when it has flushed, not when the socket ends.
+          if (decoder) {
+            decoder.on("end", finish);
+            decoder.on("error", finish);
+            upstreamRes.on("end", () => decoder.end());
+          } else {
+            upstreamRes.on("end", finish);
+          }
           upstreamRes.on("error", () => res.end());
         },
       );
