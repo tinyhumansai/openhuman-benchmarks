@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Harness bench viewer</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--line:#ddd;--card:#f6f6f6;--acc:#0a5fd6;--bad:#c0392b;--ok:#1e8449}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--fg:#e8e8e8;--mut:#999;--line:#333;--card:#1f1f1f;--acc:#6aa8ff;--bad:#ff7b6b;--ok:#5fd18a}}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
+main{max-width:1200px;margin:0 auto;padding:16px}
+a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+h1{font-size:18px;margin:0 0 4px}h2{font-size:15px;margin:20px 0 8px}
+.crumbs{color:var(--mut);margin-bottom:12px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child,td.l,th.l{text-align:left}
+th{color:var(--mut);font-weight:500}
+.wrap{overflow-x:auto}
+pre{background:var(--card);border:1px solid var(--line);padding:10px;overflow:auto;max-height:560px;white-space:pre-wrap;word-break:break-word;margin:6px 0}
+.tag{display:inline-block;padding:0 6px;border-radius:9px;background:var(--card);border:1px solid var(--line);font-size:12px;margin-right:4px}
+.bad{color:var(--bad)}.ok{color:var(--ok)}.mut{color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.card{background:var(--card);border:1px solid var(--line);padding:10px;border-radius:6px}
+details{margin:6px 0}summary{cursor:pointer}
+.role{font-weight:600;text-transform:uppercase;font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body><main id="app"></main>
+<script>
+// Everything from results/ is untrusted text (prompts, model output): it only ever
+// reaches the DOM through textContent, never innerHTML.
+const app = document.getElementById("app");
+const h = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v; else if (v != null) e.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+};
+const api = async (p) => { const r = await fetch(p); if (!r.ok) throw new Error(`${p}: ${r.status}`); return r.json(); };
+const e = encodeURIComponent;
+const fmt = (n, d = 0) => n == null ? "–" : Number(n).toLocaleString(undefined, { maximumFractionDigits: d });
+const link = (href, text) => h("a", { href }, text);
+const crumbs = (...parts) => h("div", { class: "crumbs" }, parts.flatMap((p, i) => i ? [" / ", p] : [p]));
+const table = (heads, rows) => h("div", { class: "wrap" }, h("table", {},
+  h("tr", {}, heads.map((x, i) => h("th", { class: i ? "" : "l" }, x))),
+  rows.map((r) => h("tr", {}, r.map((c) => h("td", {}, c))))));
+const pre = (text) => h("pre", {}, typeof text === "string" ? text : JSON.stringify(text, null, 2));
+
+async function runs() {
+  const list = await api("/api/runs");
+  app.replaceChildren(h("h1", {}, "Runs"), crumbs("runs"),
+    table(["run", "harnesses", "captured"], list.map((r) => [
+      link(`#/run/${e(r.run)}`, r.run), r.harnesses.join(", "), r.captured.join(", ") || h("span", { class: "mut" }, "none"),
+    ])));
+}
+
+async function run(id) {
+  const d = await api(`/api/runs/${e(id)}`);
+  const kids = [h("h1", {}, id), crumbs(link("#/", "runs"), id), h("h2", {}, "Harnesses (from the meter proxy, on the wire)")];
+  kids.push(table(
+    ["harness", "tasks", "calls", "prompt tok", "completion tok", "cache %", "cost $", "system tok", "tool schema tok", "tools", "errors", "overridden", "system prompt"],
+    d.harnesses.map((x) => [
+      x.harness, x.tasks, x.calls, fmt(x.prompt_tokens), fmt(x.completion_tokens), fmt(x.cache_pct, 1), fmt(x.cost_usd, 4),
+      fmt(x.system_prompt_tokens), fmt(x.tool_schema_tokens), fmt(x.tool_count),
+      x.errors ? h("span", { class: "bad" }, x.errors) : 0, x.overridden,
+      x.sample_task ? link(`#/call/${e(id)}/${e(x.harness)}/${e(x.sample_task)}/${x.sample_seq}`, `${fmt(x.system_chars)} chars`) : "–",
+    ])));
+  const withTasks = d.harnesses.filter((x) => x.sample_task);
+  if (withTasks.length) {
+    kids.push(h("h2", {}, "Tasks"));
+    const grid = h("div", { class: "grid" });
+    for (const x of withTasks) {
+      const tasks = await api(`/api/runs/${e(id)}/tasks/${e(x.harness)}`);
+      grid.append(h("div", { class: "card" }, h("b", {}, x.harness), h("div", {},
+        tasks.map((t) => h("div", {}, link(`#/task/${e(id)}/${e(x.harness)}/${e(t.task)}`, t.task), h("span", { class: "mut" }, ` ${t.calls} calls`))))));
+    }
+    kids.push(grid);
+  } else kids.push(h("p", { class: "mut" }, "No request captures for this run (it predates capture, or METER_CAPTURE=0)."));
+  if (d.summary_md) kids.push(h("h2", {}, "summary.md"), pre(d.summary_md));
+  app.replaceChildren(...kids);
+}
+
+async function task(id, harness, t) {
+  const calls = await api(`/api/runs/${e(id)}/calls/${e(harness)}/${e(t)}`);
+  const flag = (v) => v === null ? "" : v ? h("span", { class: "ok" }, "same") : h("span", { class: "bad" }, "CHANGED");
+  app.replaceChildren(h("h1", {}, `${harness} · ${t}`),
+    crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), harness, t),
+    h("p", { class: "mut" }, "‘prefix reused’ is how many of the previous call’s messages this call re-sent byte-for-byte; below the previous count, history was rewritten and provider prefix caching is lost from there."),
+    table(["#", "status", "msgs", "prefix reused", "system", "tools", "cache ctl", "prompt", "cached", "completion", "ttfb ms", "total ms", "cost $", "req KB"],
+      calls.map((c, i) => [
+        link(`#/call/${e(id)}/${e(harness)}/${e(t)}/${c.seq}`, i + 1), c.status ?? "–", c.messages,
+        c.prefix_reused_messages == null ? "–" : `${c.prefix_reused_messages}/${c.prev_messages}`,
+        flag(c.same_system_as_prev), flag(c.same_tools_as_prev), c.cache_control_markers,
+        fmt(c.usage?.prompt_tokens), fmt(c.usage?.cached_tokens), fmt(c.usage?.completion_tokens),
+        fmt(c.usage?.ttfb_ms), fmt(c.usage?.total_ms), fmt(c.usage?.cost_usd, 5), fmt(c.request_bytes / 1024, 1),
+      ])));
+}
+
+const text = (c) => typeof c === "string" ? c : Array.isArray(c) ? c.map((p) => p?.text ?? p?.content ?? JSON.stringify(p)).join("\n") : JSON.stringify(c, null, 2);
+
+async function call(id, harness, t, seq) {
+  const c = await api(`/api/runs/${e(id)}/call/${e(harness)}/${e(t)}/${seq}`);
+  const kids = [h("h1", {}, `${harness} · ${t} · call ${seq}`),
+    crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), link(`#/task/${e(id)}/${e(harness)}/${e(t)}`, `${harness}/${t}`), `call ${seq}`),
+    h("div", {}, [["format", c.format], ["status", c.status], ["msgs", c.message_shas.length], ["tools", c.tool_count],
+      ["cache_control markers", c.cache_control_markers], ["prompt_cache_key", c.prompt_cache_key]].map(([k, v]) => h("span", { class: "tag" }, `${k}: ${v ?? "–"}`))),
+    h("h2", {}, `System prompt (${fmt(c.system_chars)} chars, ${c.system_sha ?? "none"})`), pre(c.system || "(no system prompt)"),
+    h("h2", {}, "Sampling & provider params"), pre(c.params),
+    h("h2", {}, "Request headers"), pre(c.headers),
+    h("h2", {}, `Tools (${c.tool_count})`),
+    h("details", {}, h("summary", {}, c.tool_names.join(", ") || "none"), pre(c.tools)),
+    h("h2", {}, `Conversation (${c.messages.length})`)];
+  for (const m of c.messages) {
+    kids.push(h("details", {}, h("summary", {}, h("span", { class: "role" }, m.role ?? m.type ?? "?"), " ", text(m.content ?? m.output ?? m.arguments ?? "").slice(0, 100).replace(/\s+/g, " ")), pre(m)));
+  }
+  kids.push(h("h2", {}, "Response (raw, as returned by the provider)"), pre(c.response ?? ""));
+  app.replaceChildren(...kids);
+}
+
+async function route() {
+  const [, kind, ...p] = location.hash.split("/").map(decodeURIComponent);
+  try {
+    if (kind === "run") await run(p[0]);
+    else if (kind === "task") await task(...p);
+    else if (kind === "call") await call(...p);
+    else await runs();
+  } catch (err) {
+    app.replaceChildren(h("p", { class: "bad" }, String(err.message)), link("#/", "back"));
+  }
+}
+addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>
