@@ -51,3 +51,20 @@ RUN mkdir -p "$HOME" && curl -fsSL https://hermes-agent.nousresearch.com/install
     && (/tmp/bench-home/.local/bin/hermes --version || true) \
     && mv /tmp/bench-home /opt/harness/home
 COPY adapters/hermes.sh /opt/harness/adapter.sh
+
+# DeepSeek Harness via its Python SDK (the documented headless path; the SDK
+# bundles the native `dsh` runtime, so no system Node is needed). A uv-managed
+# CPython lives in the bundle so it runs inside any task image, and the venv is
+# built at the path it will run from. `deepseek-harness` runs the full `sdk`
+# profile (filesystem tools + shell); the variant below runs `sdk-minimal`, the
+# profile DeepSeek's BENCHMARK.md points at (a persistent shell only).
+FROM base AS deepseek-harness
+ARG DSH_SDK_VERSION
+ENV UV_PYTHON_INSTALL_DIR=/opt/harness/python UV_CACHE_DIR=/tmp/uv-cache UV_UNMANAGED_INSTALL=/usr/local/bin
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && uv venv --python 3.12 /opt/harness/venv \
+    && uv pip install --python /opt/harness/venv/bin/python "deepseek-harness-sdk==${DSH_SDK_VERSION}" \
+    && /opt/harness/venv/bin/python -c "import deepseek_harness; print('dsh sdk ok')"
+COPY adapters/deepseek-harness.sh /opt/harness/adapter.sh
+COPY adapters/deepseek-harness-base.sh /opt/harness/deepseek-harness-base.sh
+COPY dsh_run.py /opt/harness/dsh_run.py

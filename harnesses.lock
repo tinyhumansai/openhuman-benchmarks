@@ -7,4 +7,5 @@ CODEX_VERSION=0.159.3
 OPENCODE_VERSION=1.18.34
 OPENCLAW_VERSION=2026.9.7
 HERMES_VERSION=v2026.9.24
+DSH_SDK_VERSION=0.1.5rc1
 # OpenHuman is built from this checkout (recorded in the report as its git SHA).
