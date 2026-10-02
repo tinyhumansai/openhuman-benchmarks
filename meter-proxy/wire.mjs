@@ -36,7 +36,7 @@ export function upstreamRoute(urlPath) {
  * the fields that were overridden (so the log can show what a harness tried to
  * send versus what was forwarded).
  */
-export function rewriteRequest(format, body, { model, effort }) {
+export function rewriteRequest(format, body, { model, effort, provider }) {
   const out = { ...body };
   const overridden = {};
   if (out.model !== model) overridden.model = out.model ?? null;
@@ -51,6 +51,16 @@ export function rewriteRequest(format, body, { model, effort }) {
   delete out.reasoning_effort;
   delete out.thinking;
   out.reasoning = { effort };
+
+  // Pin the OpenRouter provider. Prompt caches live inside one provider's
+  // deployment, so letting OpenRouter route each call to whichever backend is
+  // free (or a harness express its own preference) scatters a thread's prefix
+  // across caches. No fallbacks: a pinned provider failing is a visible error,
+  // not a silent cache reset on another backend.
+  if (provider) {
+    if (out.provider !== undefined) overridden.provider = out.provider;
+    out.provider = { order: [provider], allow_fallbacks: false };
+  }
 
   // OpenRouter returns `usage.cost` when asked.
   out.usage = { ...(typeof out.usage === "object" ? out.usage : {}), include: true };

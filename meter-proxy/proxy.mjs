@@ -9,9 +9,12 @@
 //   METER_UPSTREAM     (https://openrouter.ai/api)
 //   OPENROUTER_API_KEY real key; injected upstream, harnesses carry a dummy
 //   BENCH_MODEL        pinned model slug (required)
-//   BENCH_REASONING    pinned reasoning effort (default medium)
+//   BENCH_REASONING    pinned reasoning effort (default high)
+//   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (default DeepSeek; empty = unpinned)
 //   METER_LOG          JSONL output (default /results/meter.jsonl)
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
+//   METER_CAPTURE=0    do not store request captures (system prompt, tools, messages);
+//                      default stores them under <dir of METER_LOG>/<run_id>/captures/
 //
 // Control plane (loopback of the compose network only):
 //   POST /__bench/run  {"run_id":"..","harness":"..","task":".."}  tag subsequent calls
@@ -22,6 +25,9 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { forwardHeaders } from "./headers.mjs";
+import zlib from "node:zlib";
+import { buildCapture, capResponse, lineageOf, writeCapture } from "./capture.mjs";
 import { computeCost, fetchPricing } from "./pricing.mjs";
 import {
   FORMATS,
@@ -43,15 +49,33 @@ try {
   // tokenizer not installed: sizes fall back to a chars/4 estimate, labelled as such
 }
 
+/** Decoder for a response's content-encoding, or null when it is not compressed. */
+function decoderFor(encoding) {
+  switch ((encoding ?? "").toLowerCase()) {
+    case "gzip": return zlib.createGunzip();
+    case "deflate": return zlib.createInflate();
+    case "br": return zlib.createBrotliDecompress();
+    default: return null;
+  }
+}
+
+// DeepSeek's own endpoint for deepseek/deepseek-v4.1-flash: 99.99% uptime, a 393k output cap (covers the
+// DeepSeek harness's max_tokens=256000) and cached tokens at 1/50 of the uncached price. Note that
+// pinning it on the older `deepseek-v4-flash` slug silently serves v4.1, so the slug and pin go together.
+export const DEFAULT_PROVIDER = "DeepSeek";
+
 export function createProxy(opts) {
   const upstream = new URL(opts.upstream ?? "https://openrouter.ai/api");
   const logPath = path.resolve(opts.logPath ?? "/results/meter.jsonl");
   const model = opts.model;
-  const effort = opts.effort ?? "medium";
+  const effort = opts.effort ?? "high";
+  const provider = opts.provider || null;
   const apiKey = opts.apiKey;
   let pricing = opts.pricing ?? null;
   let run = { run_id: "untagged", harness: "untagged", task: "untagged" };
   let seq = 0;
+  const captureRoot = opts.capture === false ? null : path.dirname(logPath);
+  const prevState = new Map(); // `${run}/${harness}/${task}` -> last call state, for prefix diffs
   const firstRequests = new Map(); // `${harness}/${task}` -> prompt sizes
   const transport = upstream.protocol === "https:" ? https : http;
 
@@ -60,17 +84,33 @@ export function createProxy(opts) {
     fs.appendFileSync(logPath, `${JSON.stringify(record)}\n`);
   }
 
+  // Tokenising is the one costly step, and a task resends the same system prompt and tool
+  // schemas every turn, so count each distinct text once.
+  const tokenMemo = new Map();
+  function tokens(text) {
+    if (!text) return 0;
+    let n = tokenMemo.get(text);
+    if (n === undefined) {
+      if (tokenMemo.size > 64) tokenMemo.clear();
+      n = countTokens(text);
+      tokenMemo.set(text, n);
+    }
+    return n;
+  }
+
+  // Sized on every call, not just the first: some harnesses open a task with a small side
+  // request (OpenCode's title generator has no tools), and the report needs to find the
+  // main agent request, the one with the largest static prompt.
   function promptSizes(format, body) {
     const key = `${run.run_id}/${run.harness}/${run.task}`;
-    if (firstRequests.has(key)) return null;
     const parts = extractPromptParts(format, body);
     const sizes = {
-      system_prompt_tokens: countTokens(parts.system),
-      tool_schema_tokens: parts.tools ? countTokens(parts.tools) : 0,
+      system_prompt_tokens: tokens(parts.system),
+      tool_schema_tokens: tokens(parts.tools),
       tool_count: parts.tool_count,
       tokenizer,
     };
-    firstRequests.set(key, sizes);
+    if (!firstRequests.has(key)) firstRequests.set(key, sizes);
     return sizes;
   }
 
@@ -116,6 +156,7 @@ export function createProxy(opts) {
 
       let outBody = body;
       let record = null;
+      let built = null;
       if (format) {
         let parsed = null;
         try {
@@ -125,7 +166,18 @@ export function createProxy(opts) {
         }
         if (parsed) {
           const sizes = promptSizes(format, parsed);
-          const rewritten = rewriteRequest(format, parsed, { model, effort });
+          if (captureRoot) {
+            const key = `${tag.run_id}/${tag.harness}/${tag.task}/${lineageOf(parsed)}`;
+            built = buildCapture({
+              format,
+              body: parsed,
+              headers: req.headers,
+              rawBytes: body.length,
+              prev: prevState.get(key) ?? null,
+            });
+            prevState.set(key, built.state);
+          }
+          const rewritten = rewriteRequest(format, parsed, { model, effort, provider });
           outBody = Buffer.from(JSON.stringify(rewritten.body));
           record = {
             seq: callSeq,
@@ -134,6 +186,9 @@ export function createProxy(opts) {
             format,
             model,
             reasoning_effort: effort,
+            provider_pinned: provider,
+            // system prompt + tool list: lets the report tell the main agent from side requests and sub-agents
+            context: built ? `${built.state.systemSha}.${built.state.toolsSha}` : undefined,
             overridden: rewritten.overridden,
             stream: parsed.stream === true,
             messages: Array.isArray(parsed.messages)
@@ -147,13 +202,16 @@ export function createProxy(opts) {
         }
       }
 
-      const headers = { ...req.headers, host: upstream.host };
-      // Harnesses carry a dummy credential; the real key lives only here.
-      delete headers.authorization;
-      delete headers["x-api-key"];
-      if (apiKey) headers.authorization = `Bearer ${apiKey}`;
-      headers["content-length"] = String(outBody.length);
-      delete headers["accept-encoding"]; // keep bodies parseable
+      // Every header goes upstream as received (see headers.mjs); only the
+      // credential, host and content-length change.
+      const fwd = forwardHeaders(req.rawHeaders, {
+        host: upstream.host,
+        apiKey,
+        bodyLength: outBody.length,
+      });
+      const headers = fwd.list;
+      if (built) built.capture.headers_replaced = fwd.replaced;
+      if (built) built.capture.headers_dropped = fwd.dropped;
 
       const upstreamReq = transport.request(
         {
@@ -173,19 +231,34 @@ export function createProxy(opts) {
           let firstByteAt = null;
           const tokens = createFirstTokenTracker(format, startedAt);
           const pieces = [];
-          upstreamRes.on("data", (chunk) => {
-            if (firstByteAt === null) firstByteAt = Date.now();
+          // The client gets the bytes untouched (accept-encoding is forwarded, so
+          // the body may be compressed); a decoded copy feeds the metering.
+          const decoder = decoderFor(upstreamRes.headers["content-encoding"]);
+          const meter = (chunk) => {
             tokens.observe(chunk);
             pieces.push(chunk);
+          };
+          decoder?.on("data", meter);
+          decoder?.on("error", () => {});
+          upstreamRes.on("data", (chunk) => {
+            if (firstByteAt === null) firstByteAt = Date.now();
+            if (decoder) decoder.write(chunk);
+            else meter(chunk);
             res.write(chunk);
           });
-          upstreamRes.on("end", () => {
+          const finish = () => {
             const usage = parseResponse(
               format,
               Buffer.concat(pieces).toString("utf8"),
             );
+            const responseText = Buffer.concat(pieces).toString("utf8");
             const reported = usage.cost_usd;
             const computed = computeCost(pricing, usage);
+            const timing = {
+              ttfb_ms: firstByteAt === null ? null : firstByteAt - startedAt,
+              ...tokens.result(),
+              total_ms: Date.now() - startedAt,
+            };
             append({
               ...(record ?? { seq: callSeq, ...tag, format }),
               status: upstreamRes.statusCode || 502,
@@ -197,12 +270,33 @@ export function createProxy(opts) {
                   : computed !== null
                     ? "computed"
                     : "unknown",
-              ttfb_ms: firstByteAt === null ? null : firstByteAt - startedAt,
-              ...tokens.result(),
-              total_ms: Date.now() - startedAt,
+              ...timing,
             });
+            if (built) {
+              try {
+                writeCapture(captureRoot, tag, callSeq, built, {
+                  at: new Date(startedAt).toISOString(),
+                  status: upstreamRes.statusCode || 502,
+                  usage,
+                  ...timing,
+                  cost_usd: reported ?? computed,
+                  response_headers: upstreamRes.headers,
+                  response: capResponse(responseText),
+                });
+              } catch (error) {
+                process.stderr.write(`[meter] capture failed: ${error.message}\n`);
+              }
+            }
             res.end();
-          });
+          };
+          // With a decoder, metering completes when it has flushed, not when the socket ends.
+          if (decoder) {
+            decoder.on("end", finish);
+            decoder.on("error", finish);
+            upstreamRes.on("end", () => decoder.end());
+          } else {
+            upstreamRes.on("end", finish);
+          }
           upstreamRes.on("error", () => res.end());
         },
       );
@@ -242,9 +336,11 @@ if (isMain) {
   const proxy = createProxy({
     upstream: upstreamUrl,
     model,
-    effort: process.env.BENCH_REASONING || "medium",
+    effort: process.env.BENCH_REASONING || "high",
+    provider: process.env.BENCH_PROVIDER ?? DEFAULT_PROVIDER, // "" disables the pin
     apiKey: process.env.OPENROUTER_API_KEY,
     logPath: process.env.METER_LOG || "/results/meter.jsonl",
+    capture: process.env.METER_CAPTURE !== "0",
   });
   if (process.env.METER_PRICING !== "0") {
     try {

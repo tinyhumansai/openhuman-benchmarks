@@ -10,6 +10,7 @@ latency, cache efficiency, prompt size, cost and SWE-bench Verified resolve rate
 | Control | Mechanism |
 |---|---|
 | Same model | The metering proxy rewrites `model` on every request to `BENCH_MODEL`. |
+| Same provider | The proxy pins `provider: {order: [BENCH_PROVIDER], allow_fallbacks: false}` on every request, so the prompt cache is not split across OpenRouter backends. |
 | Same reasoning level | The proxy strips each protocol's own spelling (`thinking`, `reasoning_effort`, ...) and injects `reasoning: {effort: BENCH_REASONING}`. |
 | Same key | Only the proxy holds `OPENROUTER_API_KEY`; harnesses get a dummy token. |
 | Same resources | One compose `task` service: `cpus: 4`, `mem_limit: 8g`, no swap, same for every harness. |
@@ -25,7 +26,8 @@ normalised.
 
 ```
 docker-compose.yml     meter-proxy + the `task` service (limits live here)
-meter-proxy/           wire parsers (chat / Anthropic / Responses), pricing, proxy
+meter-proxy/           wire parsers (chat / Anthropic / Responses), pricing, proxy, capture
+viewer/                zero-dependency web UI over results/ (prompts, tools, cache diagnostics)
 runner/                in-container entry (cgroup CPU/RAM sampler, patch capture, check)
 bundles/               per-harness build (/opt/harness) + adapters/*.sh headless entry points
 tasks/micro.mjs        5-task micro suite generator
@@ -64,6 +66,27 @@ node report.mjs --run-id swe-1
 Harnesses run one at a time on purpose: two harnesses sharing the host would
 contend for CPU and distort the CPU and latency columns.
 
+## Seeing what each harness sends
+
+The proxy sits between every harness and OpenRouter, so it records the request as the
+harness built it (before model/reasoning are pinned). Per run, under
+`results/<run>/captures/`: one JSON per call (`<harness>/<task>/<seq>.json`) holding the
+sampling parameters, headers (credentials dropped), `cache_control` marker count, any
+`prompt_cache_key`, the raw response, and, for caching, whether the system prompt and tool
+list matched the previous call and how many earlier messages were re-sent byte-for-byte.
+System prompts, tool schemas and messages are stored once each in `captures/blobs/`, so a long
+task costs the system prompt once. `METER_CAPTURE=0` turns it off.
+
+```bash
+node viewer/server.mjs            # http://127.0.0.1:8787, read-only, loopback, reads files on demand
+node viewer/server.mjs --port 9000 --results /path/to/results
+./run-deepseek.sh                 # DeepSeek harness (minimal + full) micro suite, one at a time
+```
+
+The viewer shows per-harness aggregates (tokens, cache %, cost, system-prompt and tool-schema
+size, rejected overrides), the system prompt each harness actually sent, tool schemas, every
+call's cache diagnostics, the conversation, and the provider's raw response.
+
 ## Charts
 
 ```bash
@@ -99,7 +122,7 @@ examples are in `charts/`.
 
 ## Harness lineup
 
-`openhuman` (native structured tool calls), `claude-code`, `codex`, `opencode`, `openclaw`,
+`openhuman` (native only: provider JSON tool calls, `OPENHUMAN_TOOL_DISPATCHER=native`; no other variants), `claude-code`, `codex`, `opencode`, `openclaw`,
 `hermes`, `deepseek-harness` (DeepSeek's `dsh` through its Python SDK, full `sdk` profile) and
 `deepseek-harness-minimal` (the `sdk-minimal` profile, a shell only, which DeepSeek's own
 `BENCHMARK.md` prescribes). `openhuman-python` is the retired python-dispatcher default: its
@@ -121,9 +144,6 @@ project and proxy port, so two worktrees never share a proxy.
   `harnesses.lock`; the commit used is whatever `main` was at bundle build time.
   Hermes also copies its installed tree to a writable `HOME` at start, which
   counts in its cold start.
-- `openhuman-jev` (JEV tool ranking) needs `TINYHUMANS_API_KEY`: the ranker runs
-  on the TinyHumans backend, outside the metering proxy, so its own cost is not
-  in the cost column.
 - Claude Code needs `IS_SANDBOX=1` to accept the permission bypass as root.
 - Codex only speaks the Responses API; this works because OpenRouter serves
   `/v1/responses`.

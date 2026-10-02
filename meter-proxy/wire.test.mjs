@@ -54,12 +54,12 @@ test("rewriteRequest drops Anthropic thinking and does not add stream_options", 
 
 test("parseResponse chat SSE: usage, cached tokens, cost, provider", () => {
   const sse = [
-    'data: {"provider":"DeepInfra","choices":[{"delta":{"content":"hi"}}]}',
+    'data: {"provider":"GMICloud","choices":[{"delta":{"content":"hi"}}]}',
     'data: {"choices":[],"usage":{"prompt_tokens":1000,"completion_tokens":50,"cost":0.0004,"prompt_tokens_details":{"cached_tokens":800}}}',
     "data: [DONE]",
   ].join("\n");
   const u = parseResponse(FORMATS.CHAT, sse);
-  assert.equal(u.provider, "DeepInfra");
+  assert.equal(u.provider, "GMICloud");
   assert.equal(u.prompt_tokens, 1000);
   assert.equal(u.cached_tokens, 800);
   assert.equal(u.completion_tokens, 50);
@@ -146,4 +146,16 @@ test("computeCost discounts cached tokens and never reports unpriced as free", (
     computeCost(pricing, { prompt_tokens: null, completion_tokens: 1 }),
     null,
   );
+});
+
+test("rewriteRequest pins the provider with no fallbacks and reports a harness preference it overrode", () => {
+  const { body, overridden } = rewriteRequest(
+    "chat",
+    { model: "x", messages: [], provider: { order: ["Other"], allow_fallbacks: true } },
+    { model: "m", effort: "medium", provider: "GMICloud" },
+  );
+  assert.deepEqual(body.provider, { order: ["GMICloud"], allow_fallbacks: false });
+  assert.deepEqual(overridden.provider, { order: ["Other"], allow_fallbacks: true });
+  const unpinned = rewriteRequest("chat", { model: "m", messages: [] }, { model: "m", effort: "medium" });
+  assert.equal(unpinned.body.provider, undefined);
 });

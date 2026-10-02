@@ -29,6 +29,24 @@ const mean = (xs) => {
  * @param tasks   [{harness, task_key, task, result, grade}] one per executed task
  * @returns       {[harness]: metrics}
  */
+/**
+ * The request that carries a task's real static prompt: the call with the largest system prompt
+ * plus tool schemas. Usually the first call, but some harnesses open with a small tool-less side
+ * request (OpenCode's title generator), which would otherwise read as "no tools".
+ */
+export function mainRequest(calls, taskKey) {
+  const { main, contexts } = classify(calls.filter((r) => r.task === taskKey));
+  return contexts.get(main)?.calls.find((r) => r.system_prompt_tokens != null) ?? null;
+}
+
+/** Calls of a harness that are not its main agent: side requests and sub-agents, per task. */
+function sideCalls(calls, taskKeys) {
+  return taskKeys.flatMap((t) => {
+    const { main, contexts } = classify(calls.filter((r) => r.task === t));
+    return [...contexts.values()].filter((c) => c.id !== main).flatMap((c) => c.calls);
+  });
+}
+
 export function aggregate(meter, tasks) {
   const harnesses = [...new Set(tasks.map((t) => t.harness))];
   const out = {};
@@ -37,9 +55,7 @@ export function aggregate(meter, tasks) {
     const calls = meter.filter((r) => r.harness === harness);
     const ok = calls.filter((r) => r.status >= 200 && r.status < 300);
 
-    const firstCalls = mine
-      .map((t) => calls.find((r) => r.task === t.task_key && r.system_prompt_tokens != null))
-      .filter(Boolean);
+    const firstCalls = mine.map((t) => mainRequest(calls, t.task_key)).filter(Boolean);
     const coldStart = mine
       .map((t) => {
         const first = calls.find((r) => r.task === t.task_key);
@@ -50,7 +66,9 @@ export function aggregate(meter, tasks) {
     const prompt = sum(ok.map((r) => r.prompt_tokens));
     const cached = sum(ok.map((r) => r.cached_tokens));
     const cost = sum(calls.map((r) => r.cost_usd));
-    const unpriced = calls.filter((r) => r.cost_usd == null).length;
+    // A failed request is not billed, so only successful calls with no cost are "unpriced".
+    const unpriced = ok.filter((r) => r.cost_usd == null).length;
+    const side = sideCalls(calls, mine.map((t) => t.task_key));
 
     const passed = mine.filter((t) => t.result?.check?.passed).length;
     const resolved = mine.filter((t) => t.grade?.resolved).length;
@@ -109,11 +127,16 @@ export function aggregate(meter, tasks) {
         firstCalls.map((r) => (r.system_prompt_tokens ?? 0) + (r.tool_schema_tokens ?? 0)),
         50,
       ),
+      tokens_total: sum(calls.map((r) => (r.prompt_tokens ?? 0) + (r.completion_tokens ?? 0))),
       prompt_tokens: prompt,
       completion_tokens: sum(ok.map((r) => r.completion_tokens)),
       cache_pct: prompt ? (100 * cached) / prompt : null,
       cost_usd: cost,
       cost_unpriced_calls: unpriced,
+      side_calls: side.length,
+      side_tokens: sum(side.map((r) => (r.prompt_tokens ?? 0) + (r.completion_tokens ?? 0))),
+      side_cost_usd: sum(side.map((r) => r.cost_usd)),
+      side_failed_calls: side.filter((r) => !(r.status >= 200 && r.status < 300)).length,
       cost_per_task_usd: mine.length ? cost / mine.length : null,
       cost_per_resolved_usd: resolved ? cost / resolved : null,
       ttft_ms_p50: percentile(ok.map((r) => r.first_token_ms), 50),
@@ -140,35 +163,70 @@ export function aggregate(meter, tasks) {
   return out;
 }
 
+import { classify } from "./contexts.mjs";
+import { count, mem, ms, orderHarnesses, pct, secs, usd } from "./format.mjs";
+
 const f = (v, d = 0) => (v === null || v === undefined ? "-" : Number(v).toFixed(d));
-const money = (v) => (v === null || v === undefined ? "-" : `$${Number(v).toFixed(4)}`);
+const money = (v) => (v === null || v === undefined ? "-" : usd(v));
+
+/**
+ * Mark the harnesses for one metric. `better` is "low" or "high"; values that are not numbers
+ * are skipped, and nothing is marked when fewer than two harnesses have a value or they all
+ * tie. Ties share a mark: every harness on the top value is "best", every one on the next
+ * distinct value is "runner" (when that is not also the worst), and the bottom value is "worst".
+ * @returns {Array<"best"|"runner"|"worst"|null>} one entry per input value
+ */
+export function rankRow(values, better) {
+  const nums = values.filter((v) => typeof v === "number" && Number.isFinite(v));
+  if (!better || nums.length < 2) return values.map(() => null);
+  const distinct = [...new Set(nums)].sort((a, b) => (better === "low" ? a - b : b - a));
+  if (distinct.length < 2) return values.map(() => null);
+  const best = distinct[0];
+  const worst = distinct[distinct.length - 1];
+  const runner = distinct.length > 2 ? distinct[1] : null;
+  return values.map((v) => (v === best ? "best" : v === worst ? "worst" : v === runner ? "runner" : null));
+}
+
+const rate = (num, den) => (den ? num / den : null);
 
 export function toMarkdown(meta, summary) {
-  const names = Object.keys(summary);
+  const names = orderHarnesses(Object.keys(summary));
+  // [label, display(s), raw(s) used for ranking, better: "low" | "high" | null]
   const rows = [
-    ["resolved (SWE) / checks passed", (s) => (s.swe_resolved === null ? `${s.check_passed}/${s.tasks} checks` : `${s.swe_resolved}/${s.swe_graded} resolved`)],
+    ["resolved (SWE) / checks passed", (s) => (s.swe_resolved === null ? `${s.check_passed}/${s.tasks} checks` : `${s.swe_resolved}/${s.swe_graded} resolved`), (s) => (s.swe_resolved === null ? rate(s.check_passed, s.tasks) : rate(s.swe_resolved, s.swe_graded)), "high"],
     ["patch produced", (s) => `${s.patch_produced}/${s.tasks}`],
-    ["harness errors / timeouts (all tasks)", (s) => `${s.harness_errors} / ${s.timeouts}`],
-    ["system prompt tokens", (s) => f(s.system_prompt_tokens)],
-    ["tool schema tokens (count)", (s) => `${f(s.tool_schema_tokens)} (${f(s.tool_count)})`],
-    ["static prompt total (system + tools)", (s) => f(s.solved_static_prompt_tokens ?? s.static_prompt_tokens)],
-    ["cost / solved task", (s) => money(s.cost_per_solved_usd)],
-    ["tokens / solved task", (s) => f(s.tokens_per_solved)],
-    ["total cost (all tasks)", (s) => `${money(s.cost_usd)}${s.cost_unpriced_calls ? ` (+${s.cost_unpriced_calls} unpriced)` : ""}`],
-    ["cache hit % (solved tasks)", (s) => f(s.solved_cache_pct, 1)],
-    ["TTFT p50 (ms, solved tasks)", (s) => f(s.solved_ttft_ms_p50)],
-    ["LLM call latency p50 (ms, solved tasks)", (s) => f(s.solved_call_latency_ms_p50)],
-    ["task wall p50 (s, solved tasks)", (s) => f(s.solved_task_wall_s_p50, 1)],
-    ["cold start to first call p50 (ms, solved tasks)", (s) => f(s.solved_cold_start_ms_p50)],
-    ["CPU-seconds / solved task", (s) => f(s.solved_cpu_seconds_mean, 1)],
-    ["peak RAM, process memory (MB, solved tasks)", (s) => f(s.solved_peak_anon_mb_max)],
-    ["peak RAM incl. page cache (MB, all tasks)", (s) => f(s.peak_mem_mb_max)],
-    ["avg RAM (MB, all tasks)", (s) => f(s.avg_mem_mb_mean)],
-    ["LLM calls (errors)", (s) => `${s.llm_calls} (${s.llm_call_errors})`],
-    ["prompt / completion tokens", (s) => `${s.prompt_tokens} / ${s.completion_tokens}`],
+    ["harness errors / timeouts (all tasks)", (s) => `${s.harness_errors} / ${s.timeouts}`, (s) => s.harness_errors + s.timeouts, "low"],
+    ["system prompt tokens", (s) => count(s.system_prompt_tokens), (s) => s.system_prompt_tokens, "low"],
+    ["tool schema tokens (count)", (s) => `${count(s.tool_schema_tokens)} (${count(s.tool_count)})`, (s) => s.tool_schema_tokens, "low"],
+    ["static prompt total (system + tools)", (s) => count(s.solved_static_prompt_tokens ?? s.static_prompt_tokens), (s) => s.solved_static_prompt_tokens ?? s.static_prompt_tokens, "low"],
+    ["cost / solved task", (s) => money(s.cost_per_solved_usd), (s) => s.cost_per_solved_usd, "low"],
+    ["tokens / solved task", (s) => count(s.tokens_per_solved), (s) => s.tokens_per_solved, "low"],
+    ["total cost (all tasks)", (s) => `${money(s.cost_usd)}${s.cost_unpriced_calls ? ` (+${s.cost_unpriced_calls} unpriced)` : ""}`, (s) => s.cost_usd, "low"],
+    ["cache hit % (solved tasks)", (s) => pct(s.solved_cache_pct), (s) => s.solved_cache_pct, "high"],
+    ["TTFT p50 (solved tasks)", (s) => ms(s.solved_ttft_ms_p50), (s) => s.solved_ttft_ms_p50, "low"],
+    ["LLM call latency p50 (solved tasks)", (s) => ms(s.solved_call_latency_ms_p50), (s) => s.solved_call_latency_ms_p50, "low"],
+    ["task wall p50 (solved tasks)", (s) => secs(s.solved_task_wall_s_p50), (s) => s.solved_task_wall_s_p50, "low"],
+    ["cold start to first call p50 (solved tasks)", (s) => ms(s.solved_cold_start_ms_p50), (s) => s.solved_cold_start_ms_p50, "low"],
+    ["CPU time / solved task", (s) => secs(s.solved_cpu_seconds_mean), (s) => s.solved_cpu_seconds_mean, "low"],
+    ["peak RAM, process memory (solved tasks)", (s) => mem(s.solved_peak_anon_mb_max), (s) => s.solved_peak_anon_mb_max, "low"],
+    ["peak RAM incl. page cache (all tasks)", (s) => mem(s.peak_mem_mb_max), (s) => s.peak_mem_mb_max, "low"],
+    ["avg RAM (all tasks)", (s) => mem(s.avg_mem_mb_mean), (s) => s.avg_mem_mb_mean, "low"],
+    ["side / sub-agent calls (failed)", (s) => `${count(s.side_calls)} of ${count(s.llm_calls)} (${count(s.side_failed_calls)})`],
+    ["side / sub-agent share of tokens", (s) => pct(s.tokens_total ? (100 * s.side_tokens) / s.tokens_total : null)],
+    ["LLM calls (errors)", (s) => `${count(s.llm_calls)} (${count(s.llm_call_errors)})`],
+    ["prompt / completion tokens", (s) => `${count(s.prompt_tokens)} / ${count(s.completion_tokens)}`],
   ];
+  // Best is bold + 🟢, runner-up bold + 🟡, worst bold + 🔴: plain Markdown, so it reads in any renderer,
+  // and the viewer turns the markers into green, yellow and red.
+  const MARK = { best: "🟢", runner: "🟡", worst: "🔴" };
+  const cell = (text, rank) => (rank ? `**${text}** ${MARK[rank]}` : text);
   const head = `| metric | ${names.join(" | ")} |\n|---|${names.map(() => "---").join("|")}|`;
-  const body = rows.map(([label, fn]) => `| ${label} | ${names.map((n) => fn(summary[n])).join(" | ")} |`).join("\n");
+  const body = rows
+    .map(([label, fn, raw, better]) => {
+      const ranks = rankRow(names.map((n) => (raw ? raw(summary[n]) : null)), better);
+      return `| ${label} | ${names.map((n, k) => cell(fn(summary[n]), ranks[k])).join(" | ")} |`;
+    })
+    .join("\n");
   return [
     `# Harness benchmark: ${meta.run_id}`,
     "",
@@ -237,7 +295,8 @@ function main() {
     return { ...row, result: read("result.json"), grade: grades?.[row.task] ?? null };
   });
 
-  const summary = aggregate(meter, tasks);
+  const aggregated = aggregate(meter, tasks);
+  const summary = Object.fromEntries(orderHarnesses(Object.keys(aggregated)).map((n) => [n, aggregated[n]]));
   const meta = {
     run_id: runId,
     suite: [...new Set(index.map((r) => r.suite))].join(","),

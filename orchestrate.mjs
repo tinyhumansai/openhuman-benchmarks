@@ -88,11 +88,24 @@ async function waitForQuietHost() {
 }
 
 async function tagProxy(port, tag) {
-  const res = await fetch(`http://127.0.0.1:${port}/__bench/run`, {
-    method: "POST",
-    body: JSON.stringify(tag),
-  });
-  if (!res.ok) throw new Error(`tagging proxy failed: HTTP ${res.status}`);
+  // A fresh connection per call, and a retry: Docker Desktop's port forwarder closes idle
+  // keep-alive sockets, and fetch reusing one fails with "fetch failed" between tasks.
+  let lastError;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/__bench/run`, {
+        method: "POST",
+        headers: { connection: "close" },
+        body: JSON.stringify(tag),
+      });
+      if (!res.ok) throw new Error(`tagging proxy failed: HTTP ${res.status}`);
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+  throw lastError;
 }
 
 async function main() {

@@ -105,3 +105,31 @@ test("a harness that solved nothing has null solved-task KPIs, not zeros", () =>
   assert.equal(s.solved_cache_pct, null);
   assert.equal(s.solved_task_wall_s_p50, null);
 });
+
+import { rankRow } from "./report.mjs";
+
+test("rankRow marks best and worst per direction, skips ties and single values", () => {
+  assert.deepEqual(rankRow([3, 1, 2], "low"), ["worst", "best", "runner"]);
+  assert.deepEqual(rankRow([3, 1, 2], "high"), ["best", "worst", "runner"]);
+  assert.deepEqual(rankRow([4, 1, 2, 3], "low"), ["worst", "best", "runner", null]);
+  assert.deepEqual(rankRow([1, 2, 2, 3], "low"), ["best", "runner", "runner", "worst"]);
+  assert.deepEqual(rankRow([1, 2], "low"), ["best", "worst"]);
+  assert.deepEqual(rankRow([5, 5], "low"), [null, null]);
+  assert.deepEqual(rankRow([5, null], "low"), [null, null]);
+  assert.deepEqual(rankRow([1, 1, 9], "low"), ["best", "best", "worst"]);
+  assert.deepEqual(rankRow([1, 2], null), [null, null]);
+});
+
+import { mainRequest } from "./report.mjs";
+
+test("mainRequest skips a tool-less side request and returns the call with the largest static prompt", () => {
+  const calls = [
+    { task: "t", seq: 0, system_prompt_tokens: 500, tool_schema_tokens: 0 }, // e.g. a title generator
+    { task: "t", seq: 1, system_prompt_tokens: 2400, tool_schema_tokens: 3000 },
+    { task: "t", seq: 2, system_prompt_tokens: 2400, tool_schema_tokens: 3000 },
+    { task: "other", seq: 3, system_prompt_tokens: 9999, tool_schema_tokens: 9999 },
+    { task: "t", seq: 4 }, // unsized records (older runs) are ignored
+  ];
+  assert.equal(mainRequest(calls, "t").seq, 1);
+  assert.equal(mainRequest(calls, "missing"), null);
+});
