@@ -140,8 +140,10 @@ export function aggregate(meter, tasks) {
   return out;
 }
 
+import { count, mem, ms, pct, secs, usd } from "./format.mjs";
+
 const f = (v, d = 0) => (v === null || v === undefined ? "-" : Number(v).toFixed(d));
-const money = (v) => (v === null || v === undefined ? "-" : `$${Number(v).toFixed(4)}`);
+const money = (v) => (v === null || v === undefined ? "-" : usd(v));
 
 export function toMarkdown(meta, summary) {
   const names = Object.keys(summary);
@@ -149,23 +151,23 @@ export function toMarkdown(meta, summary) {
     ["resolved (SWE) / checks passed", (s) => (s.swe_resolved === null ? `${s.check_passed}/${s.tasks} checks` : `${s.swe_resolved}/${s.swe_graded} resolved`)],
     ["patch produced", (s) => `${s.patch_produced}/${s.tasks}`],
     ["harness errors / timeouts (all tasks)", (s) => `${s.harness_errors} / ${s.timeouts}`],
-    ["system prompt tokens", (s) => f(s.system_prompt_tokens)],
-    ["tool schema tokens (count)", (s) => `${f(s.tool_schema_tokens)} (${f(s.tool_count)})`],
-    ["static prompt total (system + tools)", (s) => f(s.solved_static_prompt_tokens ?? s.static_prompt_tokens)],
+    ["system prompt tokens", (s) => count(s.system_prompt_tokens)],
+    ["tool schema tokens (count)", (s) => `${count(s.tool_schema_tokens)} (${count(s.tool_count)})`],
+    ["static prompt total (system + tools)", (s) => count(s.solved_static_prompt_tokens ?? s.static_prompt_tokens)],
     ["cost / solved task", (s) => money(s.cost_per_solved_usd)],
-    ["tokens / solved task", (s) => f(s.tokens_per_solved)],
+    ["tokens / solved task", (s) => count(s.tokens_per_solved)],
     ["total cost (all tasks)", (s) => `${money(s.cost_usd)}${s.cost_unpriced_calls ? ` (+${s.cost_unpriced_calls} unpriced)` : ""}`],
-    ["cache hit % (solved tasks)", (s) => f(s.solved_cache_pct, 1)],
-    ["TTFT p50 (ms, solved tasks)", (s) => f(s.solved_ttft_ms_p50)],
-    ["LLM call latency p50 (ms, solved tasks)", (s) => f(s.solved_call_latency_ms_p50)],
-    ["task wall p50 (s, solved tasks)", (s) => f(s.solved_task_wall_s_p50, 1)],
-    ["cold start to first call p50 (ms, solved tasks)", (s) => f(s.solved_cold_start_ms_p50)],
-    ["CPU-seconds / solved task", (s) => f(s.solved_cpu_seconds_mean, 1)],
-    ["peak RAM, process memory (MB, solved tasks)", (s) => f(s.solved_peak_anon_mb_max)],
-    ["peak RAM incl. page cache (MB, all tasks)", (s) => f(s.peak_mem_mb_max)],
-    ["avg RAM (MB, all tasks)", (s) => f(s.avg_mem_mb_mean)],
-    ["LLM calls (errors)", (s) => `${s.llm_calls} (${s.llm_call_errors})`],
-    ["prompt / completion tokens", (s) => `${s.prompt_tokens} / ${s.completion_tokens}`],
+    ["cache hit % (solved tasks)", (s) => pct(s.solved_cache_pct)],
+    ["TTFT p50 (solved tasks)", (s) => ms(s.solved_ttft_ms_p50)],
+    ["LLM call latency p50 (solved tasks)", (s) => ms(s.solved_call_latency_ms_p50)],
+    ["task wall p50 (solved tasks)", (s) => secs(s.solved_task_wall_s_p50)],
+    ["cold start to first call p50 (solved tasks)", (s) => ms(s.solved_cold_start_ms_p50)],
+    ["CPU time / solved task", (s) => secs(s.solved_cpu_seconds_mean)],
+    ["peak RAM, process memory (solved tasks)", (s) => mem(s.solved_peak_anon_mb_max)],
+    ["peak RAM incl. page cache (all tasks)", (s) => mem(s.peak_mem_mb_max)],
+    ["avg RAM (all tasks)", (s) => mem(s.avg_mem_mb_mean)],
+    ["LLM calls (errors)", (s) => `${count(s.llm_calls)} (${count(s.llm_call_errors)})`],
+    ["prompt / completion tokens", (s) => `${count(s.prompt_tokens)} / ${count(s.completion_tokens)}`],
   ];
   const head = `| metric | ${names.join(" | ")} |\n|---|${names.map(() => "---").join("|")}|`;
   const body = rows.map(([label, fn]) => `| ${label} | ${names.map((n) => fn(summary[n])).join(" | ")} |`).join("\n");
