@@ -125,7 +125,7 @@ export function renderSvg({ meta, summary }, opts = {}) {
   parts.push(
     `<text x="40" y="76" font-size="14" fill="${t.sub}">${esc(meta.model)} · reasoning ${esc(meta.reasoning)} · ${esc(meta.cpus)} vCPU / ${esc(meta.mem)} per task · same key, same model, same container limits</text>`,
   );
-  parts.push(`<text x="40" y="96" font-size="12" fill="${t.muted}">Each panel has its own scale from zero. ${star(0, 0, 0, "none") && ""}★ marks the best column in a panel.</text>`);
+  parts.push(`<text x="40" y="96" font-size="12" fill="${t.muted}">Each panel has its own scale from zero.★ marks the best column in a panel.</text>`);
 
   metrics.forEach((m, i) => {
     const col = i % cols;
