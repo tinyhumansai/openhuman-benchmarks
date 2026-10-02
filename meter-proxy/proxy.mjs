@@ -24,6 +24,8 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { forwardHeaders } from "./headers.mjs";
+import zlib from "node:zlib";
 import { buildCapture, capResponse, writeCapture } from "./capture.mjs";
 import { computeCost, fetchPricing } from "./pricing.mjs";
 import {
@@ -44,6 +46,16 @@ try {
   tokenizer = "o200k_base";
 } catch {
   // tokenizer not installed: sizes fall back to a chars/4 estimate, labelled as such
+}
+
+/** Decoder for a response's content-encoding, or null when it is not compressed. */
+function decoderFor(encoding) {
+  switch ((encoding ?? "").toLowerCase()) {
+    case "gzip": return zlib.createGunzip();
+    case "deflate": return zlib.createInflate();
+    case "br": return zlib.createBrotliDecompress();
+    default: return null;
+  }
 }
 
 export function createProxy(opts) {
@@ -163,13 +175,16 @@ export function createProxy(opts) {
         }
       }
 
-      const headers = { ...req.headers, host: upstream.host };
-      // Harnesses carry a dummy credential; the real key lives only here.
-      delete headers.authorization;
-      delete headers["x-api-key"];
-      if (apiKey) headers.authorization = `Bearer ${apiKey}`;
-      headers["content-length"] = String(outBody.length);
-      delete headers["accept-encoding"]; // keep bodies parseable
+      // Every header goes upstream as received (see headers.mjs); only the
+      // credential, host and content-length change.
+      const fwd = forwardHeaders(req.rawHeaders, {
+        host: upstream.host,
+        apiKey,
+        bodyLength: outBody.length,
+      });
+      const headers = fwd.list;
+      if (built) built.capture.headers_replaced = fwd.replaced;
+      if (built) built.capture.headers_dropped = fwd.dropped;
 
       const upstreamReq = transport.request(
         {
@@ -189,13 +204,26 @@ export function createProxy(opts) {
           let firstByteAt = null;
           const tokens = createFirstTokenTracker(format, startedAt);
           const pieces = [];
-          upstreamRes.on("data", (chunk) => {
-            if (firstByteAt === null) firstByteAt = Date.now();
+          // The client gets the bytes untouched (accept-encoding is forwarded, so
+          // the body may be compressed); a decoded copy feeds the metering.
+          const decoder = decoderFor(upstreamRes.headers["content-encoding"]);
+          const meter = (chunk) => {
             tokens.observe(chunk);
             pieces.push(chunk);
+          };
+          decoder?.on("data", meter);
+          decoder?.on("error", () => {});
+          upstreamRes.on("data", (chunk) => {
+            if (firstByteAt === null) firstByteAt = Date.now();
+            if (decoder) decoder.write(chunk);
+            else meter(chunk);
             res.write(chunk);
           });
           upstreamRes.on("end", () => {
+            decoder?.end();
+            finish();
+          });
+          const finish = () => {
             const usage = parseResponse(
               format,
               Buffer.concat(pieces).toString("utf8"),
@@ -231,7 +259,7 @@ export function createProxy(opts) {
               }
             }
             res.end();
-          });
+          };
           upstreamRes.on("error", () => res.end());
         },
       );
