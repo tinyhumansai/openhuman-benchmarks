@@ -106,9 +106,9 @@ export function toMarkdown(call) {
   const a = assembleResponse(call.response);
   if (a) {
     out.push("### assistant", "");
-    if (a.reasoning) out.push("reasoning:", fence(a.reasoning), "");
+    if (a.reasoning) out.push("reasoning:", "", fence(a.reasoning), "");
     if (a.content) out.push(fence(a.content), "");
-    if (a.tool_calls.length) out.push("tool_calls:", fence(JSON.stringify(a.tool_calls, null, 2), "json"), "");
+    if (a.tool_calls.length) out.push("tool_calls:", "", fence(JSON.stringify(a.tool_calls, null, 2), "json"), "");
   } else {
     out.push(call.response ? fence(call.response) : "_none_", "");
   }
