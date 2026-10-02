@@ -57,7 +57,40 @@ export function aggregate(meter, tasks) {
     const graded = mine.filter((t) => t.grade).length;
     const nonEmptyPatch = mine.filter((t) => (t.result?.patch_bytes ?? 0) > 0).length;
 
+    // "Solved" = resolved by the official grader on SWE runs, or the task's own check on the
+    // micro suite. Per-task KPIs below are measured over solved tasks only, so a harness is
+    // not credited for being fast or cheap at tasks it failed.
+    const isSolved = (t) => (t.grade ? t.grade.resolved === true : t.result?.check?.passed === true);
+    const solved = mine.filter(isSolved);
+    const solvedKeys = new Set(solved.map((t) => t.task_key));
+    const sCalls = ok.filter((r) => solvedKeys.has(r.task));
+    const sPrompt = sum(sCalls.map((r) => r.prompt_tokens));
+    const sCached = sum(sCalls.map((r) => r.cached_tokens));
+    const sFirst = firstCalls.filter((r) => solvedKeys.has(r.task));
+    const sColdStart = solved
+      .map((t) => {
+        const first = calls.find((r) => r.task === t.task_key);
+        return first && t.result ? Date.parse(first.at) - t.result.started_epoch_ms : null;
+      })
+      .filter((x) => typeof x === "number");
+    const sRes = (key) => solved.map((t) => t.result?.resources?.[key]).filter((x) => typeof x === "number");
+    const solvedMetrics = {
+      solved_tasks: solved.length,
+      // Total spend (failed attempts included) divided by tasks solved: what a solved task costs.
+      cost_per_solved_usd: solved.length ? cost / solved.length : null,
+      tokens_per_solved: solved.length ? sum(ok.map((r) => (r.prompt_tokens ?? 0) + (r.completion_tokens ?? 0))) / solved.length : null,
+      solved_static_prompt_tokens: percentile(sFirst.map((r) => (r.system_prompt_tokens ?? 0) + (r.tool_schema_tokens ?? 0)), 50),
+      solved_cache_pct: sPrompt ? (100 * sCached) / sPrompt : null,
+      solved_ttft_ms_p50: percentile(sCalls.map((r) => r.first_token_ms), 50),
+      solved_call_latency_ms_p50: percentile(sCalls.map((r) => r.total_ms), 50),
+      solved_task_wall_s_p50: percentile(solved.map((t) => (t.result ? t.result.wall_ms / 1000 : null)), 50),
+      solved_cold_start_ms_p50: percentile(sColdStart, 50),
+      solved_cpu_seconds_mean: mean(sRes("cpu_seconds")),
+      solved_peak_anon_mb_max: sRes("peak_anon_bytes").length ? Math.max(...sRes("peak_anon_bytes")) / 1048576 : null,
+    };
+
     out[harness] = {
+      ...solvedMetrics,
       tasks: mine.length,
       check_passed: passed,
       swe_resolved: graded ? resolved : null,
@@ -118,18 +151,17 @@ export function toMarkdown(meta, summary) {
     ["harness errors / timeouts", (s) => `${s.harness_errors} / ${s.timeouts}`],
     ["system prompt tokens", (s) => f(s.system_prompt_tokens)],
     ["tool schema tokens (count)", (s) => `${f(s.tool_schema_tokens)} (${f(s.tool_count)})`],
-    ["static prompt total (system + tools)", (s) => f(s.static_prompt_tokens)],
-    ["cost / task", (s) => money(s.cost_per_task_usd)],
-    ["cost / resolved", (s) => money(s.cost_per_resolved_usd)],
+    ["static prompt total (system + tools)", (s) => f(s.solved_static_prompt_tokens ?? s.static_prompt_tokens)],
+    ["cost / solved task", (s) => money(s.cost_per_solved_usd)],
+    ["tokens / solved task", (s) => f(s.tokens_per_solved)],
     ["total cost", (s) => `${money(s.cost_usd)}${s.cost_unpriced_calls ? ` (+${s.cost_unpriced_calls} unpriced)` : ""}`],
-    ["cache hit %", (s) => f(s.cache_pct, 1)],
-    ["TTFT p50 / p95 (ms)", (s) => `${f(s.ttft_ms_p50)} / ${f(s.ttft_ms_p95)}`],
-    ["LLM call latency p50 (ms)", (s) => f(s.call_latency_ms_p50)],
-    ["task wall p50 (s)", (s) => f(s.task_wall_s_p50, 1)],
-    ["cold start to first call p50 (ms)", (s) => f(s.cold_start_ms_p50)],
-    ["CPU-seconds / task", (s) => f(s.cpu_seconds_mean, 1)],
-    ["avg CPU cores", (s) => f(s.avg_cpu_cores_mean, 2)],
-    ["peak RAM, process memory (MB)", (s) => f(s.peak_anon_mb_max)],
+    ["cache hit % (solved tasks)", (s) => f(s.solved_cache_pct, 1)],
+    ["TTFT p50 (ms, solved tasks)", (s) => f(s.solved_ttft_ms_p50)],
+    ["LLM call latency p50 (ms, solved tasks)", (s) => f(s.solved_call_latency_ms_p50)],
+    ["task wall p50 (s, solved tasks)", (s) => f(s.solved_task_wall_s_p50, 1)],
+    ["cold start to first call p50 (ms, solved tasks)", (s) => f(s.solved_cold_start_ms_p50)],
+    ["CPU-seconds / solved task", (s) => f(s.solved_cpu_seconds_mean, 1)],
+    ["peak RAM, process memory (MB, solved tasks)", (s) => f(s.solved_peak_anon_mb_max)],
     ["peak RAM incl. page cache (MB)", (s) => f(s.peak_mem_mb_max)],
     ["avg RAM (MB)", (s) => f(s.avg_mem_mb_mean)],
     ["LLM calls (errors)", (s) => `${s.llm_calls} (${s.llm_call_errors})`],
