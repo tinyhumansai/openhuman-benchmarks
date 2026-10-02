@@ -99,7 +99,7 @@ examples are in `charts/`.
 
 ## Harness lineup
 
-`openhuman` (native structured tool calls), `claude-code`, `codex`, `opencode`, `openclaw`,
+`openhuman` (native only: provider JSON tool calls, `OPENHUMAN_TOOL_DISPATCHER=native`; no other variants), `claude-code`, `codex`, `opencode`, `openclaw`,
 `hermes`, `deepseek-harness` (DeepSeek's `dsh` through its Python SDK, full `sdk` profile) and
 `deepseek-harness-minimal` (the `sdk-minimal` profile, a shell only, which DeepSeek's own
 `BENCHMARK.md` prescribes). `openhuman-python` is the retired python-dispatcher default: its
@@ -121,9 +121,6 @@ project and proxy port, so two worktrees never share a proxy.
   `harnesses.lock`; the commit used is whatever `main` was at bundle build time.
   Hermes also copies its installed tree to a writable `HOME` at start, which
   counts in its cold start.
-- `openhuman-jev` (JEV tool ranking) needs `TINYHUMANS_API_KEY`: the ranker runs
-  on the TinyHumans backend, outside the metering proxy, so its own cost is not
-  in the cost column.
 - Claude Code needs `IS_SANDBOX=1` to accept the permission bypass as root.
 - Codex only speaks the Responses API; this works because OpenRouter serves
   `/v1/responses`.
