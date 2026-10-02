@@ -45,6 +45,8 @@ const h = (tag, attrs = {}, ...kids) => {
 };
 const api = async (p) => { const r = await fetch(p); if (!r.ok) throw new Error(`${p}: ${r.status}`); return r.json(); };
 const e = encodeURIComponent;
+// Rough token estimate for text sizes (chars / 3); the table's measured o200k counts stay as they are.
+const estTok = (chars) => (chars == null ? null : Math.round(chars / 3));
 const pct = (a, b) => (a == null || !b ? "–" : `${((100 * a) / b).toFixed(1)}%`);
 const fmt = (n, d = 0) => n == null ? "–" : Number(n).toLocaleString(undefined, { maximumFractionDigits: d });
 const link = (href, text) => h("a", { href }, text);
@@ -89,12 +91,12 @@ async function run(id) {
   const d = await api(`/api/runs/${e(id)}`);
   const kids = [h("h1", {}, id), crumbs(link("#/", "runs"), id), h("h2", {}, "Harnesses (from the meter proxy, on the wire)")];
   kids.push(table(
-    ["harness", "tasks", "turns", "prompt tok", "completion tok", "cached %", "cost $", "system tok", "tool schema tok", "tools", "errors", "overridden", "system prompt"],
+    ["harness", "tasks", "turns", "prompt tok", "completion tok", "cached %", "cost $", "system tok", "tool schema tok", "tools", "errors", "overridden", "system prompt (est.)"],
     d.harnesses.map((x) => [
       x.harness, x.tasks, x.calls, fmt(x.prompt_tokens), fmt(x.completion_tokens), fmt(x.cache_pct, 1), fmt(x.cost_usd, 4),
       fmt(x.system_prompt_tokens), fmt(x.tool_schema_tokens), fmt(x.tool_count),
       x.errors ? h("span", { class: "bad" }, x.errors) : 0, x.overridden,
-      x.sample_task ? link(`#/call/${e(id)}/${e(x.harness)}/${e(x.sample_task)}/${x.sample_seq}`, `${fmt(x.system_chars)} chars`) : "–",
+      x.sample_task ? link(`#/call/${e(id)}/${e(x.harness)}/${e(x.sample_task)}/${x.sample_seq}`, `~${fmt(estTok(x.system_chars))} tokens`) : "–",
     ])));
   const withTasks = d.harnesses.filter((x) => x.sample_task);
   if (withTasks.length) {
@@ -204,12 +206,12 @@ async function call(id, harness, t, seq) {
   const mine = nav;
   const c = await api(`/api/runs/${e(id)}/call/${e(harness)}/${e(t)}/${seq}`);
   const kids = [h("h1", {}, `${harness} · ${t} · turn ${seq}`),
-    crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), link(`#/task/${e(id)}/${e(harness)}/${e(t)}`, `${harness}/${t}`), `call ${seq}`),
+    crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), link(`#/task/${e(id)}/${e(harness)}/${e(t)}`, `${harness}/${t}`), `turn ${seq}`),
     h("div", {}, [["format", c.format], ["status", c.status], ["messages", c.message_shas.length], ["tools", c.tool_count],
       ["cache_control markers", c.cache_control_markers], ["prompt_cache_key", c.prompt_cache_key]].map(([k, v]) => h("span", { class: "tag" }, `${k}: ${v ?? "–"}`))),
     h("h2", {}, "Raw transcript (Markdown)"),
     transcriptBox(`/api/runs/${e(id)}/transcript/${e(harness)}/${e(t)}/${seq}`),
-    h("h2", {}, `System prompt (${fmt(c.system_chars)} chars, ${c.system_sha ?? "none"})`), pre(c.system || "(no system prompt)"),
+    h("h2", {}, `System prompt (~${fmt(estTok(c.system_chars))} tokens est. from ${fmt(c.system_chars)} chars ÷ 3)`), pre(c.system || "(no system prompt)"),
     h("h2", {}, "Sampling & provider params"), pre(c.params),
     h("h2", {}, "Request headers"), pre(c.headers),
     h("h2", {}, `Tools (${c.tool_count})`),

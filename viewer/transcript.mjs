@@ -82,7 +82,7 @@ export function assembleResponse(raw) {
  */
 export function toMarkdown(call) {
   const out = [
-    `# ${call.harness} · ${call.task} · call ${call.seq}`,
+    `# ${call.harness} · ${call.task} · turn ${call.seq}`,
     "",
     `- run: \`${call.run_id}\`  format: \`${call.format}\`  status: \`${call.status ?? "?"}\``,
     `- messages: ${call.messages.length}, tools: ${call.tool_count}, request: ${((call.request_bytes ?? 0) / 1024).toFixed(1)} KB`,
@@ -91,7 +91,7 @@ export function toMarkdown(call) {
     "## Request parameters (as the harness sent them)",
     fence(JSON.stringify(call.params ?? {}, null, 2), "json"),
     "",
-    "## System prompt",
+    `## System prompt (~${Math.round((call.system_chars ?? call.system?.length ?? 0) / 3).toLocaleString("en-US")} tokens est., chars ÷ 3)`,
     call.system ? fence(call.system) : "_none_",
     "",
     `## Tools (${call.tool_count})`,
