@@ -27,7 +27,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { forwardHeaders } from "./headers.mjs";
 import zlib from "node:zlib";
-import { buildCapture, capResponse, writeCapture } from "./capture.mjs";
+import { buildCapture, capResponse, lineageOf, writeCapture } from "./capture.mjs";
 import { computeCost, fetchPricing } from "./pricing.mjs";
 import {
   FORMATS,
@@ -167,7 +167,7 @@ export function createProxy(opts) {
         if (parsed) {
           const sizes = promptSizes(format, parsed);
           if (captureRoot) {
-            const key = `${tag.run_id}/${tag.harness}/${tag.task}`;
+            const key = `${tag.run_id}/${tag.harness}/${tag.task}/${lineageOf(parsed)}`;
             built = buildCapture({
               format,
               body: parsed,
@@ -186,6 +186,8 @@ export function createProxy(opts) {
             model,
             reasoning_effort: effort,
             provider_pinned: provider,
+            // system prompt + tool list: lets the report tell the main agent from side requests and sub-agents
+            context: built ? `${built.state.systemSha}.${built.state.toolsSha}` : undefined,
             overridden: rewritten.overridden,
             stream: parsed.stream === true,
             messages: Array.isArray(parsed.messages)

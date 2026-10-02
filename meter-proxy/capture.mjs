@@ -29,6 +29,14 @@ export const sha = (value) =>
 
 const safe = (s) => String(s).replace(/[^A-Za-z0-9._#@=-]/g, "_");
 
+/**
+ * Which conversation a call continues: the tool list is the stable identity of an agent loop.
+ * Side requests (a title generator has no tools) and sub-agents (their own tools) get a different
+ * lineage from the main agent, so a call is compared with the previous call of its own lineage
+ * and an interleaved side request cannot make the main agent look as if it rewrote its prompt.
+ */
+export const lineageOf = (body) => (Array.isArray(body.tools) && body.tools.length ? sha(body.tools) : "no-tools");
+
 function conversationOf(format, body) {
   if (format === FORMATS.CHAT) {
     return (body.messages ?? []).filter(
