@@ -120,8 +120,10 @@ const routes = [
       const tasks = dirs(capDir(run, h.harness));
       const t = tasks.sort()[0];
       if (!t) continue;
-      const first = fs.readdirSync(capDir(run, h.harness, t)).sort()[0];
-      const c = readJson(path.join(capDir(run, h.harness, t), first));
+      // The main agent request, not a tool-less side call (e.g. a title generator) that may open the task.
+      const calls = fs.readdirSync(capDir(run, h.harness, t)).sort().map((f) => readJson(path.join(capDir(run, h.harness, t), f)));
+      const size = (x) => (x.tool_count ?? 0) * 1e6 + (x.system_chars ?? 0);
+      const c = calls.reduce((best, x) => (size(x) > size(best) ? x : best), calls[0]);
       h.system_sha = c.system_sha;
       h.system_chars = c.system_chars;
       h.sample_task = t;
