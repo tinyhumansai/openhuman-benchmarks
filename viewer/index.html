@@ -176,7 +176,7 @@ async function route() {
     else if (kind === "call") await call(...p);
     else await runs();
   } catch (err) {
-    if (mine === nav) app.replaceChildren(h("p", { class: "bad" }, String(err.message)), link("#/", "back"));
+    app.replaceChildren(h("p", { class: "bad" }, String(err.message)), link("#/", "back"));
   }
 }
 addEventListener("hashchange", route);
