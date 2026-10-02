@@ -50,8 +50,9 @@ const table = (heads, rows) => h("div", { class: "wrap" }, h("table", {},
 const pre = (text) => h("pre", {}, typeof text === "string" ? text : JSON.stringify(text, null, 2));
 
 async function runs() {
+  const mine = nav;
   const list = await api("/api/runs");
-  app.replaceChildren(h("h1", {}, "Runs"), crumbs("runs"),
+  if (mine === nav) app.replaceChildren(h("h1", {}, "Runs"), crumbs("runs"),
     table(["run", "harnesses", "captured"], list.map((r) => [
       link(`#/run/${e(r.run)}`, r.run), r.harnesses.join(", "), r.captured.join(", ") || h("span", { class: "mut" }, "none"),
     ])));
@@ -79,6 +80,7 @@ function mdView(md) {
 }
 
 async function run(id) {
+  const mine = nav;
   const d = await api(`/api/runs/${e(id)}`);
   const kids = [h("h1", {}, id), crumbs(link("#/", "runs"), id), h("h2", {}, "Harnesses (from the meter proxy, on the wire)")];
   kids.push(table(
@@ -101,13 +103,14 @@ async function run(id) {
     kids.push(grid);
   } else kids.push(h("p", { class: "mut" }, "No request captures for this run (it predates capture, or METER_CAPTURE=0)."));
   if (d.summary_md) kids.push(h("h2", {}, "Summary"), mdView(d.summary_md));
-  app.replaceChildren(...kids);
+  if (mine === nav) app.replaceChildren(...kids);
 }
 
 async function task(id, harness, t) {
+  const mine = nav;
   const calls = await api(`/api/runs/${e(id)}/calls/${e(harness)}/${e(t)}`);
   const flag = (v) => v === null ? "" : v ? h("span", { class: "ok" }, "same") : h("span", { class: "bad" }, "CHANGED");
-  app.replaceChildren(h("h1", {}, `${harness} · ${t}`),
+  if (mine === nav) app.replaceChildren(h("h1", {}, `${harness} · ${t}`),
     crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), harness, t),
     h("h2", {}, "Full task transcript (Markdown)"),
     transcriptBox(`/api/runs/${e(id)}/transcript/${e(harness)}/${e(t)}/last`),
@@ -142,6 +145,7 @@ function transcriptBox(apiPath) {
 }
 
 async function call(id, harness, t, seq) {
+  const mine = nav;
   const c = await api(`/api/runs/${e(id)}/call/${e(harness)}/${e(t)}/${seq}`);
   const kids = [h("h1", {}, `${harness} · ${t} · call ${seq}`),
     crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), link(`#/task/${e(id)}/${e(harness)}/${e(t)}`, `${harness}/${t}`), `call ${seq}`),
@@ -159,10 +163,12 @@ async function call(id, harness, t, seq) {
     kids.push(h("details", {}, h("summary", {}, h("span", { class: "role" }, m.role ?? m.type ?? "?"), " ", text(m.content ?? m.output ?? m.arguments ?? "").slice(0, 100).replace(/\s+/g, " ")), pre(m)));
   }
   kids.push(h("h2", {}, "Response (raw, as returned by the provider)"), pre(c.response ?? ""));
-  app.replaceChildren(...kids);
+  if (mine === nav) app.replaceChildren(...kids);
 }
 
+let nav = 0;
 async function route() {
+  nav += 1;
   const [, kind, ...p] = location.hash.split("/").map(decodeURIComponent);
   try {
     if (kind === "run") await run(p[0]);
@@ -170,7 +176,7 @@ async function route() {
     else if (kind === "call") await call(...p);
     else await runs();
   } catch (err) {
-    app.replaceChildren(h("p", { class: "bad" }, String(err.message)), link("#/", "back"));
+    if (mine === nav) app.replaceChildren(h("p", { class: "bad" }, String(err.message)), link("#/", "back"));
   }
 }
 addEventListener("hashchange", route);
