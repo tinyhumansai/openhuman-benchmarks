@@ -167,6 +167,9 @@ const server = http.createServer(async (req, res) => {
   };
   try {
     if (req.method !== "GET") return send(405, { error: "read-only" });
+    if (url.pathname === "/format.mjs") {
+      return send(200, fs.readFileSync(path.join(here, "..", "format.mjs"), "utf8"), "text/javascript; charset=utf-8");
+    }
     if (url.pathname === "/favicon.ico") return send(204, "", "image/x-icon");
     if (url.pathname === "/" || url.pathname === "/index.html") {
       return send(200, fs.readFileSync(path.join(here, "index.html"), "utf8"), "text/html; charset=utf-8");
