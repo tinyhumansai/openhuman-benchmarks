@@ -64,7 +64,7 @@ function commonPrefix(a, b) {
  * @param {object|null} args.prev  the `state` returned for the previous call of this task
  * @returns {{capture: object, blobs: Map<string, unknown>, state: object}}
  */
-export function buildCapture({ format, body, headers, prev }) {
+export function buildCapture({ format, body, headers, prev, rawBytes = null }) {
   const blobs = new Map();
   const put = (value) => {
     const id = sha(value);
@@ -106,7 +106,10 @@ export function buildCapture({ format, body, headers, prev }) {
       message_shas: messageShas,
       params,
       headers: safeHeaders,
-      request_bytes: Buffer.byteLength(raw),
+      request_bytes: Buffer.byteLength(raw), // the body re-serialised compactly
+      // The body exactly as the harness sent it. Larger than request_bytes means the sender pretty-prints
+      // (or otherwise pads) its JSON; equal means it already sends minified JSON.
+      wire_bytes: rawBytes,
       // Prompt-cache diagnostics, all derived from the request alone:
       cache_control_markers: (raw.match(/"cache_control"/g) ?? []).length,
       prompt_cache_key: body.prompt_cache_key ?? params.user ?? null,

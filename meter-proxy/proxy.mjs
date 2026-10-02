@@ -172,6 +172,7 @@ export function createProxy(opts) {
               format,
               body: parsed,
               headers: req.headers,
+              rawBytes: body.length,
               prev: prevState.get(key) ?? null,
             });
             prevState.set(key, built.state);
