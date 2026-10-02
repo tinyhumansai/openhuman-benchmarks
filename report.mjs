@@ -170,19 +170,21 @@ const f = (v, d = 0) => (v === null || v === undefined ? "-" : Number(v).toFixed
 const money = (v) => (v === null || v === undefined ? "-" : usd(v));
 
 /**
- * Mark the best and worst harness for one metric. `better` is "low" or "high"; values that
- * are not numbers are skipped, and nothing is marked when fewer than two harnesses have a
- * value or they all tie. Several harnesses can share a mark.
- * @returns {Array<"best"|"worst"|null>} one entry per input value
+ * Mark the harnesses for one metric. `better` is "low" or "high"; values that are not numbers
+ * are skipped, and nothing is marked when fewer than two harnesses have a value or they all
+ * tie. Ties share a mark: every harness on the top value is "best", every one on the next
+ * distinct value is "runner" (when that is not also the worst), and the bottom value is "worst".
+ * @returns {Array<"best"|"runner"|"worst"|null>} one entry per input value
  */
 export function rankRow(values, better) {
   const nums = values.filter((v) => typeof v === "number" && Number.isFinite(v));
   if (!better || nums.length < 2) return values.map(() => null);
-  const lo = Math.min(...nums);
-  const hi = Math.max(...nums);
-  if (lo === hi) return values.map(() => null);
-  const [best, worst] = better === "low" ? [lo, hi] : [hi, lo];
-  return values.map((v) => (v === best ? "best" : v === worst ? "worst" : null));
+  const distinct = [...new Set(nums)].sort((a, b) => (better === "low" ? a - b : b - a));
+  if (distinct.length < 2) return values.map(() => null);
+  const best = distinct[0];
+  const worst = distinct[distinct.length - 1];
+  const runner = distinct.length > 2 ? distinct[1] : null;
+  return values.map((v) => (v === best ? "best" : v === worst ? "worst" : v === runner ? "runner" : null));
 }
 
 const rate = (num, den) => (den ? num / den : null);
@@ -214,9 +216,10 @@ export function toMarkdown(meta, summary) {
     ["LLM calls (errors)", (s) => `${count(s.llm_calls)} (${count(s.llm_call_errors)})`],
     ["prompt / completion tokens", (s) => `${count(s.prompt_tokens)} / ${count(s.completion_tokens)}`],
   ];
-  // Best is bold + 🟢, worst is bold + 🔴: plain Markdown, so it reads in any renderer,
-  // and the viewer turns the markers into green and red.
-  const cell = (text, rank) => (rank === "best" ? `**${text}** 🟢` : rank === "worst" ? `**${text}** 🔴` : text);
+  // Best is bold + 🟢, runner-up bold + 🟡, worst bold + 🔴: plain Markdown, so it reads in any renderer,
+  // and the viewer turns the markers into green, yellow and red.
+  const MARK = { best: "🟢", runner: "🟡", worst: "🔴" };
+  const cell = (text, rank) => (rank ? `**${text}** ${MARK[rank]}` : text);
   const head = `| metric | ${names.join(" | ")} |\n|---|${names.map(() => "---").join("|")}|`;
   const body = rows
     .map(([label, fn, raw, better]) => {
