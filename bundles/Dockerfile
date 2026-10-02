@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ARG NODE_MAJOR=24
 RUN set -eux; mkdir -p /opt/harness/node; \
     base="https://nodejs.org/dist/latest-v${NODE_MAJOR}.x"; \
-    file="$(curl -fsSL "$base/SHASUMS256.txt" | awk '/linux-x64.tar.xz/{print $2}')"; \
+    arch="$(uname -m | sed s/x86_64/x64/;s/aarch64/arm64/)"; \
+    file="$(curl -fsSL "$base/SHASUMS256.txt" | awk -v a="linux-$arch.tar.xz" '$2 ~ a {print $2}')"; \
     curl -fsSL "$base/$file" | tar -xJ --strip-components=1 -C /opt/harness/node; \
     /opt/harness/node/bin/node --version
 COPY adapters/_common.sh /opt/harness/_common.sh
