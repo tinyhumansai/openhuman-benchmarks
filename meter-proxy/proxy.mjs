@@ -84,17 +84,33 @@ export function createProxy(opts) {
     fs.appendFileSync(logPath, `${JSON.stringify(record)}\n`);
   }
 
+  // Tokenising is the one costly step, and a task resends the same system prompt and tool
+  // schemas every turn, so count each distinct text once.
+  const tokenMemo = new Map();
+  function tokens(text) {
+    if (!text) return 0;
+    let n = tokenMemo.get(text);
+    if (n === undefined) {
+      if (tokenMemo.size > 64) tokenMemo.clear();
+      n = countTokens(text);
+      tokenMemo.set(text, n);
+    }
+    return n;
+  }
+
+  // Sized on every call, not just the first: some harnesses open a task with a small side
+  // request (OpenCode's title generator has no tools), and the report needs to find the
+  // main agent request, the one with the largest static prompt.
   function promptSizes(format, body) {
     const key = `${run.run_id}/${run.harness}/${run.task}`;
-    if (firstRequests.has(key)) return null;
     const parts = extractPromptParts(format, body);
     const sizes = {
-      system_prompt_tokens: countTokens(parts.system),
-      tool_schema_tokens: parts.tools ? countTokens(parts.tools) : 0,
+      system_prompt_tokens: tokens(parts.system),
+      tool_schema_tokens: tokens(parts.tools),
       tool_count: parts.tool_count,
       tokenizer,
     };
-    firstRequests.set(key, sizes);
+    if (!firstRequests.has(key)) firstRequests.set(key, sizes);
     return sizes;
   }
 

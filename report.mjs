@@ -29,6 +29,21 @@ const mean = (xs) => {
  * @param tasks   [{harness, task_key, task, result, grade}] one per executed task
  * @returns       {[harness]: metrics}
  */
+/**
+ * The request that carries a task's real static prompt: the call with the largest system prompt
+ * plus tool schemas. Usually the first call, but some harnesses open with a small tool-less side
+ * request (OpenCode's title generator), which would otherwise read as "no tools".
+ */
+export function mainRequest(calls, taskKey) {
+  const size = (r) => (r.system_prompt_tokens ?? 0) + (r.tool_schema_tokens ?? 0);
+  let best = null;
+  for (const r of calls) {
+    if (r.task !== taskKey || r.system_prompt_tokens == null) continue;
+    if (best === null || size(r) > size(best)) best = r;
+  }
+  return best;
+}
+
 export function aggregate(meter, tasks) {
   const harnesses = [...new Set(tasks.map((t) => t.harness))];
   const out = {};
@@ -37,9 +52,7 @@ export function aggregate(meter, tasks) {
     const calls = meter.filter((r) => r.harness === harness);
     const ok = calls.filter((r) => r.status >= 200 && r.status < 300);
 
-    const firstCalls = mine
-      .map((t) => calls.find((r) => r.task === t.task_key && r.system_prompt_tokens != null))
-      .filter(Boolean);
+    const firstCalls = mine.map((t) => mainRequest(calls, t.task_key)).filter(Boolean);
     const coldStart = mine
       .map((t) => {
         const first = calls.find((r) => r.task === t.task_key);
