@@ -42,7 +42,7 @@ export OPENROUTER_API_KEY=...          # or put it in .env (see .env.example)
 export BENCH_UID=$(id -u) BENCH_GID=$(id -g)
 
 # 1. build harness bundles (once; openhuman compiles the core, ~10-20 min cold)
-for h in claude-code codex opencode openclaw hermes openhuman; do ./bundles/build.sh $h; done
+for h in claude-code codex opencode openclaw hermes deepseek-harness deepseek-harness-minimal openhuman; do ./bundles/build.sh $h; done
 
 # 2. micro suite (cheap smoke test of every adapter, cold start, steady state)
 for h in claude-code codex opencode openclaw hermes openhuman; do
@@ -96,6 +96,19 @@ examples are in `charts/`.
   from the model's price list with the cached-token discount (`cost_source` in
   `meter.jsonl` says which). Also cost per resolved task.
 - **Cold start**: harness start to its first model call.
+
+## Harness lineup
+
+`openhuman` (native structured tool calls), `claude-code`, `codex`, `opencode`, `openclaw`,
+`hermes`, `deepseek-harness` (DeepSeek's `dsh` through its Python SDK, full `sdk` profile) and
+`deepseek-harness-minimal` (the `sdk-minimal` profile, a shell only, which DeepSeek's own
+`BENCHMARK.md` prescribes). `openhuman-python` is the retired python-dispatcher default: its
+data stays under `results/` but it is excluded from reports and charts (`--include-archived`
+brings it back). `rename-harness.mjs` relabels a finished run's data when a variant is promoted.
+
+Only one benchmark may run on a host at a time: `orchestrate.mjs` waits while another
+`orchestrate.mjs` or a SWE-bench grading run is active, and each checkout gets its own compose
+project and proxy port, so two worktrees never share a proxy.
 
 ## Caveats
 
