@@ -10,7 +10,7 @@
 //   OPENROUTER_API_KEY real key; injected upstream, harnesses carry a dummy
 //   BENCH_MODEL        pinned model slug (required)
 //   BENCH_REASONING    pinned reasoning effort (default medium)
-//   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (keeps the prompt cache warm)
+//   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (default GMICloud; empty = unpinned)
 //   METER_LOG          JSONL output (default /results/meter.jsonl)
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
 //   METER_CAPTURE=0    do not store request captures (system prompt, tools, messages);
@@ -58,6 +58,10 @@ function decoderFor(encoding) {
     default: return null;
   }
 }
+
+// GMICloud serves deepseek/deepseek-v4-flash with a ~5x cached-token discount, 99.99% uptime and a
+// 943k output cap (DeepInfra's 64k cap rejects the DeepSeek harness's max_tokens=256000).
+export const DEFAULT_PROVIDER = "GMICloud";
 
 export function createProxy(opts) {
   const upstream = new URL(opts.upstream ?? "https://openrouter.ai/api");
@@ -308,7 +312,7 @@ if (isMain) {
     upstream: upstreamUrl,
     model,
     effort: process.env.BENCH_REASONING || "medium",
-    provider: process.env.BENCH_PROVIDER || null,
+    provider: process.env.BENCH_PROVIDER ?? DEFAULT_PROVIDER, // "" disables the pin
     apiKey: process.env.OPENROUTER_API_KEY,
     logPath: process.env.METER_LOG || "/results/meter.jsonl",
     capture: process.env.METER_CAPTURE !== "0",
