@@ -13,7 +13,9 @@ test("renders one panel per metric and one column per harness, with a star on th
   const svg = renderSvg({ meta, summary: { openhuman: row({}), codex: row({ swe_resolved: 8 }) } });
   assert.match(svg, /^<svg /);
   for (const m of METRICS) assert.ok(svg.includes(m.title.replace(/&/g, "&amp;")), m.title);
-  assert.equal((svg.match(/<path d="M/g) ?? []).length, METRICS.length * 2);
+  assert.equal((svg.match(/<path d="M[^>]*fill="url\(#g-/g) ?? []).length, METRICS.length * 2);
+  // every panel has a winner, drawn with a gold outline and a translucent halo
+  assert.ok((svg.match(/stroke-opacity="0.28"/g) ?? []).length >= METRICS.length);
   assert.match(svg, /<polygon/);
 });
 
