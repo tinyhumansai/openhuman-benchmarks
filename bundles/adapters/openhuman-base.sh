@@ -7,6 +7,7 @@ node /opt/harness/forward.mjs 18080 "$proxy_host" "$proxy_port" &
 fwd=$!
 for _ in $(seq 1 50); do (echo > /dev/tcp/127.0.0.1/18080) 2>/dev/null && break; sleep 0.1; done
 
+export OPENHUMAN_TOOL_DISPATCHER=native
 export OPENHUMAN_WORKSPACE="$HOME/oh-workspace"
 export OPENHUMAN_ACTION_DIR="$WORKDIR_ABS"
 mkdir -p "$OPENHUMAN_WORKSPACE"

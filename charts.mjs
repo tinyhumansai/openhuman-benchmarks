@@ -21,7 +21,6 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 /** Fixed order and identity: a harness keeps its position and colour in every panel. */
 export const HARNESSES = [
   { id: "openhuman", label: ["Open", "Human"], hero: "coral" },
-  { id: "openhuman-native", label: ["OH", "native"], hero: "violet" },
   { id: "claude-code", label: ["Claude", "Code"] },
   { id: "codex", label: ["Codex"] },
   { id: "opencode", label: ["Open", "Code"] },
