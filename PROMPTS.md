@@ -159,3 +159,41 @@ loop, deferred-tool mechanics and generic tools belong upstream in `vendor/tinya
 - Cache percentages are from DeepSeek automatic prefix caching via OpenRouter, so they say
   nothing about Anthropic `cache_control` effectiveness.
 - Token figures are the proxy's `usage.prompt_tokens`; char counts are from the captured blobs.
+
+## Follow-up capture: Claude Haiku 4.5 (run `prompts-haiku-1`)
+
+Same micro suite, one repeat, `BENCH_MODEL=anthropic/claude-haiku-4.5`, provider pinned to
+Anthropic via OpenRouter. Full table: [`prompts/_haiku-run/summary.md`](prompts/_haiku-run/summary.md).
+Single run, five tiny tasks: indicative only.
+
+**Prompt caching is the big difference once the model is Anthropic.** Anthropic does not cache
+automatically; it needs `cache_control` breakpoints.
+
+| harness | `cache_control` markers | cached / prompt tokens |
+|---|---|---|
+| claude-code | 3 | 334.9k / 372.4k (90%) |
+| opencode | 3 | 159.4k / 176.9k (90%) |
+| openhuman | 0 (has `prompt_cache_key`) | 0 / 112.7k |
+| codex | 0 (has `prompt_cache_key`) | 0 / 193.9k |
+| openclaw | 0 | 0 / 190.6k |
+| hermes | 0 | 0 / 224.2k |
+| deepseek-harness | 0 | 0 / 41.6k |
+
+So the ~97% cache rates in the DeepSeek run do not transfer: five of seven harnesses, openhuman
+included, pay full price for the whole static prefix on every call against Anthropic models.
+openhuman's stable `prompt_cache_key` does nothing here. Adding breakpoints (system prompt end,
+last tool, last message) for Anthropic-routed models is the highest-value follow-up; it is
+harness-level, so upstream in `vendor/tinyagents` (prompt cache layout) per CLAUDE.md. claude-code
+and opencode place 3 markers; copy that layout.
+
+Other observations:
+- Static prefix (system + tools, tokens): deepseek-harness 6.2k, openhuman 6.5k, opencode 6.6k,
+  codex 7.7k, openclaw 7.6k, hermes 11.5k, claude-code 20.5k. openhuman's system prompt is
+  ~0.9k tokens; 86% of its prefix is tool schemas (5.6k).
+- claude-code spends 74.7k tokens per solved task, still the highest, even at 90% cache hit.
+- deepseek-harness had 5 of 10 calls rejected (and 1/5 checks): it requests `max_tokens` of
+  256000 against a 200k-context model ("you requested about 263516 tokens ... 256000 in the
+  output"). A harness must clamp output caps to the routed model's context window.
+- hermes: 29.6s p50 wall, 22.7s cold start, 6.45 GB peak RAM incl. page cache.
+- openhuman passed 4/5 checks vs 5/5 for claude-code, codex, opencode, openclaw and hermes; I
+  did not investigate which check failed, so treat it as open.
