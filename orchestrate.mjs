@@ -41,8 +41,36 @@ function parseArgs(argv) {
   return o;
 }
 
+// One compose project and one proxy port per checkout, so two worktrees never share
+// (or recreate) each other's metering proxy or write into each other's results/.
+const checkout = path.basename(path.resolve(here, "..", ".."));
+const projectName = process.env.COMPOSE_PROJECT_NAME || `hb-${checkout.replace(/[^a-z0-9_-]/gi, "-").toLowerCase()}`;
+const hostPort =
+  process.env.METER_HOST_PORT ||
+  String(18100 + ([...checkout].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 800));
+const composeEnv = { ...process.env, COMPOSE_PROJECT_NAME: projectName, METER_HOST_PORT: hostPort };
+
 function sh(cmd, args, opts = {}) {
-  return spawnSync(cmd, args, { cwd: here, encoding: "utf8", ...opts });
+  return spawnSync(cmd, args, { cwd: here, encoding: "utf8", ...opts, env: opts.env ? { ...composeEnv, ...opts.env } : composeEnv });
+}
+
+/**
+ * Benchmarks measure CPU and latency, so two runs on one host corrupt each other
+ * even with separate proxies. Wait while another orchestrate.mjs is running
+ * (BENCH_ALLOW_CONCURRENT=1 skips the wait).
+ */
+async function waitForQuietHost() {
+  if (process.env.BENCH_ALLOW_CONCURRENT === "1") return;
+  const others = () =>
+    spawnSync("pgrep", ["-f", "node .*orchestrate\\.mjs"], { encoding: "utf8" })
+      .stdout.split("\n")
+      .filter((pid) => pid && Number(pid) !== process.pid && Number(pid) !== process.ppid);
+  let waited = 0;
+  while (others().length) {
+    if (waited % 60 === 0) process.stdout.write(`[bench] another benchmark run is active (pid ${others().join(",")}); waiting for a quiet host\n`);
+    await new Promise((r) => setTimeout(r, 5000));
+    waited += 5;
+  }
 }
 
 async function tagProxy(port, tag) {
@@ -55,6 +83,7 @@ async function tagProxy(port, tag) {
 
 async function main() {
   const o = parseArgs(process.argv);
+  await waitForQuietHost();
   const bundle = path.join(here, ".cache", "harness", o.harness);
   if (!fs.existsSync(path.join(bundle, "adapter.sh"))) {
     throw new Error(`no bundle for ${o.harness}: run ./bundles/build.sh ${o.harness}`);
@@ -79,7 +108,7 @@ async function main() {
   fs.mkdirSync(path.join(here, "results"), { recursive: true });
   const up = sh("docker", ["compose", "up", "-d", "--build", "--wait", "meter-proxy"], { stdio: "inherit" });
   if (up.status !== 0) throw new Error("meter-proxy failed to start");
-  const port = process.env.METER_HOST_PORT || "18080";
+  const port = hostPort;
 
   const runDir = path.join(here, "results", o.runId);
   fs.mkdirSync(runDir, { recursive: true });
