@@ -33,7 +33,9 @@ export const HARNESSES = [
 // Cents keep cost labels short enough to sit inside a column ($0.0032 -> 0.32¢).
 const fmtMoney = (v) => (v >= 0.1 ? `$${v.toFixed(2)}` : v >= 0.1 / 10 ? `${(v * 100).toFixed(1)}¢` : `${(v * 100).toFixed(2)}¢`);
 const fmtSecs = (ms) => (ms >= 10000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 1000).toFixed(1)}s`);
-const fmtTokens = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`);
+// Short enough to sit inside a column: 503, 4.5k, 769k, 1.2M
+const fmtTokens = (v) =>
+  v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e5 ? `${Math.round(v / 1e3)}k` : v >= 1e3 ? `${(v / 1e3).toFixed(1)}k` : `${Math.round(v)}`;
 
 /** `better`: which direction is good, used for the hint line and the best-in-panel star. */
 export const METRICS = [
