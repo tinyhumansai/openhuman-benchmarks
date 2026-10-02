@@ -10,7 +10,7 @@
 //   OPENROUTER_API_KEY real key; injected upstream, harnesses carry a dummy
 //   BENCH_MODEL        pinned model slug (required)
 //   BENCH_REASONING    pinned reasoning effort (default medium)
-//   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (default GMICloud; empty = unpinned)
+//   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (default DeepSeek; empty = unpinned)
 //   METER_LOG          JSONL output (default /results/meter.jsonl)
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
 //   METER_CAPTURE=0    do not store request captures (system prompt, tools, messages);
@@ -59,9 +59,10 @@ function decoderFor(encoding) {
   }
 }
 
-// GMICloud serves deepseek/deepseek-v4-flash with a ~5x cached-token discount, 99.99% uptime and a
-// 943k output cap (DeepInfra's 64k cap rejects the DeepSeek harness's max_tokens=256000).
-export const DEFAULT_PROVIDER = "GMICloud";
+// DeepSeek's own endpoint for deepseek/deepseek-v4.1-flash: 99.99% uptime, a 393k output cap (covers the
+// DeepSeek harness's max_tokens=256000) and cached tokens at 1/50 of the uncached price. Note that
+// pinning it on the older `deepseek-v4-flash` slug silently serves v4.1, so the slug and pin go together.
+export const DEFAULT_PROVIDER = "DeepSeek";
 
 export function createProxy(opts) {
   const upstream = new URL(opts.upstream ?? "https://openrouter.ai/api");

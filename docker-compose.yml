@@ -24,9 +24,9 @@ services:
     mem_limit: 512m
     environment:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY (env or .env)}
-      BENCH_MODEL: ${BENCH_MODEL:-deepseek/deepseek-v4-flash}
+      BENCH_MODEL: ${BENCH_MODEL:-deepseek/deepseek-v4.1-flash}
       BENCH_REASONING: ${BENCH_REASONING:-medium}
-      BENCH_PROVIDER: ${BENCH_PROVIDER:-GMICloud} # pinned, no fallbacks; empty = let OpenRouter route
+      BENCH_PROVIDER: ${BENCH_PROVIDER:-DeepSeek} # pinned, no fallbacks; empty = let OpenRouter route
       METER_LOG: /results/meter.jsonl
     volumes:
       - ./results:/results
@@ -65,7 +65,7 @@ services:
       PROMPT_FILE: /bench/task/prompt.txt
       # Harnesses only ever see the proxy and a dummy credential.
       PROXY_URL: http://meter-proxy:8080
-      BENCH_MODEL: ${BENCH_MODEL:-deepseek/deepseek-v4-flash}
+      BENCH_MODEL: ${BENCH_MODEL:-deepseek/deepseek-v4.1-flash}
       BENCH_REASONING: ${BENCH_REASONING:-medium}
       DUMMY_API_KEY: bench-dummy-key
       # No telemetry / update checks from any harness.
