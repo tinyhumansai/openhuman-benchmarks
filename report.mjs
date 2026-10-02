@@ -9,6 +9,9 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
+/** Retired variants stay on disk for the record but are left out of the tables and charts. */
+export const ARCHIVED = ["openhuman-python"];
+
 export function percentile(values, p) {
   const v = values.filter((x) => typeof x === "number").sort((a, b) => a - b);
   if (!v.length) return null;
@@ -177,9 +180,10 @@ function main() {
   const runId = args[args.indexOf("--run-id") + 1];
   if (!runId) throw new Error("--run-id is required");
   const runDir = path.join(here, "results", runId);
+  const keep = (r) => args.includes("--include-archived") || !ARCHIVED.includes(r.harness);
   const { index, meter } = latestAttempts(
-    readJsonl(path.join(runDir, "runs.jsonl")),
-    readJsonl(path.join(here, "results", "meter.jsonl")).filter((r) => r.run_id === runId),
+    readJsonl(path.join(runDir, "runs.jsonl")).filter(keep),
+    readJsonl(path.join(here, "results", "meter.jsonl")).filter((r) => r.run_id === runId && keep(r)),
   );
 
   const tasks = index.map((row) => {

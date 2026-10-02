@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Add a harness variant to an existing SWE run, and/or re-run single tasks
 # (e.g. after fixing a driver bug) under the same run id. Newest attempt wins in report.mjs.
-#   ./run-swe-extra.sh swe-1 openhuman-native
+#   ./run-swe-extra.sh swe-1 deepseek-harness
 #   ./run-swe-extra.sh swe-1 openhuman sympy__sympy-13031
 set -uo pipefail
 cd "$(dirname "$0")"
