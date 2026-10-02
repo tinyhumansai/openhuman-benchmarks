@@ -9,7 +9,7 @@
 //   METER_UPSTREAM     (https://openrouter.ai/api)
 //   OPENROUTER_API_KEY real key; injected upstream, harnesses carry a dummy
 //   BENCH_MODEL        pinned model slug (required)
-//   BENCH_REASONING    pinned reasoning effort (default medium)
+//   BENCH_REASONING    pinned reasoning effort (default high)
 //   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (default DeepSeek; empty = unpinned)
 //   METER_LOG          JSONL output (default /results/meter.jsonl)
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
@@ -68,7 +68,7 @@ export function createProxy(opts) {
   const upstream = new URL(opts.upstream ?? "https://openrouter.ai/api");
   const logPath = path.resolve(opts.logPath ?? "/results/meter.jsonl");
   const model = opts.model;
-  const effort = opts.effort ?? "medium";
+  const effort = opts.effort ?? "high";
   const provider = opts.provider || null;
   const apiKey = opts.apiKey;
   let pricing = opts.pricing ?? null;
@@ -317,7 +317,7 @@ if (isMain) {
   const proxy = createProxy({
     upstream: upstreamUrl,
     model,
-    effort: process.env.BENCH_REASONING || "medium",
+    effort: process.env.BENCH_REASONING || "high",
     provider: process.env.BENCH_PROVIDER ?? DEFAULT_PROVIDER, // "" disables the pin
     apiKey: process.env.OPENROUTER_API_KEY,
     logPath: process.env.METER_LOG || "/results/meter.jsonl",
