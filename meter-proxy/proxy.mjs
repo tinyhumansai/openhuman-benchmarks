@@ -235,6 +235,11 @@ export function createProxy(opts) {
             const responseText = Buffer.concat(pieces).toString("utf8");
             const reported = usage.cost_usd;
             const computed = computeCost(pricing, usage);
+            const timing = {
+              ttfb_ms: firstByteAt === null ? null : firstByteAt - startedAt,
+              ...tokens.result(),
+              total_ms: Date.now() - startedAt,
+            };
             append({
               ...(record ?? { seq: callSeq, ...tag, format }),
               status: upstreamRes.statusCode || 502,
@@ -246,9 +251,7 @@ export function createProxy(opts) {
                   : computed !== null
                     ? "computed"
                     : "unknown",
-              ttfb_ms: firstByteAt === null ? null : firstByteAt - startedAt,
-              ...tokens.result(),
-              total_ms: Date.now() - startedAt,
+              ...timing,
             });
             if (built) {
               try {
@@ -256,6 +259,8 @@ export function createProxy(opts) {
                   at: new Date(startedAt).toISOString(),
                   status: upstreamRes.statusCode || 502,
                   usage,
+                  ...timing,
+                  cost_usd: reported ?? computed,
                   response_headers: upstreamRes.headers,
                   response: capResponse(responseText),
                 });

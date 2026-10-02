@@ -57,6 +57,27 @@ async function runs() {
     ])));
 }
 
+// Render summary.md's pipe tables as tables and everything else as text (still textContent only).
+function mdView(md) {
+  const out = h("div", {});
+  let rows = [];
+  const flush = () => {
+    if (!rows.length) return;
+    const [head, , ...body] = rows;
+    out.append(table(head, body));
+    rows = [];
+  };
+  for (const line of md.split("\n")) {
+    if (line.startsWith("|")) rows.push(line.split("|").slice(1, -1).map((c) => c.trim()));
+    else {
+      flush();
+      if (line.trim()) out.append(h(line.startsWith("#") ? "h2" : "p", { class: line.startsWith("#") ? "" : "mut" }, line.replace(/^#+\s*/, "")));
+    }
+  }
+  flush();
+  return out;
+}
+
 async function run(id) {
   const d = await api(`/api/runs/${e(id)}`);
   const kids = [h("h1", {}, id), crumbs(link("#/", "runs"), id), h("h2", {}, "Harnesses (from the meter proxy, on the wire)")];
@@ -79,7 +100,7 @@ async function run(id) {
     }
     kids.push(grid);
   } else kids.push(h("p", { class: "mut" }, "No request captures for this run (it predates capture, or METER_CAPTURE=0)."));
-  if (d.summary_md) kids.push(h("h2", {}, "summary.md"), pre(d.summary_md));
+  if (d.summary_md) kids.push(h("h2", {}, "Summary"), mdView(d.summary_md));
   app.replaceChildren(...kids);
 }
 
@@ -89,13 +110,13 @@ async function task(id, harness, t) {
   app.replaceChildren(h("h1", {}, `${harness} · ${t}`),
     crumbs(link("#/", "runs"), link(`#/run/${e(id)}`, id), harness, t),
     h("p", { class: "mut" }, "‘prefix reused’ is how many of the previous call’s messages this call re-sent byte-for-byte; below the previous count, history was rewritten and provider prefix caching is lost from there."),
-    table(["#", "status", "msgs", "prefix reused", "system", "tools", "cache ctl", "prompt", "cached", "completion", "ttfb ms", "total ms", "cost $", "req KB"],
+    table(["#", "status", "msgs", "prefix reused", "system", "tools", "cache ctl", "prompt", "cached", "completion", "first token ms", "total ms", "cost $", "req KB"],
       calls.map((c, i) => [
         link(`#/call/${e(id)}/${e(harness)}/${e(t)}/${c.seq}`, i + 1), c.status ?? "–", c.messages,
         c.prefix_reused_messages == null ? "–" : `${c.prefix_reused_messages}/${c.prev_messages}`,
         flag(c.same_system_as_prev), flag(c.same_tools_as_prev), c.cache_control_markers,
         fmt(c.usage?.prompt_tokens), fmt(c.usage?.cached_tokens), fmt(c.usage?.completion_tokens),
-        fmt(c.usage?.ttfb_ms), fmt(c.usage?.total_ms), fmt(c.usage?.cost_usd, 5), fmt(c.request_bytes / 1024, 1),
+        fmt(c.first_token_ms ?? c.ttfb_ms), fmt(c.total_ms), fmt(c.cost_usd, 5), fmt(c.request_bytes / 1024, 1),
       ])));
 }
 
