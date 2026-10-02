@@ -66,6 +66,7 @@ Danger: compression leaves ambiguity ("Up-front max one." "Promote = restate sch
 | write | 49 | 191 | 2 (2) |
 | apply_patch | 71 | 153 | 1 (1) |
 | tool_describe | 92 | 125 | 1 (1) |
+
 Total 5,917 chars of schema JSON as tabulated; tools.json is 12,100 on disk (pretty-printed).
 - Heaviest: exec, process, tool_search (3.5k of ~5.9k). The visible set is cheap: edit/write/apply_patch/read/ls total ~1.6k chars.
 - Lazy loading is the central design: 30 deferred tools are named in the system prompt (not in tools[]), reached via

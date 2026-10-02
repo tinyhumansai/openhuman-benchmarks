@@ -2,7 +2,7 @@
  "params": {
   "model": "deepseek/deepseek-v4.1-flash",
   "metadata": {
-   "user_id": "{\"device_id\":\"05fefb1f2329cfe012af8b772e7400e776014274284f839793f68ec83c91dedb\",\"account_uuid\":\"\",\"session_id\":\"993bb523-92d8-415e-b9bd-bbab91591501\"}"
+   "user_id": "{\"device_id\":\"<redacted>\",\"account_uuid\":\"\",\"session_id\":\"<redacted>\"}"
   },
   "max_tokens": 32000,
   "thinking": {

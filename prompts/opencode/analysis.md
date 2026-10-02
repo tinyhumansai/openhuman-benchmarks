@@ -61,7 +61,7 @@ Total request prompt = 7370 tokens for first main call, of which system ~2.4k an
 | write | 623 | 317 (1051) | content, filePath (2) | |
 | glob | 517 | 510 (1138) | pattern, path | |
 | skill | 399 | 194 (695) | name | |
-Total 21124 chars. Descriptions are 15-20x larger than param schemas: policy lives in descriptions (bash has 4.6k chars; ~22% of tool bytes, ~1.2k tok).
+Total 21124 chars. Descriptions are larger than the param schemas, by 1.0x (glob) to 9.4x (bash, 4,628 vs 492 chars); policy lives in descriptions (bash has 4.6k chars; ~22% of tool bytes, ~1.2k tok).
 - Names: lowercase single words; camelCase params (filePath, oldString, newString, replaceAll).
 - Edit primitive: exact str-replace, `replaceAll` bool; errors spelled out ("oldString not found in content", "Found multiple matches...") so the model can self-correct. Whole-file `write` is separate.
 - Shell: persistent session, `timeout` ms (default 120000), `workdir` param to avoid `cd &&`; output truncation >2000 lines/51200 bytes saved to file, read with Read offset/limit. No background/pty flag. Schema has silly bounds `minimum: -9007199254740991, maximum: 9007199254740991` on integers (zod defaults, wasted tokens, repeated in read offset/limit).
@@ -73,7 +73,7 @@ Total 21124 chars. Descriptions are 15-20x larger than param schemas: policy liv
 ## 5. Caching / context layout
 - Order: system (static first, env/skills last) -> tools -> messages. Tool order is stable (alphabetical: bash, edit, glob, grep, read, skill, task, todowrite, webfetch, write).
 - No cache_control markers (0), no prompt_cache_key (null). Relies on provider automatic prefix caching plus session headers
-  `x-session-affinity` / `x-session-id` / `x-opencode-session-id` (same value) to pin the same backend. Smart: affinity header serves cache without explicit keys.
+  `x-session-affinity` / `x-session-id` / `x-opencode-session-id` (same value). Observation only: the headers carry one value and the prefix cache is reused across calls; the capture does not show that the headers cause backend affinity or the cache hits.
 - Measured (calls.json): seq16 prompt 7370, cached 0; seq17 7662 / cached 7424 (96.9%); seq18 7797 / 7552 (96.9%); seq19 7869 / 7680 (97.6%).
   same_system=true, same_tools=true, prefix_reused 1/1, 4/4, 6/6 messages. Cost fell from $0.00231 to $0.00026/call.
 - Cache ratio is block-quantised (7424 = 58*128); the uncached remainder is just the new messages.

@@ -31,7 +31,7 @@ cache hit rate is ~95%+ everywhere after call 1. Cache is not where they differ;
 2. **Niche tools shipped every turn are the main waste.** claude-code: ~21k of 28.5k description
    chars are rarely used tools (SendMessage 4.3k, Workflow 3.5k, ScheduleWakeup 3.4k,
    EnterWorktree 3.2k, CronCreate 2.9k). codex: `multi_agent_v1` is about half of tool bytes
-   (`spawn_agent` 6.7k). openhuman: ~7k chars workflow tools + 1.5k juice + 3 overlapping
+   (`spawn_agent` 6.7k). openhuman: ~6.0k chars workflow tools + 1.5k juice + 3 overlapping
    memory tools. opencode: `task`/`todowrite` unused in a one-step task. Fix: lazy-load by
    capability or intent, not a flat catalog.
 3. **Lazy tool loading exists in three harnesses, all with the same shape**
@@ -134,7 +134,7 @@ cache hit rate is ~95%+ everywhere after call 1. Cache is not where they differ;
    message that "supersedes earlier snapshots" (deepseek-harness / codex shape), so the model
    needn't spend a call on `pwd` and the prefix stays cached.
 5. **Fix prompt/tool drift:** `memory_search` named in the prompt but absent; rename
-   `apply_patch` (or support the diff format); ban em-dashes in the prompt vs ~20 tool
+   `apply_patch` (or support the diff format); ban em-dashes in the prompt vs 8 tool
    descriptions using them. Add a CI check that every tool named in the prompt exists in the
    schema list (would have caught codex's, hermes' and openhuman's bugs).
 6. **Shell tool:** add background/yield + poll, `cwd`, truncate-to-file with path, and prefix
@@ -181,10 +181,11 @@ automatically; it needs `cache_control` breakpoints.
 
 So the ~97% cache rates in the DeepSeek run do not transfer: five of seven harnesses, openhuman
 included, pay full price for the whole static prefix on every call against Anthropic models.
-openhuman's stable `prompt_cache_key` does nothing here. Adding breakpoints (system prompt end,
-last tool, last message) for Anthropic-routed models is the highest-value follow-up; it is
-harness-level, so upstream in `vendor/tinyagents` (prompt cache layout) per CLAUDE.md. claude-code
-and opencode place 3 markers; copy that layout.
+openhuman's stable `prompt_cache_key` does nothing here. That is this run's observation, before
+the fix: tinyinference now adds `cache_control` breakpoints for Anthropic-family model ids on every
+OpenAI-compatible gateway (tinyhumansai/tinyinference#52), pulled in through tinyagents#273. Not yet
+re-measured end to end; claude-code and opencode place 3 markers (system, last tool/system, last
+user), the layout this change follows.
 
 Other observations:
 - Static prefix (system + tools, tokens): deepseek-harness 6.2k, openhuman 6.5k, opencode 6.6k,

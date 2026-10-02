@@ -19,6 +19,7 @@ All of the following lives in `instructions` (system.txt); lines refer to system
 | 10 | `# Tool Guidelines` / `## Shell commands` (L187-194) | 0.4k | static |
 | 11 | `<skills_instructions>` (L197-207) | 2.0k | per-install (skill list, root `/tmp/bench-home/.codex/skills/.system`) |
 | 12 | `<permissions instructions>` (L208-211) | 0.4k | per-run config (sandbox/approval) |
+
 Sections 11-12 appear at the tail of system.txt AND as the first `developer` input message (msg 3799a981), i.e. captured system.txt is instructions+developer-message merged for display; on the wire they are input items.
 Per-session volatile context goes in the first user message, not the system prompt: `<environment_context><cwd>/work</cwd><shell>bash</shell><current_date>2026-10-02</current_date><timezone>Etc/UTC</timezone>...` then the real task as a separate user message. Message order: developer(skills+permissions) -> user(env context) -> user(task).
 Model-facing metadata (turn_id, installation id, git hash) goes in `client_metadata`/headers, not in the prompt (good for caching).

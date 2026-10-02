@@ -336,7 +336,7 @@
   "content-type": "application/json",
   "accept": "text/event-stream",
   "user-agent": "deepseek-harness/0.1.5-rc.1 (+https://github.com/deepseek-ai/deepseek-harness)",
-  "x-deepseek-harness-user-id": "147adf17-973f-4a00-bfd7-584effb1a173",
+  "x-deepseek-harness-user-id": "<redacted>",
   "x-deepseek-harness-session-id": "bench-1",
   "accept-language": "*",
   "sec-fetch-mode": "cors"

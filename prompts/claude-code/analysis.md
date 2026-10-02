@@ -31,7 +31,7 @@ Sizes (desc_chars/schema_chars): Agent 1668/1510, Bash 1407/1721, CronCreate 292
 
 ## 5. Caching/context layout
 - params.json: `cache_control_markers: 3`, `prompt_cache_key: null` (Anthropic style explicit markers, last marker on the trailing `<total_tokens>` system block: `"cache_control":{"type":"ephemeral"}`). Beta `prompt-caching-scope-2026-01-05`.
-- calls: all 4 calls `same_sys: true`, `same_tools: true`. cached_tokens: seq12 0/15,271 (cold), seq13 14,720/15,478 (95.1%), seq14 14,848/15,669 (94.8%), seq15 14,848/15,777 (94.1%). cache_write_tokens reported 0 (proxy/deepseek does not report it). Cost drops 0.00468 -> 0.00046 USD (10x).
+- calls: seq 12 is the first call (no prior call to compare, `same_sys`/`same_tools` null); the three later calls (seq 13-15) have `same_sys: true`, `same_tools: true`. cached_tokens: seq12 0/15,271 (cold), seq13 14,720/15,478 (95.1%), seq14 14,848/15,669 (94.8%), seq15 14,848/15,777 (94.1%). cache_write_tokens reported 0 (proxy/deepseek does not report it). Cost drops 0.00468 -> 0.00046 USD (10x).
 - Static-first: system -> tools -> mid-conv system env block -> user reminders. Volatile bits (git status, token counter, env) deliberately kept out of system.txt so system+tools prefix is stable. Risk: the `<total_tokens>` counter changes every turn, but it is appended at the tail so it only busts the last segment (marker moves with it). Env block has `Platform`, model name: stable within session.
 - Prefix reuse "1/2, 4/5, 7/8" = every message of previous call reused except the newest.
 
