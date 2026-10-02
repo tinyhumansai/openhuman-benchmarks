@@ -20,6 +20,16 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
     cargo build --profile "${CARGO_PROFILE}" -p openhuman-cli --bin openhuman-core \
     && install -D "target/$([ "${CARGO_PROFILE}" = release ] && echo release || echo "${CARGO_PROFILE}")/openhuman-core" /out/openhuman/openhuman-core
 
+# Pinned native modules, staged at build time so benches never fetch them.
+FROM node:24-bookworm-slim AS modules
+WORKDIR /repo
+COPY scripts/lib/module-pins.mjs scripts/lib/module-pins.mjs
+COPY scripts/ci/self-hosted/test-module-assets.mjs scripts/ci/self-hosted/test-module-assets.mjs
+COPY scripts/release/stage-modules.mjs scripts/release/stage-modules.mjs
+COPY crates/openhuman-core/src/modules/registry.rs crates/openhuman-core/src/modules/registry.rs
+COPY crates/openhuman-core/src/modules/registry/ crates/openhuman-core/src/modules/registry/
+RUN node scripts/release/stage-modules.mjs --output /bundled-modules
+
 FROM ubuntu:22.04 AS bundle
 ARG GIT_SHA=unknown
 ARG ADAPTER=adapters/openhuman.sh
@@ -32,6 +42,9 @@ RUN set -eux; mkdir -p /opt/harness/node; \
     file="$(curl -fsSL "$base/SHASUMS256.txt" | awk -v a="linux-$arch.tar.xz" '$2 ~ a {print $2}')"; \
     curl -fsSL "$base/$file" | tar -xJ --strip-components=1 -C /opt/harness/node
 COPY --from=builder /out/openhuman /opt/harness/openhuman
+# The core finds `bundled-modules/` beside its binary (OPENHUMAN_BUNDLED_MODULES
+# overrides), so the extracted bundle stays relocatable.
+COPY --from=modules /bundled-modules /opt/harness/openhuman/bundled-modules
 COPY bench/harnesses/bundles/adapters/_common.sh /opt/harness/_common.sh
 COPY bench/harnesses/bundles/${ADAPTER} /opt/harness/adapter.sh
 COPY bench/harnesses/bundles/forward.mjs /opt/harness/forward.mjs
