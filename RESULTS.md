@@ -1,5 +1,10 @@
 # Results (first run, 2026-10-01/02)
 
+> **Superseded setup.** This report is the first run, on `deepseek/deepseek-v4-flash` at `medium` reasoning with
+> OpenRouter free to route each call. The rig now pins `deepseek/deepseek-v4.1-flash` to the DeepSeek provider
+> (no fallbacks) at `high` reasoning, so these numbers are not comparable with runs from the current rig.
+> Rerun with `./run-micro.sh` or the SWE-bench flow in the README for current figures.
+
 Model `deepseek/deepseek-v4-flash` via OpenRouter, reasoning `medium`, 4 vCPU / 8 GB per task container,
 one harness at a time. SWE-bench Verified, 10 fixed instances (`swebench/instances-10.txt`), one attempt,
 graded by the official evaluator. **Ten tasks is a smoke test: a one-task difference is noise.**
