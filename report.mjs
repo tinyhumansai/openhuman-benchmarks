@@ -145,32 +145,59 @@ import { count, mem, ms, pct, secs, usd } from "./format.mjs";
 const f = (v, d = 0) => (v === null || v === undefined ? "-" : Number(v).toFixed(d));
 const money = (v) => (v === null || v === undefined ? "-" : usd(v));
 
+/**
+ * Mark the best and worst harness for one metric. `better` is "low" or "high"; values that
+ * are not numbers are skipped, and nothing is marked when fewer than two harnesses have a
+ * value or they all tie. Several harnesses can share a mark.
+ * @returns {Array<"best"|"worst"|null>} one entry per input value
+ */
+export function rankRow(values, better) {
+  const nums = values.filter((v) => typeof v === "number" && Number.isFinite(v));
+  if (!better || nums.length < 2) return values.map(() => null);
+  const lo = Math.min(...nums);
+  const hi = Math.max(...nums);
+  if (lo === hi) return values.map(() => null);
+  const [best, worst] = better === "low" ? [lo, hi] : [hi, lo];
+  return values.map((v) => (v === best ? "best" : v === worst ? "worst" : null));
+}
+
+const rate = (num, den) => (den ? num / den : null);
+
 export function toMarkdown(meta, summary) {
   const names = Object.keys(summary);
+  // [label, display(s), raw(s) used for ranking, better: "low" | "high" | null]
   const rows = [
-    ["resolved (SWE) / checks passed", (s) => (s.swe_resolved === null ? `${s.check_passed}/${s.tasks} checks` : `${s.swe_resolved}/${s.swe_graded} resolved`)],
+    ["resolved (SWE) / checks passed", (s) => (s.swe_resolved === null ? `${s.check_passed}/${s.tasks} checks` : `${s.swe_resolved}/${s.swe_graded} resolved`), (s) => (s.swe_resolved === null ? rate(s.check_passed, s.tasks) : rate(s.swe_resolved, s.swe_graded)), "high"],
     ["patch produced", (s) => `${s.patch_produced}/${s.tasks}`],
-    ["harness errors / timeouts (all tasks)", (s) => `${s.harness_errors} / ${s.timeouts}`],
-    ["system prompt tokens", (s) => count(s.system_prompt_tokens)],
-    ["tool schema tokens (count)", (s) => `${count(s.tool_schema_tokens)} (${count(s.tool_count)})`],
-    ["static prompt total (system + tools)", (s) => count(s.solved_static_prompt_tokens ?? s.static_prompt_tokens)],
-    ["cost / solved task", (s) => money(s.cost_per_solved_usd)],
-    ["tokens / solved task", (s) => count(s.tokens_per_solved)],
-    ["total cost (all tasks)", (s) => `${money(s.cost_usd)}${s.cost_unpriced_calls ? ` (+${s.cost_unpriced_calls} unpriced)` : ""}`],
-    ["cache hit % (solved tasks)", (s) => pct(s.solved_cache_pct)],
-    ["TTFT p50 (solved tasks)", (s) => ms(s.solved_ttft_ms_p50)],
-    ["LLM call latency p50 (solved tasks)", (s) => ms(s.solved_call_latency_ms_p50)],
-    ["task wall p50 (solved tasks)", (s) => secs(s.solved_task_wall_s_p50)],
-    ["cold start to first call p50 (solved tasks)", (s) => ms(s.solved_cold_start_ms_p50)],
-    ["CPU time / solved task", (s) => secs(s.solved_cpu_seconds_mean)],
-    ["peak RAM, process memory (solved tasks)", (s) => mem(s.solved_peak_anon_mb_max)],
-    ["peak RAM incl. page cache (all tasks)", (s) => mem(s.peak_mem_mb_max)],
-    ["avg RAM (all tasks)", (s) => mem(s.avg_mem_mb_mean)],
+    ["harness errors / timeouts (all tasks)", (s) => `${s.harness_errors} / ${s.timeouts}`, (s) => s.harness_errors + s.timeouts, "low"],
+    ["system prompt tokens", (s) => count(s.system_prompt_tokens), (s) => s.system_prompt_tokens, "low"],
+    ["tool schema tokens (count)", (s) => `${count(s.tool_schema_tokens)} (${count(s.tool_count)})`, (s) => s.tool_schema_tokens, "low"],
+    ["static prompt total (system + tools)", (s) => count(s.solved_static_prompt_tokens ?? s.static_prompt_tokens), (s) => s.solved_static_prompt_tokens ?? s.static_prompt_tokens, "low"],
+    ["cost / solved task", (s) => money(s.cost_per_solved_usd), (s) => s.cost_per_solved_usd, "low"],
+    ["tokens / solved task", (s) => count(s.tokens_per_solved), (s) => s.tokens_per_solved, "low"],
+    ["total cost (all tasks)", (s) => `${money(s.cost_usd)}${s.cost_unpriced_calls ? ` (+${s.cost_unpriced_calls} unpriced)` : ""}`, (s) => s.cost_usd, "low"],
+    ["cache hit % (solved tasks)", (s) => pct(s.solved_cache_pct), (s) => s.solved_cache_pct, "high"],
+    ["TTFT p50 (solved tasks)", (s) => ms(s.solved_ttft_ms_p50), (s) => s.solved_ttft_ms_p50, "low"],
+    ["LLM call latency p50 (solved tasks)", (s) => ms(s.solved_call_latency_ms_p50), (s) => s.solved_call_latency_ms_p50, "low"],
+    ["task wall p50 (solved tasks)", (s) => secs(s.solved_task_wall_s_p50), (s) => s.solved_task_wall_s_p50, "low"],
+    ["cold start to first call p50 (solved tasks)", (s) => ms(s.solved_cold_start_ms_p50), (s) => s.solved_cold_start_ms_p50, "low"],
+    ["CPU time / solved task", (s) => secs(s.solved_cpu_seconds_mean), (s) => s.solved_cpu_seconds_mean, "low"],
+    ["peak RAM, process memory (solved tasks)", (s) => mem(s.solved_peak_anon_mb_max), (s) => s.solved_peak_anon_mb_max, "low"],
+    ["peak RAM incl. page cache (all tasks)", (s) => mem(s.peak_mem_mb_max), (s) => s.peak_mem_mb_max, "low"],
+    ["avg RAM (all tasks)", (s) => mem(s.avg_mem_mb_mean), (s) => s.avg_mem_mb_mean, "low"],
     ["LLM calls (errors)", (s) => `${count(s.llm_calls)} (${count(s.llm_call_errors)})`],
     ["prompt / completion tokens", (s) => `${count(s.prompt_tokens)} / ${count(s.completion_tokens)}`],
   ];
+  // Best is bold + 🟢, worst is bold + 🔴: plain Markdown, so it reads in any renderer,
+  // and the viewer turns the markers into green and red.
+  const cell = (text, rank) => (rank === "best" ? `**${text}** 🟢` : rank === "worst" ? `**${text}** 🔴` : text);
   const head = `| metric | ${names.join(" | ")} |\n|---|${names.map(() => "---").join("|")}|`;
-  const body = rows.map(([label, fn]) => `| ${label} | ${names.map((n) => fn(summary[n])).join(" | ")} |`).join("\n");
+  const body = rows
+    .map(([label, fn, raw, better]) => {
+      const ranks = rankRow(names.map((n) => (raw ? raw(summary[n]) : null)), better);
+      return `| ${label} | ${names.map((n, k) => cell(fn(summary[n]), ranks[k])).join(" | ")} |`;
+    })
+    .join("\n");
   return [
     `# Harness benchmark: ${meta.run_id}`,
     "",
