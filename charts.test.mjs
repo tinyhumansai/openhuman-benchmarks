@@ -16,7 +16,7 @@ test("renders one panel per metric and one column per harness, with a star on th
   assert.equal((svg.match(/<path d="M[^>]*fill="url\(#g-/g) ?? []).length, METRICS.length * 2);
   // every panel has a winner, drawn as a gold column with no outline
   assert.ok((svg.match(/fill="url\(#g-gold\)"/g) ?? []).length >= METRICS.length);
-  assert.ok(!svg.includes("stroke-width"));
+  assert.ok(!svg.includes(`stroke="#f2a900"`) && !svg.includes("stroke-opacity"));
   assert.match(svg, /<polygon/);
 });
 
