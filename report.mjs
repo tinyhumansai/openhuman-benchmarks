@@ -148,13 +148,13 @@ export function toMarkdown(meta, summary) {
   const rows = [
     ["resolved (SWE) / checks passed", (s) => (s.swe_resolved === null ? `${s.check_passed}/${s.tasks} checks` : `${s.swe_resolved}/${s.swe_graded} resolved`)],
     ["patch produced", (s) => `${s.patch_produced}/${s.tasks}`],
-    ["harness errors / timeouts", (s) => `${s.harness_errors} / ${s.timeouts}`],
+    ["harness errors / timeouts (all tasks)", (s) => `${s.harness_errors} / ${s.timeouts}`],
     ["system prompt tokens", (s) => f(s.system_prompt_tokens)],
     ["tool schema tokens (count)", (s) => `${f(s.tool_schema_tokens)} (${f(s.tool_count)})`],
     ["static prompt total (system + tools)", (s) => f(s.solved_static_prompt_tokens ?? s.static_prompt_tokens)],
     ["cost / solved task", (s) => money(s.cost_per_solved_usd)],
     ["tokens / solved task", (s) => f(s.tokens_per_solved)],
-    ["total cost", (s) => `${money(s.cost_usd)}${s.cost_unpriced_calls ? ` (+${s.cost_unpriced_calls} unpriced)` : ""}`],
+    ["total cost (all tasks)", (s) => `${money(s.cost_usd)}${s.cost_unpriced_calls ? ` (+${s.cost_unpriced_calls} unpriced)` : ""}`],
     ["cache hit % (solved tasks)", (s) => f(s.solved_cache_pct, 1)],
     ["TTFT p50 (ms, solved tasks)", (s) => f(s.solved_ttft_ms_p50)],
     ["LLM call latency p50 (ms, solved tasks)", (s) => f(s.solved_call_latency_ms_p50)],
@@ -162,8 +162,8 @@ export function toMarkdown(meta, summary) {
     ["cold start to first call p50 (ms, solved tasks)", (s) => f(s.solved_cold_start_ms_p50)],
     ["CPU-seconds / solved task", (s) => f(s.solved_cpu_seconds_mean, 1)],
     ["peak RAM, process memory (MB, solved tasks)", (s) => f(s.solved_peak_anon_mb_max)],
-    ["peak RAM incl. page cache (MB)", (s) => f(s.peak_mem_mb_max)],
-    ["avg RAM (MB)", (s) => f(s.avg_mem_mb_mean)],
+    ["peak RAM incl. page cache (MB, all tasks)", (s) => f(s.peak_mem_mb_max)],
+    ["avg RAM (MB, all tasks)", (s) => f(s.avg_mem_mb_mean)],
     ["LLM calls (errors)", (s) => `${s.llm_calls} (${s.llm_call_errors})`],
     ["prompt / completion tokens", (s) => `${s.prompt_tokens} / ${s.completion_tokens}`],
   ];
@@ -177,7 +177,7 @@ export function toMarkdown(meta, summary) {
     head,
     body,
     "",
-    "Small samples: treat differences as indicative, not a ranking. CPU/RAM are cgroup-wide per container; process memory is the cgroup's anon bytes (2 Hz poll), the page-cache figure is the kernel high-water mark. Cache % = cached / prompt tokens across all calls.",
+    "Per-task KPIs are measured over each harness's own solved tasks (resolved by the grader, or the task check on the micro suite); cost / solved task is total spend, failed attempts included, divided by tasks solved. Small samples: treat differences as indicative, not a ranking. CPU/RAM are cgroup-wide per container; process memory is the cgroup's anon bytes (2 Hz poll), the page-cache figure is the kernel high-water mark. Cache % = cached / prompt tokens across all calls.",
     "",
   ].join("\n");
 }

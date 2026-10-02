@@ -39,21 +39,21 @@ const fmtTokens = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.roun
 export const METRICS = [
   {
     id: "resolved",
-    title: "Tasks resolved",
+    title: "Tasks solved",
     better: "higher",
     value: (s) =>
       s.swe_graded ? (100 * s.swe_resolved) / s.swe_graded : s.tasks ? (100 * s.check_passed) / s.tasks : null,
     format: (v) => `${v.toFixed(0)}%`,
   },
-  { id: "cost_task", title: "Cost per task (cents)", better: "lower", value: (s) => s.cost_per_task_usd, format: fmtMoney },
-  { id: "cost_resolved", title: "Cost per resolved task (cents)", better: "lower", value: (s) => s.cost_per_resolved_usd, format: fmtMoney },
-  { id: "static_prompt", title: "System prompt + tools (tokens)", better: "lower", value: (s) => s.static_prompt_tokens, format: fmtTokens },
-  { id: "cache", title: "Prompt cache hit", better: "higher", value: (s) => s.cache_pct, format: (v) => `${v.toFixed(0)}%` },
-  { id: "ttft", title: "Time to first token (p50)", better: "lower", value: (s) => s.ttft_ms_p50, format: fmtSecs },
-  { id: "wall", title: "Wall time per task (p50)", better: "lower", value: (s) => s.task_wall_s_p50, format: (v) => `${v.toFixed(0)}s` },
-  { id: "cold", title: "Cold start to first call", better: "lower", value: (s) => s.cold_start_ms_p50, format: fmtSecs },
-  { id: "cpu", title: "CPU-seconds per task", better: "lower", value: (s) => s.cpu_seconds_mean, format: (v) => v.toFixed(1) },
-  { id: "ram", title: "Peak RAM (process, MB)", better: "lower", value: (s) => s.peak_anon_mb_max, format: (v) => `${Math.round(v)}` },
+  { id: "cost_solved", title: "Cost per solved task (cents)", better: "lower", value: (s) => s.cost_per_solved_usd, format: fmtMoney },
+  { id: "tokens_solved", title: "Tokens per solved task", better: "lower", value: (s) => s.tokens_per_solved, format: fmtTokens },
+  { id: "static_prompt", title: "System prompt + tools (tokens)", better: "lower", value: (s) => s.solved_static_prompt_tokens, format: fmtTokens },
+  { id: "cache", title: "Prompt cache hit (solved tasks)", better: "higher", value: (s) => s.solved_cache_pct, format: (v) => `${v.toFixed(0)}%` },
+  { id: "ttft", title: "Time to first token (p50)", better: "lower", value: (s) => s.solved_ttft_ms_p50, format: fmtSecs },
+  { id: "wall", title: "Wall time per solved task (p50)", better: "lower", value: (s) => s.solved_task_wall_s_p50, format: (v) => `${v.toFixed(0)}s` },
+  { id: "cold", title: "Cold start to first call", better: "lower", value: (s) => s.solved_cold_start_ms_p50, format: fmtSecs },
+  { id: "cpu", title: "CPU-seconds per solved task", better: "lower", value: (s) => s.solved_cpu_seconds_mean, format: (v) => v.toFixed(1) },
+  { id: "ram", title: "Peak RAM, process (MB)", better: "lower", value: (s) => s.solved_peak_anon_mb_max, format: (v) => `${Math.round(v)}` },
 ];
 
 // ---- look -----------------------------------------------------------------
@@ -61,11 +61,11 @@ export const METRICS = [
 const THEMES = {
   light: {
     bg: "#ffffff", ink: "#14172b", sub: "#5b6177", muted: "#8a90a6", base: "#c9cddb",
-    mutedTop: "#98a1bd", mutedBottom: "#eef0fa", mutedText: "#1b2038", star: "#d99a00", gold: "#f2a900", goldGlow: "#f2a900",
+    mutedTop: "#98a1bd", mutedBottom: "#eef0fa", mutedText: "#1b2038", star: "#d99a00", gold: "#f2a900", goldTop: "#ffcf3a", goldBottom: "#f29a00", goldText: "#3a2600",
   },
   dark: {
     bg: "#0e1120", ink: "#eef0fa", sub: "#a4aac2", muted: "#7f86a1", base: "#343a55",
-    mutedTop: "#7d86a8", mutedBottom: "#262c46", mutedText: "#f3f5ff", star: "#ffc83d", gold: "#ffc83d", goldGlow: "#ffc83d",
+    mutedTop: "#7d86a8", mutedBottom: "#262c46", mutedText: "#f3f5ff", star: "#ffc83d", gold: "#ffc83d", goldTop: "#ffd25a", goldBottom: "#f0a100", goldText: "#2a1b00",
   },
 };
 const HERO = {
@@ -118,6 +118,7 @@ export function renderSvg({ meta, summary }, opts = {}) {
   for (const [name, c] of Object.entries(HERO)) {
     defs.push(`<linearGradient id="${gid(name)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.top}"/><stop offset="1" stop-color="${c.bottom}"/></linearGradient>`);
   }
+  defs.push(`<linearGradient id="${gid("gold")}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.goldTop}"/><stop offset="1" stop-color="${t.goldBottom}"/></linearGradient>`);
   defs.push(`<linearGradient id="${gid("muted")}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.mutedTop}"/><stop offset="1" stop-color="${t.mutedBottom}"/></linearGradient>`);
 
   const parts = [];
@@ -127,7 +128,7 @@ export function renderSvg({ meta, summary }, opts = {}) {
   parts.push(
     `<text x="40" y="76" font-size="14" fill="${t.sub}">${esc(meta.model)} · reasoning ${esc(meta.reasoning)} · ${esc(meta.cpus)} vCPU / ${esc(meta.mem)} per task · same key, same model, same container limits</text>`,
   );
-  parts.push(`<text x="40" y="96" font-size="12" fill="${t.muted}">Each panel has its own scale from zero. Gold outline + ★ marks the best column in a panel.</text>`);
+  parts.push(`<text x="40" y="96" font-size="12" fill="${t.muted}">Each panel has its own scale from zero. The gold column (★) is the best in a panel. Per-task KPIs use each harness's own solved tasks.</text>`);
 
   metrics.forEach((m, i) => {
     const col = i % cols;
@@ -159,16 +160,11 @@ export function renderSvg({ meta, summary }, opts = {}) {
         const label = esc(m.format(v));
         const tip = `${h.label.join("")} (${h.id}): ${m.format(v)}`;
         const isBest = best != null && v === best;
-        // The winning column(s): bold gold outline plus a soft halo (a wide translucent stroke,
-        // since SVG filters are not rendered everywhere), so the best
-        // harness reads at a glance and not only through a small marker.
-        g.push(
-          isBest
-            ? `<g><title>${esc(tip)} (best)</title><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="none" stroke="${t.gold}" stroke-opacity="0.28" stroke-width="11" stroke-linejoin="round"/><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="${fill}" stroke="${t.gold}" stroke-width="3.5" stroke-linejoin="round"/>`
-            : `<g><title>${esc(tip)}</title><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="${fill}"/>`,
-        );
+        // The winning column(s) are simply gold, whichever harness they are.
+        const barFill = isBest ? `url(#${gid("gold")})` : fill;
+        g.push(`<g><title>${esc(isBest ? `${tip} (best)` : tip)}</title><path d="${columnPath(x, yTop, barW, hgt, 6)}" fill="${barFill}"/>`);
         if (hgt >= 26) {
-          g.push(`<text x="${cx}" y="${yTop + 18}" text-anchor="middle" font-size="12.5" font-weight="${isBest ? 800 : 700}" fill="${valText}">${label}</text>`);
+          g.push(`<text x="${cx}" y="${yTop + 18}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${isBest ? t.goldText : valText}">${label}</text>`);
           nameBottom = yTop - 8;
         } else {
           g.push(`<text x="${cx}" y="${yTop - 7}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${t.ink}">${label}</text>`);
