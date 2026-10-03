@@ -1,0 +1,32 @@
+{
+  "atrx-vep-crispr": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0
+  },
+  "batched-eval-parity": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0
+  },
+  "heat-pump-warranty": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0
+  },
+  "payments-pipeline-fix": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0
+  },
+  "vf2-speedup-networkx": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0
+  }
+}
