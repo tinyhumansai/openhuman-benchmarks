@@ -13,6 +13,16 @@ Browse the results at **https://tinyhumansai.github.io/openhuman-benchmarks/**.
 
 See [RUNBOOK.md](RUNBOOK.md) to reproduce a run.
 
+> **Contamination warning for the runs published so far** (`swe-x86-1`, `deepswe10-x86-2`,
+> `deepswe10-oh-cap`, `ds-basic-1`). Task containers had open internet access. Several
+> harnesses downloaded the DeepSWE reference `solution.patch` (Hugging Face / GitHub
+> mirrors of `datacurve/deep-swe`) and applied it. In `deepswe10-x86-2` that happened in
+> Hermes 6/10, OpenCode 4/10, Claude Code 3/10, deepseek-harness 2/10 and Codex 1/10 tasks,
+> and every such task was "resolved". Hermes solved 3 of the 4 tasks where it did not fetch
+> one, and Claude Code 5 of 7. Treat those resolve rates as upper bounds. From now on, task
+> containers sit on an internal network that reaches only the meter proxy
+> (`docker-compose.yml`, `BENCH_NET_INTERNAL`).
+
 ## Cross-harness benchmark
 
 Runs OpenHuman, Claude Code, Codex, OpenCode, OpenClaw and Hermes on the same

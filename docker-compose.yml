@@ -10,7 +10,15 @@
 name: harness-bench
 
 networks:
+  # Task containers sit on an internal network: no route out, only the meter
+  # proxy. Without this, agents fetched the benchmark's own reference solutions
+  # (DeepSWE solution.patch from Hugging Face / GitHub mirrors) and applied them.
+  # BENCH_NET_INTERNAL=false reopens it; use that only to debug.
   bench:
+    driver: bridge
+    internal: ${BENCH_NET_INTERNAL:-true}
+  # The proxy alone reaches the upstream API.
+  egress:
     driver: bridge
 
 services:
@@ -32,7 +40,7 @@ services:
       - ./results:/results
     ports:
       - "127.0.0.1:${METER_HOST_PORT:-18080}:8080" # control plane for the orchestrator
-    networks: [bench]
+    networks: [bench, egress]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/__bench/health"]
       interval: 2s
