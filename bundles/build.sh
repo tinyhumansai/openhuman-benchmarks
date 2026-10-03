@@ -4,7 +4,8 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 # The OpenHuman bundle compiles the vendored checkout (git submodule vendor/openhuman).
-repo="$here/vendor/openhuman"
+# OPENHUMAN_SRC=<checkout> builds another tree instead (e.g. a feature worktree under test).
+repo="${OPENHUMAN_SRC:-$here/vendor/openhuman}"
 name="${1:?usage: build.sh <harness>}"
 args=()
 while IFS='=' read -r k v; do
@@ -16,7 +17,7 @@ image="bench-bundle-$name"
 case "$name" in
   openhuman)
     if [ ! -f "$repo/Cargo.toml" ]; then
-      echo "vendor/openhuman is not checked out: git submodule update --init --recursive vendor/openhuman" >&2
+      echo "$repo is not an OpenHuman checkout (vendor/openhuman not initialized?): git submodule update --init --recursive vendor/openhuman" >&2
       exit 1
     fi
     # The build context is the OpenHuman tree; adapters come from this repo via a named context.
