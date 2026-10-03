@@ -133,3 +133,13 @@ test("mainRequest skips a tool-less side request and returns the call with the l
   assert.equal(mainRequest(calls, "t").seq, 1);
   assert.equal(mainRequest(calls, "missing"), null);
 });
+
+test("toMarkdown labels Terminal-Bench rows by its verifier and shows test counts", () => {
+  const s = { tasks: 2, check_passed: 0, swe_resolved: 1, swe_graded: 2, patch_produced: 0, tests_passed: 59, tests_total: 63, tests_tasks: 2, harness_errors: 0, timeouts: 0 };
+  const md = toMarkdown({ run_id: "r", suite: "terminal-bench-4", model: "m", reasoning: "high", harness_versions: { openhuman: "abc1234" }, n_concurrent: 2 }, { openhuman: s });
+  assert.match(md, /resolved \(task verifier, reward 1\) \| 1\/2 resolved/);
+  assert.match(md, /verifier tests passed \(tasks reporting\) \| 59\/63 \(2\)/);
+  assert.doesNotMatch(md, /patch produced/);
+  assert.match(md, /openhuman `abc1234`/);
+  assert.match(md, /2 trials ran concurrently/);
+});
