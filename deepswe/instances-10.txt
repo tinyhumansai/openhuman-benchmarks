@@ -1,0 +1,11 @@
+# seed=20261002 over deepswe tasks sorted by id
+anko-default-function-arguments
+cattrs-partial-structuring-recovery
+csstree-shorthand-expansion-compression
+kombu-single-active-consumer-priority
+koota-pair-relation-tracking
+narwhals-rolling-window-suite
+optique-conditional-option-dependencies
+tengo-destructuring-bindings
+vitest-duration-sharding
+ytt-jsonpath-query-api
