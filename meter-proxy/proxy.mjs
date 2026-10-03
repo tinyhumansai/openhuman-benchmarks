@@ -15,14 +15,21 @@
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
 //   METER_CAPTURE=0    do not store request captures (system prompt, tools, messages);
 //                      default stores them under <dir of METER_LOG>/<run_id>/captures/
+//   METER_SOCKET       also accept connections on this unix socket (a bind-mounted file), for
+//                      task containers whose network the bench must not touch (Harbor tasks)
 //
 // Control plane (loopback of the compose network only):
 //   POST /__bench/run  {"run_id":"..","harness":"..","task":".."}  tag subsequent calls
 //   GET  /__bench/runs                                 per-run first-request sizes
+//
+// Per-request tag: a path prefix /__tag/<run_id>/<harness>/<task>/ (URI-encoded segments) tags
+// that one call and is stripped before forwarding. Callers that set it can run side by side;
+// untagged calls fall back to the global tag above.
 
 import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
+import net from "node:net";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { forwardHeaders } from "./headers.mjs";
@@ -64,6 +71,16 @@ function decoderFor(encoding) {
 // pinning it on the older `deepseek-v4-flash` slug silently serves v4.1, so the slug and pin go together.
 export const DEFAULT_PROVIDER = "DeepSeek";
 
+const TAG_PREFIX = /^\/__tag\/([^/]+)\/([^/]+)\/([^/]+)(\/.*)?$/;
+
+/** Split a per-request tag prefix off a URL: {tag, url}, or {tag: null, url} when absent. */
+export function splitTag(url) {
+  const m = TAG_PREFIX.exec(url);
+  if (!m) return { tag: null, url };
+  const [run_id, harness, task] = m.slice(1, 4).map(decodeURIComponent);
+  return { tag: { run_id, harness, task }, url: m[4] || "/" };
+}
+
 export function createProxy(opts) {
   const upstream = new URL(opts.upstream ?? "https://openrouter.ai/api");
   const logPath = path.resolve(opts.logPath ?? "/results/meter.jsonl");
@@ -101,8 +118,8 @@ export function createProxy(opts) {
   // Sized on every call, not just the first: some harnesses open a task with a small side
   // request (OpenCode's title generator has no tools), and the report needs to find the
   // main agent request, the one with the largest static prompt.
-  function promptSizes(format, body) {
-    const key = `${run.run_id}/${run.harness}/${run.task}`;
+  function promptSizes(format, body, tag) {
+    const key = `${tag.run_id}/${tag.harness}/${tag.task}`;
     const parts = extractPromptParts(format, body);
     const sizes = {
       system_prompt_tokens: tokens(parts.system),
@@ -149,9 +166,11 @@ export function createProxy(opts) {
       const body = Buffer.concat(chunks);
       if (req.url.startsWith("/__bench/")) return control(req, res, body);
 
-      const format = detectFormat(req.method, req.url);
+      const split = splitTag(req.url);
+      const url = split.url;
+      const format = detectFormat(req.method, url);
       const startedAt = Date.now();
-      const tag = { ...run };
+      const tag = split.tag ?? { ...run };
       const callSeq = format ? seq++ : null;
 
       let outBody = body;
@@ -165,7 +184,7 @@ export function createProxy(opts) {
           // forwarded untouched; logged as unparsable
         }
         if (parsed) {
-          const sizes = promptSizes(format, parsed);
+          const sizes = promptSizes(format, parsed, tag);
           if (captureRoot) {
             const key = `${tag.run_id}/${tag.harness}/${tag.task}/${lineageOf(parsed)}`;
             built = buildCapture({
@@ -219,7 +238,7 @@ export function createProxy(opts) {
           hostname: upstream.hostname,
           port: upstream.port || undefined,
           method: req.method,
-          path: `${upstream.pathname.replace(/\/$/, "")}${upstreamRoute(req.url)}`,
+          path: `${upstream.pathname.replace(/\/$/, "")}${upstreamRoute(url)}`,
           headers,
         },
         (upstreamRes) => {
@@ -356,6 +375,23 @@ if (isMain) {
       `[meter] listening on ${host}:${port} model=${model} tokenizer=${tokenizer}\n`,
     );
   });
+  const socketPath = process.env.METER_SOCKET;
+  if (socketPath) {
+    // A byte pipe onto the TCP listener, so both paths share one server and one tag state.
+    // Optional: when the socket dir is not writable the proxy still serves TCP.
+    const sock = net.createServer((client) => {
+      const upstream = net.connect(port, "127.0.0.1");
+      client.pipe(upstream).pipe(client);
+      client.on("error", () => upstream.destroy());
+      upstream.on("error", () => client.destroy());
+    });
+    sock.on("error", (error) => process.stderr.write(`[meter] socket ${socketPath} unavailable: ${error.message}\n`));
+    fs.rmSync(socketPath, { force: true });
+    sock.listen(socketPath, () => {
+      fs.chmodSync(socketPath, 0o666); // task images run as any uid
+      process.stdout.write(`[meter] also listening on ${socketPath}\n`);
+    });
+  }
   for (const signal of ["SIGINT", "SIGTERM"]) {
     process.on(signal, () => proxy.server.close(() => process.exit(0)));
   }

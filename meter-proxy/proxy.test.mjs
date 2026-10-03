@@ -4,7 +4,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { createProxy } from "./proxy.mjs";
+import { createProxy, splitTag } from "./proxy.mjs";
 
 function listen(server) {
   return new Promise((resolve) =>
@@ -90,6 +90,52 @@ test("proxy pins model/reasoning, authenticates itself, tags and logs usage", as
   const runs = await (await fetch(`${base}/__bench/runs`)).json();
   assert.ok(runs["r1/demo/t1"].system_prompt_tokens > 0);
 
+  proxy.server.close();
+  fake.close();
+});
+
+test("splitTag reads and strips a per-request tag prefix", () => {
+  assert.deepEqual(splitTag("/__tag/r%201/openhuman/a__b/v1/chat/completions"), {
+    tag: { run_id: "r 1", harness: "openhuman", task: "a__b" },
+    url: "/v1/chat/completions",
+  });
+  assert.deepEqual(splitTag("/v1/chat/completions"), { tag: null, url: "/v1/chat/completions" });
+});
+
+test("a per-request tag overrides the global tag for that call only", async () => {
+  const urls = [];
+  const fake = http.createServer((req, res) => {
+    urls.push(req.url);
+    req.resume();
+    req.on("end", () => {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ choices: [], usage: { prompt_tokens: 1, completion_tokens: 1 } }));
+    });
+  });
+  const fakePort = await listen(fake);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "meter-"));
+  const logPath = path.join(dir, "meter.jsonl");
+  const proxy = createProxy({ upstream: `http://127.0.0.1:${fakePort}/api`, model: "m", apiKey: "k", logPath, capture: false, pricing: {} });
+  const base = `http://127.0.0.1:${await listen(proxy.server)}`;
+  await fetch(`${base}/__bench/run`, { method: "POST", body: JSON.stringify({ run_id: "g", harness: "h", task: "global" }) });
+
+  const call = (prefix) =>
+    fetch(`${base}${prefix}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ messages: [{ role: "user", content: "hi" }] }),
+    }).then((r) => r.text());
+  await Promise.all([call("/__tag/r2/h/a"), call("/__tag/r2/h/b"), call("")]);
+
+  assert.deepEqual(urls.sort(), Array(3).fill("/api/v1/chat/completions"));
+  const tasks = fs
+    .readFileSync(logPath, "utf8")
+    .trim()
+    .split("\n")
+    .map((l) => JSON.parse(l))
+    .map((r) => `${r.run_id}/${r.task}`)
+    .sort();
+  assert.deepEqual(tasks, ["g/global", "r2/a", "r2/b"]);
   proxy.server.close();
   fake.close();
 });
