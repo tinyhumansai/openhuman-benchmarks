@@ -93,6 +93,7 @@ await Promise.all(
     }
   }),
 );
-const out = Object.fromEntries(results.map(([k, g]) => [k.replace(/#r\d+$/, ""), g]));
+// Keyed by task_key, so repeats (`<task>#r2`) do not overwrite each other.
+const out = Object.fromEntries(results.map(([k, g]) => [k, g]));
 fs.writeFileSync(path.join(dir, "grade.json"), JSON.stringify(out, null, 2));
 console.log(`graded ${results.length}: resolved ${results.filter(([, g]) => g.resolved).length}`);

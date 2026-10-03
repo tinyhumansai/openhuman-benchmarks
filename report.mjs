@@ -292,7 +292,7 @@ function main() {
         return null;
       }
     })();
-    return { ...row, result: read("result.json"), grade: grades?.[row.task] ?? null };
+    return { ...row, result: read("result.json"), grade: grades?.[row.task_key ?? row.task] ?? grades?.[row.task] ?? null };
   });
 
   const aggregated = aggregate(meter, tasks);
