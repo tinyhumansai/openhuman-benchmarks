@@ -1,4 +1,5 @@
-# OpenHuman harness bundle, built from this checkout (build context = repo root).
+# OpenHuman harness bundle, built from the vendored checkout (build context = vendor/openhuman;
+# adapters arrive through the `bench` named context, see build.sh).
 # Ubuntu 22.04 (not the root Dockerfile's bookworm) so the binary's glibc floor
 # is compatible with the official SWE-bench instance images.
 FROM ubuntu:22.04 AS builder
@@ -53,8 +54,8 @@ COPY --from=builder /out/openhuman /opt/harness/openhuman
 # The core finds `bundled-modules/` beside its binary (OPENHUMAN_BUNDLED_MODULES
 # overrides), so the extracted bundle stays relocatable.
 COPY --from=modules /bundled-modules /opt/harness/openhuman/bundled-modules
-COPY bench/harnesses/bundles/adapters/_common.sh /opt/harness/_common.sh
-COPY bench/harnesses/bundles/${ADAPTER} /opt/harness/adapter.sh
-COPY bench/harnesses/bundles/forward.mjs /opt/harness/forward.mjs
-COPY bench/harnesses/bundles/oh-turn.mjs /opt/harness/oh-turn.mjs
+COPY --from=bench adapters/_common.sh /opt/harness/_common.sh
+COPY --from=bench ${ADAPTER} /opt/harness/adapter.sh
+COPY --from=bench forward.mjs /opt/harness/forward.mjs
+COPY --from=bench oh-turn.mjs /opt/harness/oh-turn.mjs
 RUN echo "${GIT_SHA}" > /opt/harness/openhuman/GIT_SHA

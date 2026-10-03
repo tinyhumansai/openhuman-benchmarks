@@ -26,14 +26,13 @@ first build as the test.
   `BENCH_ALLOW_CONCURRENT=1`; that override exists only for macOS, where `/proc` is missing,
   and it makes the CPU and latency numbers unreliable.
 
-## 1. Check out the branch
+## 1. Check out the repo
 
 ```bash
-git clone git@github.com:tinyhumansai/openhuman.git && cd openhuman
-git fetch origin pull/6912/head:bench-proxy-viewer && git checkout bench-proxy-viewer
-# or, if it has merged: git checkout main
-git submodule update --init --recursive vendor/
-cd bench/harnesses
+git clone git@github.com:tinyhumansai/openhuman-benchmarks.git && cd openhuman-benchmarks
+# OpenHuman is vendored as a submodule; the openhuman bundle compiles it.
+# Move the pin (cd vendor/openhuman && git checkout <sha>) to benchmark another build.
+git submodule update --init --recursive vendor/openhuman
 cp .env.example .env     # then set OPENROUTER_API_KEY; leave the rest at the defaults
 export BENCH_UID=$(id -u) BENCH_GID=$(id -g)
 ```

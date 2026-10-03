@@ -190,7 +190,7 @@ export function renderSvg({ meta, summary }, opts = {}) {
   });
 
   parts.push(
-    `<text x="40" y="${H - 20}" font-size="12" fill="${t.muted}">${nTasks} tasks, 1 attempt each: a smoke test, not a ranking. CPU/RAM are cgroup-wide per container. Cost from OpenRouter-reported usage. Source: bench/harnesses/results/${esc(meta.run_id)}/summary.json</text>`,
+    `<text x="40" y="${H - 20}" font-size="12" fill="${t.muted}">${nTasks} tasks, 1 attempt each: a smoke test, not a ranking. CPU/RAM are cgroup-wide per container. Cost from OpenRouter-reported usage. Source: results/${esc(meta.run_id)}/summary.json</text>`,
   );
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family='${FONT}' role="img" aria-label="${esc(title)}">

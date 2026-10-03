@@ -3,7 +3,8 @@
 #   ./bundles/build.sh claude-code|codex|opencode|openclaw|hermes|openhuman
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
-repo="$(cd "$here/../.." && pwd)"
+# The OpenHuman bundle compiles the vendored checkout (git submodule vendor/openhuman).
+repo="$here/vendor/openhuman"
 name="${1:?usage: build.sh <harness>}"
 args=()
 while IFS='=' read -r k v; do
@@ -14,7 +15,13 @@ done < "$here/harnesses.lock"
 image="bench-bundle-$name"
 case "$name" in
   openhuman)
+    if [ ! -f "$repo/Cargo.toml" ]; then
+      echo "vendor/openhuman is not checked out: git submodule update --init --recursive vendor/openhuman" >&2
+      exit 1
+    fi
+    # The build context is the OpenHuman tree; adapters come from this repo via a named context.
     docker build -f "$here/bundles/Dockerfile.openhuman" \
+      --build-context "bench=$here/bundles" \
       --build-arg "ADAPTER=adapters/$name.sh" \
       --build-arg "GIT_SHA=$(git -C "$repo" rev-parse --short HEAD)" \
       -t "$image" "$repo"
