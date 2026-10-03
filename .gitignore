@@ -7,3 +7,5 @@ results/*/captures/
 site/
 # Local-only runs kept off the site (invalid or aborted).
 results-archive/
+# Compaction dataset checkpoints carry full prompts and tool outputs (built by compaction/extract.mjs).
+compaction/data/
