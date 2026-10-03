@@ -19,12 +19,15 @@
 //                      task containers whose network the bench must not touch (Harbor tasks)
 //
 // Control plane (loopback of the compose network only):
-//   POST /__bench/run  {"run_id":"..","harness":"..","task":".."}  tag subsequent calls
+//   POST /__bench/run  {"run_id":"..","harness":"..","task":"..","attempt":".."}  tag subsequent calls
+//                      (attempt is optional: it names one try at a task, see below)
 //   GET  /__bench/runs                                 per-run first-request sizes
 //
 // Per-request tag: a path prefix /__tag/<run_id>/<harness>/<task>/ (URI-encoded segments) tags
-// that one call and is stripped before forwarding. Callers that set it can run side by side;
-// untagged calls fall back to the global tag above.
+// that one call and is stripped before forwarding. An optional /__attempt/<id> segment after the
+// task names the attempt. Every record carries it, and runs.jsonl rows carry the same id, so a
+// task re-run under one run id keeps its attempts apart and the summary counts only the graded one.
+// Callers that set a tag can run side by side; untagged calls fall back to the global tag above.
 
 import fs from "node:fs";
 import http from "node:http";
@@ -71,14 +74,16 @@ function decoderFor(encoding) {
 // pinning it on the older `deepseek-v4-flash` slug silently serves v4.1, so the slug and pin go together.
 export const DEFAULT_PROVIDER = "DeepSeek";
 
-const TAG_PREFIX = /^\/__tag\/([^/]+)\/([^/]+)\/([^/]+)(\/.*)?$/;
+const TAG_PREFIX = /^\/__tag\/([^/]+)\/([^/]+)\/([^/]+)(?:\/__attempt\/([^/]+))?(\/.*)?$/;
 
 /** Split a per-request tag prefix off a URL: {tag, url}, or {tag: null, url} when absent. */
 export function splitTag(url) {
   const m = TAG_PREFIX.exec(url);
   if (!m) return { tag: null, url };
   const [run_id, harness, task] = m.slice(1, 4).map(decodeURIComponent);
-  return { tag: { run_id, harness, task }, url: m[4] || "/" };
+  const tag = { run_id, harness, task };
+  if (m[4]) tag.attempt = decodeURIComponent(m[4]);
+  return { tag, url: m[5] || "/" };
 }
 
 export function createProxy(opts) {
@@ -139,6 +144,7 @@ export function createProxy(opts) {
           run_id: String(next.run_id ?? "untagged"),
           harness: String(next.harness ?? "untagged"),
           task: String(next.task ?? "untagged"),
+          ...(next.attempt ? { attempt: String(next.attempt) } : {}),
         };
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify(run));
@@ -186,7 +192,7 @@ export function createProxy(opts) {
         if (parsed) {
           const sizes = promptSizes(format, parsed, tag);
           if (captureRoot) {
-            const key = `${tag.run_id}/${tag.harness}/${tag.task}/${lineageOf(parsed)}`;
+            const key = `${tag.run_id}/${tag.harness}/${tag.task}/${tag.attempt ?? ""}/${lineageOf(parsed)}`;
             built = buildCapture({
               format,
               body: parsed,

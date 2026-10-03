@@ -212,6 +212,8 @@ for (const t of trials.sort()) {
     suite,
     task: key,
     task_key: key,
+    // The adapter's attempt id (written beside the trial's logs); absent for trials run before it existed.
+    attempt: fs.existsSync(path.join(tdir, "agent", "attempt.txt")) ? fs.readFileSync(path.join(tdir, "agent", "attempt.txt"), "utf8").trim() : null,
     dataset: DATASETS[bench],
     harbor_exception: exc?.exception_type ?? null,
     n_concurrent: jobConcurrency,
