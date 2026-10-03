@@ -7,21 +7,25 @@ bundles/adapters/openhuman.sh) so every call goes through the metering proxy and
 result has the same shape as the bench's other suites.
 
 The compose overlay written by tbench/run.mjs mounts the OpenHuman bundle at
-/opt/harness and the runner at /opt/bench/runner (read-only), and attaches the task
-container to the meter proxy's network.
+/opt/harness, the runner at /opt/bench/runner (read-only) and the meter proxy's unix
+socket directory at /opt/bench/sock. The task's network is left as Harbor sets it up.
+Each call carries a /__tag/<run>/<harness>/<task> path prefix, so the proxy attributes it
+to this trial even when trials run concurrently.
 
 Host env (set by tbench/run.mjs):
   BENCH_RUN_ID          results/<run-id>
-  BENCH_METER_PORT      host port of the proxy's control plane (tags calls per task)
   BENCH_METER_LOG       host path of meter.jsonl (to report tokens/cost back to Harbor)
+  BENCH_HARNESS_VERSION the OpenHuman build (bundle GIT_SHA), reported as the agent version
   BENCH_MODEL, BENCH_REASONING
+  OPENHUMAN_AGENT_TURN_TIMEOUT_SECS  OpenHuman's own turn ceiling; default 0 (none), so the
+                        task's agent timeout, enforced by Harbor, is the only limit
 """
 
 import json
 import os
 import shlex
-import urllib.request
 from pathlib import Path
+from urllib.parse import quote
 
 from harbor.agents.base import BaseAgent
 from harbor.environments.base import BaseEnvironment
@@ -35,16 +39,9 @@ def task_key(logs_dir: Path) -> str:
     return logs_dir.parent.name.rsplit("__", 1)[0]
 
 
-def tag_proxy(port: str, tag: dict) -> None:
-    req = urllib.request.Request(
-        f"http://127.0.0.1:{port}/__bench/run",
-        data=json.dumps(tag).encode(),
-        method="POST",
-        headers={"connection": "close"},
-    )
-    with urllib.request.urlopen(req, timeout=10) as res:
-        if res.status != 200:
-            raise RuntimeError(f"tagging meter proxy failed: HTTP {res.status}")
+def tag_prefix(tag: dict) -> str:
+    """The proxy's per-request tag (meter-proxy/proxy.mjs splitTag)."""
+    return "/__tag/" + "/".join(quote(tag[k], safe="") for k in ("run_id", "harness", "task"))
 
 
 def meter_totals(log: str, tag: dict) -> dict:
@@ -74,20 +71,19 @@ class OpenHuman(BaseAgent):
         return HARNESS
 
     def version(self) -> str | None:
-        return os.environ.get("BENCH_HARNESS_VERSION")
+        return os.environ.get("BENCH_HARNESS_VERSION") or None
 
     async def setup(self, environment: BaseEnvironment) -> None:
         r = await environment.exec(
-            "test -x /opt/harness/adapter.sh && test -f /opt/bench/runner/entry.mjs",
+            "test -x /opt/harness/adapter.sh && test -f /opt/bench/runner/entry.mjs && test -S /opt/bench/sock/meter.sock",
             timeout_sec=30,
         )
         if r.return_code != 0:
-            raise RuntimeError("OpenHuman bundle or bench runner not mounted (run through tbench/run.mjs)")
+            raise RuntimeError("OpenHuman bundle, bench runner or meter socket not mounted (run through tbench/run.mjs)")
 
     async def run(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
         key = task_key(self.logs_dir)
         tag = {"run_id": os.environ["BENCH_RUN_ID"], "harness": HARNESS, "task": key}
-        tag_proxy(os.environ["BENCH_METER_PORT"], tag)
 
         # /logs/agent is the host's trial agent dir, mounted into the container.
         (self.logs_dir / "prompt.txt").write_text(instruction, encoding="utf8")
@@ -102,11 +98,14 @@ class OpenHuman(BaseAgent):
             "PROMPT_FILE": f"{self.environment_logs_dir}/prompt.txt",
             # Terminal-Bench grades the container itself (some tasks its git history): no baseline commit.
             "BENCH_CAPTURE_PATCH": "0",
-            "PROXY_URL": "http://meter-proxy:8080",
+            "PROXY_SOCKET": "/opt/bench/sock/meter.sock",
+            "BENCH_PROXY_PREFIX": tag_prefix(tag),
             "BENCH_MODEL": os.environ.get("BENCH_MODEL", "deepseek/deepseek-v4.1-flash"),
             "BENCH_REASONING": os.environ.get("BENCH_REASONING", "high"),
             "DUMMY_API_KEY": "bench-dummy-key",
             "OPENHUMAN_COMPACTION_TRIGGER_TOKENS": os.environ.get("OPENHUMAN_COMPACTION_TRIGGER_TOKENS", ""),
+            # OpenHuman's default 60 min turn ceiling would cut 8 h Terminal-Bench 4.0 tasks short.
+            "OPENHUMAN_AGENT_TURN_TIMEOUT_SECS": os.environ.get("OPENHUMAN_AGENT_TURN_TIMEOUT_SECS") or "0",
             "DISABLE_TELEMETRY": "1",
             "DISABLE_AUTOUPDATER": "1",
             "DO_NOT_TRACK": "1",

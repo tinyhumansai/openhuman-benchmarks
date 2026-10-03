@@ -15,6 +15,8 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { waitForQuietHost } from "./quiet-host.mjs";
+import { runMeta } from "./run-meta.mjs";
 import { writeMicroSuite } from "./tasks/micro.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -52,39 +54,6 @@ const composeEnv = { ...process.env, COMPOSE_PROJECT_NAME: projectName, METER_HO
 
 function sh(cmd, args, opts = {}) {
   return spawnSync(cmd, args, { cwd: here, encoding: "utf8", ...opts, env: opts.env ? { ...composeEnv, ...opts.env } : composeEnv });
-}
-
-/**
- * Benchmarks measure CPU and latency, so two runs on one host corrupt each other
- * even with separate proxies. Wait while another orchestrate.mjs is running
- * (BENCH_ALLOW_CONCURRENT=1 skips the wait).
- */
-async function waitForQuietHost() {
-  if (process.env.BENCH_ALLOW_CONCURRENT === "1") return;
-  // Only real `node .../orchestrate.mjs` processes count; a wrapper shell whose command
-  // line merely mentions the script must not block (or deadlock) its own child.
-  const others = () => {
-    const pids = [];
-    for (const name of fs.readdirSync("/proc")) {
-      if (!/^\d+$/.test(name) || Number(name) === process.pid) continue;
-      try {
-        const argv = fs.readFileSync(`/proc/${name}/cmdline`, "utf8").split("\0");
-        const isRun = path.basename(argv[0]) === "node" && argv.slice(1, 3).some((a) => a.endsWith("orchestrate.mjs"));
-        // grading starts and removes many containers: as noisy as a run
-        const isGrading = argv.some((a) => a === "swebench.harness.run_evaluation");
-        if (isRun || isGrading) pids.push(name);
-      } catch {
-        // process exited
-      }
-    }
-    return pids;
-  };
-  let waited = 0;
-  while (others().length) {
-    if (waited % 60 === 0) process.stdout.write(`[bench] another benchmark run is active (pid ${others().join(",")}); waiting for a quiet host\n`);
-    await new Promise((r) => setTimeout(r, 5000));
-    waited += 5;
-  }
 }
 
 async function tagProxy(port, tag) {
@@ -133,6 +102,7 @@ async function main() {
   }
 
   fs.mkdirSync(path.join(here, "results"), { recursive: true });
+  fs.mkdirSync(path.join(here, ".cache", "meter-sock", projectName), { recursive: true }); // owned by us, not by dockerd
   const up = sh("docker", ["compose", "up", "-d", "--build", "--wait", "meter-proxy"], { stdio: "inherit" });
   if (up.status !== 0) throw new Error("meter-proxy failed to start");
   const port = hostPort;
@@ -140,6 +110,7 @@ async function main() {
   const runDir = path.join(here, "results", o.runId);
   fs.mkdirSync(runDir, { recursive: true });
   const index = path.join(runDir, "runs.jsonl");
+  const meta = runMeta(here, o.harness);
 
   for (const task of tasks) {
     for (let rep = 1; rep <= o.repeat; rep += 1) {
@@ -173,6 +144,7 @@ async function main() {
         task: task.id,
         task_key: taskKey,
         compose_exit: r.status,
+        ...meta,
         started_epoch_ms: startedAt,
         ended_epoch_ms: Date.now(),
       };

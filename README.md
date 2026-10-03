@@ -19,7 +19,10 @@ See [RUNBOOK.md](RUNBOOK.md) to reproduce a run.
 > mirrors of `datacurve/deep-swe`) and applied it. In `deepswe10-x86-2` that happened in
 > Hermes 6/10, OpenCode 4/10, Claude Code 3/10, deepseek-harness 2/10 and Codex 1/10 tasks,
 > and every such task was "resolved". Hermes solved 3 of the 4 tasks where it did not fetch
-> one, and Claude Code 5 of 7. Treat those resolve rates as upper bounds. From now on, task
+> one, and Claude Code 5 of 7. Treat those resolve rates as upper bounds. OpenHuman did not
+> fetch `solution.patch`, but in `deepswe10-x86-2` and `deepswe10-oh-cap` it did look up the
+> upstream implementation (GitHub API, grep.app code search, `git ls-remote` on the project's
+> repository), so its DeepSWE numbers from those runs are not clean either. From now on, task
 > containers sit on an internal network that reaches only the meter proxy
 > (`docker-compose.yml`, `BENCH_NET_INTERNAL`).
 
@@ -59,6 +62,8 @@ tasks/micro.mjs        5-task micro suite generator
 swebench/              prepare.py (select + task dirs), grade.mjs (official evaluator)
 tbench/                Terminal-Bench via Harbor: OpenHuman agent, run + result conversion
 orchestrate.mjs        host driver: tags the proxy, runs one container per task
+quiet-host.mjs         one benchmark run per host (shared by orchestrate.mjs and tbench/run.mjs)
+run-meta.mjs           harness build + knobs recorded on every runs.jsonl row
 report.mjs             merges everything into results/<run>/summary.{json,md}
 harnesses.lock         pinned harness versions
 ```
@@ -104,8 +109,10 @@ declared artifacts). The bench adds three things:
   `runner/entry.mjs` + `bundles/adapters/openhuman.sh` inside the task container, so CPU/RAM
   sampling and the adapter are the same as for every other suite.
 - A compose overlay (written by `tbench/run.mjs`) that mounts the bundle and runner read-only
-  and joins the task container to the meter proxy's network. Every call is metered and
-  captured under `results/<run>/captures/` like any other run.
+  and the meter proxy's unix socket (`.cache/meter-sock/<compose project>/`). It declares no networks, so the
+  task's own networking stays exactly as Harbor sets it up: internet on or off, Harbor's
+  egress-control sidecar, or a `network_mode` the task's compose file sets. Every call is
+  metered and captured under `results/<run>/captures/` like any other run.
 - A conversion of Harbor's job dir (kept at `.cache/harbor-jobs/<run>/`) into
   `results/<run>/openhuman/<task>/` (`result.json`, `harness.log`, `verifier/`,
   `harbor-result.json`), `runs.jsonl` and `grade.json` (resolved = verifier reward 1), which
@@ -117,8 +124,13 @@ uv tool install harbor
 ./run-tbench.sh 4 tb4-sample5     # tbench/instances-tb4-5.txt, terminal-bench/terminal-bench@4.0.0
 ```
 
-Trials run one at a time (`--n-concurrent 1`): the proxy attributes calls to the task tagged
-last. The sample lists are seeded draws over tasks that need no GPU, at most 16 GB, and a
+Each call carries its trial's tag as a path prefix (`/__tag/<run>/<harness>/<task>/`) that the
+proxy strips, so `--n-concurrent N` is metered correctly. Trials still run one at a time by
+default, because CPU and latency are only comparable between serial runs; a summary notes when
+trials ran concurrently. OpenHuman's own 60 min turn ceiling is turned off
+(`OPENHUMAN_AGENT_TURN_TIMEOUT_SECS=0`), so the task's agent timeout, which Harbor enforces, is
+the only limit, as for every other Harbor agent. Each row in `runs.jsonl`, and Harbor's
+`agent_info.version`, records the OpenHuman build (the bundle's `GIT_SHA`). The sample lists are seeded draws over tasks that need no GPU, at most 16 GB, and a
 public network. Unlike the other suites, these containers have internet access, because
 Terminal-Bench is defined that way and its verifiers install their own tooling. The task
 solutions are public on GitHub, so check `captures/` before trusting a pass.
@@ -186,15 +198,20 @@ examples are in `charts/`.
 data stays under `results/` but it is excluded from reports and charts (`--include-archived`
 brings it back). `rename-harness.mjs` relabels a finished run's data when a variant is promoted.
 
-Only one benchmark may run on a host at a time: `orchestrate.mjs` waits while another
-`orchestrate.mjs` or a SWE-bench grading run is active, and each checkout gets its own compose
-project and proxy port, so two worktrees never share a proxy.
+Only one benchmark may run on a host at a time: `orchestrate.mjs` and `tbench/run.mjs` wait
+while another of them, a `harbor run`, or a SWE-bench / DeepSWE grading pass is active
+(`quiet-host.mjs`; `BENCH_ALLOW_CONCURRENT=1` skips the wait), and each checkout gets its own
+compose project and proxy port, so two worktrees never share a proxy.
+
+Every `runs.jsonl` row records the harness build (`harness_version`: the OpenHuman bundle's
+`GIT_SHA`, or the version pinned in `harnesses.lock`) and the bench knobs the run set
+(`knobs`: `OPENHUMAN_*`, `TASK_TIMEOUT_S`, ...), and the summary header lists the builds.
 
 ## Caveats
 
 - Ten tasks with one attempt is a smoke test, not a ranking.
-- Container networking is not locked down. Harnesses can reach the internet
-  (task images are pre-baked, so the SWE tasks do not need it).
+- Terminal-Bench containers have whatever network the task declares (most allow the
+  internet); the other suites' containers reach only the meter proxy.
 - OpenHuman reaches the proxy through a loopback forwarder (it refuses to send a
   bearer to a non-loopback `http` endpoint); the forwarder is a few KB of node.
 - Hermes's installer clones its `main` branch rather than the tag in

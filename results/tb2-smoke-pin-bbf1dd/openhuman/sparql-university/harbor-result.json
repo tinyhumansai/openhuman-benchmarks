@@ -1,0 +1,123 @@
+{
+    "id": "42f67145-fb02-4ea3-8b6e-15bd018ebf90",
+    "task_name": "sparql-university",
+    "trial_name": "sparql-university__bjmL7fx",
+    "trial_uri": "file:///home/enamakel/work/openhuman-benchmarks/.cache/harbor-jobs/tb2-smoke-pin-bbf1dd/openhuman-tb2/sparql-university__bjmL7fx",
+    "task_id": {
+        "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+        "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+        "path": "sparql-university"
+    },
+    "source": "terminal-bench",
+    "task_checksum": "5f84ab8191b8b921e3adeae2fa11f7a1f5fc2549627cce7218ae0046f66d450b",
+    "config": {
+        "task": {
+            "path": "sparql-university",
+            "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+            "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+            "name": null,
+            "ref": null,
+            "overwrite": false,
+            "download_dir": null,
+            "source": "terminal-bench"
+        },
+        "trial_name": "sparql-university__bjmL7fx",
+        "trials_dir": "/home/enamakel/work/openhuman-benchmarks/worktrees/terminal-bench/.cache/harbor-jobs/tb2-smoke-pin-bbf1dd/openhuman-tb2",
+        "install_only": false,
+        "timeout_multiplier": 1.0,
+        "agent_timeout_multiplier": null,
+        "verifier_timeout_multiplier": null,
+        "agent_setup_timeout_multiplier": null,
+        "environment_build_timeout_multiplier": null,
+        "agent": {
+            "name": "tbench.openhuman_agent:OpenHuman",
+            "import_path": null,
+            "model_name": null,
+            "n_concurrent": null,
+            "concurrency_group": null,
+            "skills": [],
+            "override_timeout_sec": null,
+            "override_setup_timeout_sec": null,
+            "max_timeout_sec": null,
+            "resume_trajectory": false,
+            "load_trajectory": null,
+            "extra_allowed_hosts": [],
+            "kwargs": {},
+            "mcp_servers": []
+        },
+        "user_agent": null,
+        "environment": {
+            "type": "docker",
+            "import_path": null,
+            "force_build": false,
+            "delete": true,
+            "cpu_enforcement_policy": "auto",
+            "memory_enforcement_policy": "auto",
+            "override_cpus": null,
+            "override_memory_mb": null,
+            "override_storage_mb": null,
+            "override_gpus": null,
+            "override_tpu": null,
+            "mounts": null,
+            "extra_docker_compose": [
+                "/home/enamakel/work/openhuman-benchmarks/worktrees/terminal-bench/.cache/tbench/hb-openhuman-benchmarks-overlay.yaml"
+            ],
+            "kwargs": {},
+            "extra_allowed_hosts": []
+        },
+        "verifier": {
+            "override_timeout_sec": null,
+            "max_timeout_sec": null,
+            "disable": false
+        },
+        "artifacts": [],
+        "extra_instruction_paths": [],
+        "extra_instructions": [],
+        "job_id": "b351a296-1035-4874-9d33-208f8c1ce2ac",
+        "source_trial": null
+    },
+    "agent_info": {
+        "name": "openhuman",
+        "version": "bbf1dd5809",
+        "model_info": null
+    },
+    "agent_result": {
+        "n_input_tokens": 79607,
+        "n_cache_tokens": 73216,
+        "n_output_tokens": 5395,
+        "cost_usd": 0.004415298,
+        "model_usage": null,
+        "rollout_details": null,
+        "metadata": {
+            "llm_calls": 7,
+            "entry_exit_code": 0,
+            "workdir": "/app"
+        }
+    },
+    "verifier_result": {
+        "rewards": {
+            "reward": 1.0
+        }
+    },
+    "verifier_environment_mode": "shared",
+    "exception_info": null,
+    "started_at": "2026-10-03T12:30:46.356593Z",
+    "finished_at": "2026-10-03T12:32:03.152170Z",
+    "environment_setup": {
+        "started_at": "2026-10-03T12:30:46.390036Z",
+        "finished_at": "2026-10-03T12:30:47.286637Z"
+    },
+    "agent_setup": {
+        "started_at": "2026-10-03T12:30:47.286654Z",
+        "finished_at": "2026-10-03T12:30:47.348547Z"
+    },
+    "agent_execution": {
+        "started_at": "2026-10-03T12:30:47.348617Z",
+        "finished_at": "2026-10-03T12:31:30.200448Z"
+    },
+    "verifier": {
+        "started_at": "2026-10-03T12:31:30.450782Z",
+        "finished_at": "2026-10-03T12:31:51.976931Z"
+    },
+    "step_results": null
+}
