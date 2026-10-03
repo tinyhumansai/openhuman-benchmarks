@@ -55,8 +55,10 @@ let json;
 try {
   json = JSON.parse(text);
 } catch {
-  console.error(text.slice(0, 2000));
+  console.error(text);
   process.exit(1);
 }
-console.log(JSON.stringify(json).slice(0, 4000));
+// In full: the reason a turn ended is usually at the end of the reply, and harness.log is
+// the only place it is kept.
+console.log(JSON.stringify(json));
 process.exit(json.error ? 1 : 0);
