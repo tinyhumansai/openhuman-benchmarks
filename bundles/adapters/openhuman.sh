@@ -22,6 +22,27 @@ mkdir -p "$OPENHUMAN_WORKSPACE"
 # inference itself goes to the metering proxy through the per-call route.
 export OPENHUMAN_BACKEND_API_KEY="${OPENHUMAN_BACKEND_API_KEY:-$DUMMY_API_KEY}"
 
+# The module loader admits a module directory only if it and every ancestor is
+# owned by the current user or root (tinybus `check_directory`). The bundle is
+# bind-mounted owned by the host user who built it, while task images run as
+# root, so every loadable module (tinyruntime, tinysearch, ...) was refused with
+# "module directory is owned by another user". Stage a root-owned copy instead.
+bundled=/opt/harness/openhuman/bundled-modules
+if [ -d "$bundled" ] && [ "$(id -u)" != "$(stat -c %u "$bundled")" ]; then
+  staged=/opt/oh-bundled-modules
+  rm -rf "$staged"
+  cp -r "$bundled" "$staged"
+  chmod -R go-w "$staged"
+  export OPENHUMAN_BUNDLED_MODULES="$staged"
+  echo "[openhuman] staged bundled modules owned by uid $(id -u): $staged" >&2
+fi
+# The shell tool puts a resolved Python first on PATH for `python`/`pip` commands.
+# By default that is a downloaded standalone CPython, which lacks the task repo's
+# installed dependencies. Use the task image's own interpreter, as every other
+# harness does.
+export OPENHUMAN_RUNTIME_PYTHON_PREFER_SYSTEM=1
+export OPENHUMAN_RUNTIME_PYTHON_MINIMUM_VERSION=3.0.0
+
 # Headless core, the way a product host runs it; the turn goes over JSON-RPC.
 export OH_PORT=7788 OH_TOKEN=bench-core-token OPENHUMAN_CORE_TOKEN=bench-core-token
 export INFERENCE_URL="http://127.0.0.1:18080/v1"
