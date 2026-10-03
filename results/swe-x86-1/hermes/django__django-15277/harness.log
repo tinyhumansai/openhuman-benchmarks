@@ -1,0 +1,5 @@
+Done. Changed `CharField.__init__` in django/db/models/fields/__init__.py:1013 to only append `MaxLengthValidator` when `max_length is not None`, mirroring the existing `BinaryField` precedent.
+
+Verified:
+- `Value('test')._resolve_output_field().validators` is now `[]` (was `[MaxLengthValidator]`); `CharField(max_length=10)` still gets its validator, and `CharField(max_length=None)` cleanly has none.
+- 701 tests across model_fields, expressions, validation, validators, field_deconstruction, field_defaults, field_subclassing pass (10 skipped, 1 expected failure).

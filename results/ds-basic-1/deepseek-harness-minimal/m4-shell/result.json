@@ -1,0 +1,24 @@
+{
+  "harness": "deepseek-harness-minimal",
+  "task": "m4-shell",
+  "started_epoch_ms": 1790931318188,
+  "ended_epoch_ms": 1790931328376,
+  "wall_ms": 10188,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 127,
+  "resources": {
+    "cpu_seconds": 0.866206,
+    "avg_cpu_cores": 0.0850221829603455,
+    "peak_mem_bytes": 208384000,
+    "peak_anon_bytes": 122679296,
+    "avg_anon_bytes": 111266722.9090909,
+    "avg_mem_bytes": 173872221.0909091,
+    "wall_seconds": 10.188,
+    "samples": 22
+  },
+  "check": {
+    "exit_code": 0,
+    "passed": true
+  }
+}

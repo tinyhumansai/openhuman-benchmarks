@@ -1,0 +1,52 @@
+2026-10-02 14:35:28,513 - INFO - Creating container for sympy__sympy-16766...
+2026-10-02 14:35:28,530 - INFO - Container for sympy__sympy-16766 created: 372c39178c172df088cc1063352d5440bc8df9819306908cea8b986f35f94562
+2026-10-02 14:35:28,596 - INFO - Container for sympy__sympy-16766 started: 372c39178c172df088cc1063352d5440bc8df9819306908cea8b986f35f94562
+2026-10-02 14:35:28,596 - INFO - Intermediate patch for sympy__sympy-16766 written to logs/run_evaluation/swe-x86-1-deepseek-harness/deepseek-harness/sympy__sympy-16766/patch.diff, now applying to container...
+2026-10-02 14:35:28,651 - INFO - >>>>> Applied Patch:
+Checking patch sympy/printing/pycode.py...
+Applied patch sympy/printing/pycode.py cleanly.
+
+2026-10-02 14:35:28,835 - INFO - Git diff before:
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index a3f031073..a96d4a2fb 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -357,6 +357,11 @@ def _print_Not(self, expr):
+         PREC = precedence(expr)
+         return self._operators['not'] + self.parenthesize(expr.args[0], PREC)
+ 
++    def _print_Indexed(self, expr):
++        base = expr.args[0]
++        index = expr.args[1:]
++        return "{}[{}]".format(str(base), ", ".join([self._print(ind) for ind in index]))
++
+ 
+ for k in PythonCodePrinter._kf:
+     setattr(PythonCodePrinter, '_print_%s' % k, _print_known_func)
+2026-10-02 14:35:28,835 - INFO - Eval script for sympy__sympy-16766 written to logs/run_evaluation/swe-x86-1-deepseek-harness/deepseek-harness/sympy__sympy-16766/eval.sh; copying to container...
+2026-10-02 14:35:31,012 - INFO - Test runtime: 2.15 seconds
+2026-10-02 14:35:31,012 - INFO - Test output for sympy__sympy-16766 written to logs/run_evaluation/swe-x86-1-deepseek-harness/deepseek-harness/sympy__sympy-16766/test_output.txt
+2026-10-02 14:35:31,038 - INFO - Git diff after:
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index a3f031073..a96d4a2fb 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -357,6 +357,11 @@ def _print_Not(self, expr):
+         PREC = precedence(expr)
+         return self._operators['not'] + self.parenthesize(expr.args[0], PREC)
+ 
++    def _print_Indexed(self, expr):
++        base = expr.args[0]
++        index = expr.args[1:]
++        return "{}[{}]".format(str(base), ", ".join([self._print(ind) for ind in index]))
++
+ 
+ for k in PythonCodePrinter._kf:
+     setattr(PythonCodePrinter, '_print_%s' % k, _print_known_func)
+2026-10-02 14:35:31,039 - INFO - Grading answer for sympy__sympy-16766...
+2026-10-02 14:35:31,039 - INFO - report: {'sympy__sympy-16766': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_PythonCodePrinter'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_MpmathPrinter', 'test_NumPyPrinter', 'test_SciPyPrinter', 'test_pycode_reserved_words', 'test_printmethod', 'test_codegen_ast_nodes', 'test_issue_14283'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-16766: resolved: True
+2026-10-02 14:35:31,039 - INFO - Attempting to stop container sweb.eval.sympy__sympy-16766.swe-x86-1-deepseek-harness...
+2026-10-02 14:35:46,126 - INFO - Container sweb.eval.sympy__sympy-16766.swe-x86-1-deepseek-harness stopped successfully.
+2026-10-02 14:35:46,126 - INFO - Attempting to remove container sweb.eval.sympy__sympy-16766.swe-x86-1-deepseek-harness...
+2026-10-02 14:35:46,156 - INFO - Container sweb.eval.sympy__sympy-16766.swe-x86-1-deepseek-harness removed successfully.

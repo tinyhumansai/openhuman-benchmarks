@@ -1,0 +1,58 @@
+[0m
+> build · deepseek/deepseek-v4.1-flash
+[0m
+[0m$ [0mgrep -rn "show_versions" /testbed --include="*.py" -l
+/testbed/sklearn/__init__.py
+/testbed/sklearn/utils/tests/test_show_versions.py
+/testbed/sklearn/utils/_show_versions.py
+[0m
+[0m$ [0mls /testbed
+CONTRIBUTING.md
+COPYING
+ISSUE_TEMPLATE.md
+MANIFEST.in
+Makefile
+PULL_REQUEST_TEMPLATE.md
+README.rst
+appveyor.yml
+azure-pipelines.yml
+benchmarks
+build
+build_tools
+conftest.py
+doc
+examples
+lgtm.yml
+maint_tools
+scikit_learn.egg-info
+setup.cfg
+setup.py
+site.cfg
+sklearn
+[0m
+[0m→ [0mRead sklearn/utils/_show_versions.py
+[0m→ [0mRead ISSUE_TEMPLATE.md
+[0m→ [0mRead sklearn/utils/tests/test_show_versions.py
+[0m
+[0m← [0mEdit sklearn/utils/_show_versions.py
+Index: /testbed/sklearn/utils/_show_versions.py
+===================================================================
+--- /testbed/sklearn/utils/_show_versions.py
++++ /testbed/sklearn/utils/_show_versions.py
+@@ -47,8 +47,9 @@
+     "scipy",
+     "Cython",
+     "pandas",
+     "matplotlib",
++    "joblib",
+ ]
+ 
+ def get_version(module):
+     return module.__version__
+
+[0m
+[0m$ [0mpython -m pytest sklearn/utils/tests/test_show_versions.py -q 2>&1 | tail -5
+...                                                                      [100%]
+3 passed in 0.25s
+[0m
+Added `joblib` to the dependencies list in `sklearn/utils/_show_versions.py:51`. Tests pass.

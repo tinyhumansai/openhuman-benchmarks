@@ -1,0 +1,261 @@
+WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir "/tmp" (codex_home: AbsolutePathBuf("/tmp/bench-home/.codex"))
+Reading additional input from stdin...
+OpenAI Codex v0.159.3
+--------
+workdir: /testbed
+model: deepseek/deepseek-v4.1-flash
+provider: proxy
+approval: never
+sandbox: danger-full-access
+reasoning effort: high
+reasoning summaries: none
+session id: 01a0fc2e-39a3-7200-9d0b-261a73bdfe69
+--------
+user
+You are working in a git checkout of the repository at /testbed. Resolve the following issue by editing the source code in place.
+
+Do not modify or add test files unless the issue requires it. Make the smallest correct change. When you are done, stop; your changes are collected from the working tree.
+
+<issue>
+Missing call `make_hashable` on `through_fields` in `ManyToManyRel`
+Description
+	
+In 3.2 identity property has been added to all ForeignObjectRel to make it possible to compare them. A hash is derived from said identity and it's possible because identity is a tuple. To make limit_choices_to hashable (one of this tuple elements), ​there's a call to make_hashable.
+It happens that through_fields can be a list. In such case, this make_hashable call is missing in ​ManyToManyRel.
+For some reason it only fails on checking proxy model. I think proxy models have 29 checks and normal ones 24, hence the issue, but that's just a guess.
+Minimal repro:
+class Parent(models.Model):
+	name = models.CharField(max_length=256)
+class ProxyParent(Parent):
+	class Meta:
+		proxy = True
+class Child(models.Model):
+	parent = models.ForeignKey(Parent, on_delete=models.CASCADE)
+	many_to_many_field = models.ManyToManyField(
+		to=Parent,
+		through="ManyToManyModel",
+		through_fields=['child', 'parent'],
+		related_name="something"
+	)
+class ManyToManyModel(models.Model):
+	parent = models.ForeignKey(Parent, on_delete=models.CASCADE, related_name='+')
+	child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='+')
+	second_child = models.ForeignKey(Child, on_delete=models.CASCADE, null=True, default=None)
+Which will result in 
+ File "manage.py", line 23, in <module>
+	main()
+ File "manage.py", line 19, in main
+	execute_from_command_line(sys.argv)
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/__init__.py", line 419, in execute_from_command_line
+	utility.execute()
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/__init__.py", line 413, in execute
+	self.fetch_command(subcommand).run_from_argv(self.argv)
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/base.py", line 354, in run_from_argv
+	self.execute(*args, **cmd_options)
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/base.py", line 393, in execute
+	self.check()
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/base.py", line 419, in check
+	all_issues = checks.run_checks(
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/checks/registry.py", line 76, in run_checks
+	new_errors = check(app_configs=app_configs, databases=databases)
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/checks/model_checks.py", line 34, in check_all_models
+	errors.extend(model.check(**kwargs))
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/db/models/base.py", line 1277, in check
+	*cls._check_field_name_clashes(),
+ File "/home/tom/PycharmProjects/djangbroken_m2m_projectProject/venv/lib/python3.8/site-packages/django/db/models/base.py", line 1465, in _check_field_name_clashes
+	if f not in used_fields:
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/db/models/fields/reverse_related.py", line 140, in __hash__
+	return hash(self.identity)
+TypeError: unhashable type: 'list'
+Solution: Add missing make_hashable call on self.through_fields in ManyToManyRel.
+Missing call `make_hashable` on `through_fields` in `ManyToManyRel`
+Description
+	
+In 3.2 identity property has been added to all ForeignObjectRel to make it possible to compare them. A hash is derived from said identity and it's possible because identity is a tuple. To make limit_choices_to hashable (one of this tuple elements), ​there's a call to make_hashable.
+It happens that through_fields can be a list. In such case, this make_hashable call is missing in ​ManyToManyRel.
+For some reason it only fails on checking proxy model. I think proxy models have 29 checks and normal ones 24, hence the issue, but that's just a guess.
+Minimal repro:
+class Parent(models.Model):
+	name = models.CharField(max_length=256)
+class ProxyParent(Parent):
+	class Meta:
+		proxy = True
+class Child(models.Model):
+	parent = models.ForeignKey(Parent, on_delete=models.CASCADE)
+	many_to_many_field = models.ManyToManyField(
+		to=Parent,
+		through="ManyToManyModel",
+		through_fields=['child', 'parent'],
+		related_name="something"
+	)
+class ManyToManyModel(models.Model):
+	parent = models.ForeignKey(Parent, on_delete=models.CASCADE, related_name='+')
+	child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='+')
+	second_child = models.ForeignKey(Child, on_delete=models.CASCADE, null=True, default=None)
+Which will result in 
+ File "manage.py", line 23, in <module>
+	main()
+ File "manage.py", line 19, in main
+	execute_from_command_line(sys.argv)
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/__init__.py", line 419, in execute_from_command_line
+	utility.execute()
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/__init__.py", line 413, in execute
+	self.fetch_command(subcommand).run_from_argv(self.argv)
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/base.py", line 354, in run_from_argv
+	self.execute(*args, **cmd_options)
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/base.py", line 393, in execute
+	self.check()
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/base.py", line 419, in check
+	all_issues = checks.run_checks(
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/checks/registry.py", line 76, in run_checks
+	new_errors = check(app_configs=app_configs, databases=databases)
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/checks/model_checks.py", line 34, in check_all_models
+	errors.extend(model.check(**kwargs))
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/db/models/base.py", line 1277, in check
+	*cls._check_field_name_clashes(),
+ File "/home/tom/PycharmProjects/djangbroken_m2m_projectProject/venv/lib/python3.8/site-packages/django/db/models/base.py", line 1465, in _check_field_name_clashes
+	if f not in used_fields:
+ File "/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/db/models/fields/reverse_related.py", line 140, in __hash__
+	return hash(self.identity)
+TypeError: unhashable type: 'list'
+Solution: Add missing make_hashable call on self.through_fields in ManyToManyRel.
+</issue>
+warning: Model metadata for `deepseek/deepseek-v4.1-flash` not found. Defaulting to fallback metadata; this can degrade performance and cause issues.
+exec
+/bin/bash -lc "grep -n \"through_fields\\|identity\\|make_hashable\" /testbed/django/db/models/fields/reverse_related.py" in /testbed
+ succeeded in 0ms:
+14:from django.utils.hashable import make_hashable
+120:    def identity(self):
+126:            make_hashable(self.limit_choices_to),
+136:        return self.identity == other.identity
+139:        return hash(self.identity)
+242:    def identity(self):
+243:        return super().identity + (self.field_name,)
+290:                 through_fields=None, db_constraint=True):
+302:        if through_fields and not through:
+303:            raise ValueError("Cannot specify through_fields without a through model")
+304:        self.through_fields = through_fields
+310:    def identity(self):
+311:        return super().identity + (
+313:            self.through_fields,
+323:        if self.through_fields:
+324:            field = opts.get_field(self.through_fields[0])
+
+exec
+/bin/bash -lc 'sed -n 306,320p /testbed/django/db/models/fields/reverse_related.py' in /testbed
+ succeeded in 0ms:
+        self.symmetrical = symmetrical
+        self.db_constraint = db_constraint
+
+    @property
+    def identity(self):
+        return super().identity + (
+            self.through,
+            self.through_fields,
+            self.db_constraint,
+        )
+
+    def get_related_field(self):
+        """
+        Return the field in the 'to' object to which this relationship is tied.
+        Provided for symmetry with ManyToOneRel.
+
+exec
+/bin/bash -lc "cd /testbed && python - <<'EOF'
+import re
+p='django/db/models/fields/reverse_related.py'
+s=open(p).read()
+old=\"\"\"        return super().identity + (
+            self.through,
+            self.through_fields,
+            self.db_constraint,
+        )\"\"\"
+new=\"\"\"        return super().identity + (
+            self.through,
+            make_hashable(self.through_fields),
+            self.db_constraint,
+        )\"\"\"
+s=s.replace(old,new)
+open(p,'w').write(s)
+EOF
+grep -n \"make_hashable(self.through_fields)\" django/db/models/fields/reverse_related.py" in /testbed
+ succeeded in 0ms:
+313:            make_hashable(self.through_fields),
+
+exec
+/bin/bash -lc "cd /testbed && python -c \"
+import django
+from django.conf import settings
+settings.configure(INSTALLED_APPS=['django.contrib.contenttypes','django.contrib.auth','t'],DATABASES={'default':{'ENGINE':'django.db.backends.sqlite3','NAME':':memory:'}})
+django.setup()
+from django.db import models
+class Parent(models.Model):
+    name = models.CharField(max_length=256)
+    class Meta: app_label='t'
+class ProxyParent(Parent):
+    class Meta: proxy=True; app_label='t'
+class Child(models.Model):
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE)
+    many_to_many_field = models.ManyToManyField(to=Parent, through='ManyToManyModel', through_fields=['child','parent'], related_name='something')
+    class Meta: app_label='t'
+class ManyToManyModel(models.Model):
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE, related_name='+')
+    child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='+')
+    class Meta: app_label='t'
+ProxyParent.check()
+print('OK')
+\"" in /testbed
+ exited 1 in 81ms:
+Traceback (most recent call last):
+  File "<string>", line 5, in <module>
+  File "/testbed/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+  File "/testbed/django/apps/registry.py", line 91, in populate
+    app_config = AppConfig.create(entry)
+  File "/testbed/django/apps/config.py", line 223, in create
+    import_module(entry)
+  File "/opt/miniconda3/envs/testbed/lib/python3.8/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 973, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 't'
+
+2026-10-02T10:34:52.627354Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"`/bin/bash -lc \\\"cd /tmp && rm -rf tapp && mkdir tapp && cat > tapp/__init__.py <<'EOF'\\nEOF\\ncat > tapp/apps.py <<'EOF'\\nfrom django.apps import AppConfig\\nclass TAppConfig(AppConfig):\\n    name='tapp'\\nEOF\\ncat > tapp/models.py <<'EOF'\\nfrom django.db import models\\nclass Parent(models.Model):\\n    name = models.CharField(max_length=256)\\nclass ProxyParent(Parent):\\n    cla…470 chars truncated…ted_name='+')\\nEOF\\ncd /testbed && python -c \\\\\\\"\\nimport sys\\nsys.path.insert(0,'/tmp')\\nimport django\\nfrom django.conf import settings\\nsettings.configure(INSTALLED_APPS=['tapp'],DATABASES={'default':{'ENGINE':'django.db.backends.sqlite3','NAME':':memory:'}})\\ndjango.setup()\\nfrom tapp.models import ProxyParent\\nprint(ProxyParent.check())\\n\\\\\\\"\\\"` rejected: rm -f style commands are not permitted. Use a safer approach\")" }
+exec
+/bin/bash -lc "mkdir -p /tmp/tapp && printf '' > /tmp/tapp/__init__.py && printf 'from django.apps import AppConfig\\nclass TAppConfig(AppConfig):\\n    name=\"tapp\"\\n' > /tmp/tapp/apps.py && cat > /tmp/tapp/models.py <<'EOF'
+from django.db import models
+class Parent(models.Model):
+    name = models.CharField(max_length=256)
+class ProxyParent(Parent):
+    class Meta:
+        proxy = True
+class Child(models.Model):
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE)
+    many_to_many_field = models.ManyToManyField(to=Parent, through='ManyToManyModel', through_fields=['child','parent'], related_name='something')
+class ManyToManyModel(models.Model):
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE, related_name='+')
+    child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='+')
+EOF
+cd /testbed && python -c \"
+import sys
+sys.path.insert(0,'/tmp')
+import django
+from django.conf import settings
+settings.configure(INSTALLED_APPS=['tapp'],DATABASES={'default':{'ENGINE':'django.db.backends.sqlite3','NAME':':memory:'}})
+django.setup()
+from tapp.models import ProxyParent
+print(ProxyParent.check())
+\"" in /testbed
+ succeeded in 0ms:
+[<Warning: level=30, msg="Auto-created primary key used when not defining a primary key type, by default 'django.db.models.AutoField'.", hint="Configure the DEFAULT_AUTO_FIELD setting or the TAppConfig.default_auto_field attribute to point to a subclass of AutoField, e.g. 'django.db.models.BigAutoField'.", obj=<class 'tapp.models.ProxyParent'>, id='models.W042'>]
+
+codex
+Fix works. The `through_fields` list is now hashed via `make_hashable` in `ManyToManyRel.identity`.
+
+Changed `django/db/models/fields/reverse_related.py:313` to wrap `self.through_fields` with `make_hashable(...)`, matching how `limit_choices_to` is handled in the base `ForeignObjectRel.identity`. Verified the minimal repro no longer raises `TypeError: unhashable type: 'list'` during `ProxyParent.check()`.
+tokens used
+14,170
+Fix works. The `through_fields` list is now hashed via `make_hashable` in `ManyToManyRel.identity`.
+
+Changed `django/db/models/fields/reverse_related.py:313` to wrap `self.through_fields` with `make_hashable(...)`, matching how `limit_choices_to` is handled in the base `ForeignObjectRel.identity`. Verified the minimal repro no longer raises `TypeError: unhashable type: 'list'` during `ProxyParent.check()`.

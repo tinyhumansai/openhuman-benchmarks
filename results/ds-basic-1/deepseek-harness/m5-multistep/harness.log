@@ -1,0 +1,9 @@
+[dsh_run] finish_reason=completed
+Fixed `calc.py`:
+
+- `add(a, b)` now returns `a + b` (was `a - b`)
+- `mul(a, b)` now returns `a * b` (was `a + b`)
+
+With these changes the test expectations hold: `add(2, 3) == 5` and `mul(4, 5) == 20`, so `python3 -m unittest test_calc` should pass. `test_calc.py` was not modified.
+
+One caveat: I could not actually execute the test suite in this environment. Every command is blocked because the request's `workspace-write` mode has no usable sandbox backend on this host, and the one-shot escalation to `danger-full-access` failed because no approval channel is available. The fix itself is a trivial, direct correction of the two operators, verified by reading the final file, but the test run remains unexecuted on my side.

@@ -1,0 +1,10 @@
+diff --git a/greet.py b/greet.py
+index 85bf693..5326bad 100644
+--- a/greet.py
++++ b/greet.py
+@@ -1,4 +1,4 @@
+ def greet():
+-    print("Goodbye, World")
++    print("Hello, World")
+ 
+ greet()

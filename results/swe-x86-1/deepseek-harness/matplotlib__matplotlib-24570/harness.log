@@ -1,0 +1,32 @@
+[dsh_run] finish_reason=completed
+I've resolved the bug.
+
+## Root cause
+
+`HPacker` computes child vertical placements through the shared helper `_get_aligned_offsets` in `lib/matplotlib/offsetbox.py`. That helper grouped the alignment anchors by orientation incorrectly:
+
+```python
+elif align in ["left", "top"]:
+    offsets = [d for h, d in hd_list]
+elif align in ["right", "bottom"]:
+    offsets = [height - h + d for h, d in hd_list]
+```
+
+For a horizontal packer the second tuple element `d` is the **y-descent**, so `[d]` places every child's *bottom* at the reference line (bottom alignment) and `[height - h + d]` places its *top* at the packing top (top alignment). Grouping `top` with `left` (and `bottom` with `right`) therefore swapped the two: `align="top"` produced bottom alignment and `align="bottom"` produced top alignment — exactly as reported.
+
+## Fix
+
+Swapped the anchors in the condition groups so vertical alignments map correctly:
+
+```python
+elif align in ["left", "bottom"]:
+    descent = 0.
+    offsets = [d for h, d in hd_list]
+elif align in ["right", "top"]:
+    descent = 0.
+    offsets = [height - h + d for h, d in hd_list]
+```
+
+`"left"`, `"right"`, `"center"`, and `"baseline"` behavior is unchanged, so `VPacker` and the legend layout are unaffected; only the previously reversed `top`/`bottom` semantics are corrected.
+
+Note: I was unable to execute the test suite because the host has no usable sandbox backend and no approval channel is available, so verification was done by analyzing the offsetbox coordinate conventions (`get_extent`/`get_window_extent` treat `yd` as the descent below the origin).

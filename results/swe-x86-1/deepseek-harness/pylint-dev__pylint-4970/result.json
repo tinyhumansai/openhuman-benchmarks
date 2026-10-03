@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "pylint-dev__pylint-4970",
+  "started_epoch_ms": 1790940348890,
+  "ended_epoch_ms": 1790940445880,
+  "wall_ms": 96990,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 488,
+  "resources": {
+    "cpu_seconds": 3.276817,
+    "avg_cpu_cores": 0.033785101556861534,
+    "peak_mem_bytes": 336347136,
+    "peak_anon_bytes": 222281728,
+    "avg_anon_bytes": 177095874.2974359,
+    "avg_mem_bytes": 288143433.51794875,
+    "wall_seconds": 96.99,
+    "samples": 195
+  },
+  "check": null
+}

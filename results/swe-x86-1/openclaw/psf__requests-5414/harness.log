@@ -1,0 +1,59 @@
+[agent/embedded] tool-search: cataloged 39 tools behind compact prompt surface
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1071 dispatcher=new contentType=text/event-stream
+[memory] memory_index_chunks_vec not updated — semantic vector embeddings unavailable — no vector dimensions resolved. Vector recall degraded. Further duplicate warnings suppressed.
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1160 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1104 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1111 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1197 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1158 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1101 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1152 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1082 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1035 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1015 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1141 dispatcher=reused contentType=text/event-stream
+[agents/agent-command] [agent] run aeaf7594-73e5-4d53-a3fa-6e7369455624 ended with stopReason=stop
+[memory] sync failed (session update): Error: Agent database resources are closing: /tmp/openclaw-agent-exec-HKG3iO/agents/main/agent/openclaw-agent.sqlite
+[session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=49841 opsServed=3
+{
+  "ok": true,
+  "status": "ok",
+  "final": "The 12 URL-related tests pass. The 9 errors are a pre-existing environment issue (`pytest-httpbin` recursive fixture incompatibility with the installed pytest version), unrelated to this change.\n\n## Summary\n\nThe issue: `http://.example.com` reaches `_get_idna_encoded_host`, which calls `idna.encode`. For an ASCII host like `.example.com`, the `not unicode_is_ascii(host)` branch is skipped, and the old code only checked for a leading `*` — so the malformed leading-dot host was passed through, later causing a `UnicodeError` from the idna codec during connection setup instead of a clear `InvalidURL`.\n\nThe smallest correct fix, in `requests/models.py` (`prepare_url`):\n\n```python\nelif host.startswith((u'*', u'.')):\n    raise InvalidURL('URL has an invalid label.')\n```\n\nThis rejects hosts with an empty leading label (e.g. `.example.com`) up front, consistent with the existing invalid-label handling. Verified:\n\n- `http://.example.com` → `InvalidURL: URL has an invalid label.`\n- `http://*.example.com` → `InvalidURL: URL has an invalid label.` (unchanged)\n- `http://example.com` → `http://example.com/` (unchanged)",
+  "payloads": [
+    {
+      "text": "The 12 URL-related tests pass. The 9 errors are a pre-existing environment issue (`pytest-httpbin` recursive fixture incompatibility with the installed pytest version), unrelated to this change.\n\n## Summary\n\nThe issue: `http://.example.com` reaches `_get_idna_encoded_host`, which calls `idna.encode`. For an ASCII host like `.example.com`, the `not unicode_is_ascii(host)` branch is skipped, and the old code only checked for a leading `*` — so the malformed leading-dot host was passed through, later causing a `UnicodeError` from the idna codec during connection setup instead of a clear `InvalidURL`.\n\nThe smallest correct fix, in `requests/models.py` (`prepare_url`):\n\n```python\nelif host.startswith((u'*', u'.')):\n    raise InvalidURL('URL has an invalid label.')\n```\n\nThis rejects hosts with an empty leading label (e.g. `.example.com`) up front, consistent with the existing invalid-label handling. Verified:\n\n- `http://.example.com` → `InvalidURL: URL has an invalid label.`\n- `http://*.example.com` → `InvalidURL: URL has an invalid label.` (unchanged)\n- `http://example.com` → `http://example.com/` (unchanged)",
+      "mediaUrl": null
+    }
+  ],
+  "usage": {
+    "input": 9800,
+    "output": 4944,
+    "cacheRead": 155136,
+    "cacheWrite": 0,
+    "reasoningTokens": 2775,
+    "total": 169880,
+    "cost": {
+      "total": 0.004901808,
+      "totalOrigin": "provider-billed"
+    }
+  },
+  "costUsd": 0.004901808,
+  "codeModeEngaged": false,
+  "assistantTurns": 13,
+  "bridgeCalls": {
+    "search": 0,
+    "describe": 0,
+    "call": 0
+  },
+  "toolSummary": {
+    "calls": 17,
+    "tools": [
+      "exec",
+      "edit"
+    ],
+    "failures": 0
+  },
+  "model": "deepseek/deepseek-v4.1-flash",
+  "provider": "proxy",
+  "sessionId": "aeaf7594-73e5-4d53-a3fa-6e7369455624"
+}

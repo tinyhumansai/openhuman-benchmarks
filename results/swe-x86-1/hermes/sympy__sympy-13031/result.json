@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "sympy__sympy-13031",
+  "started_epoch_ms": 1790939752372,
+  "ended_epoch_ms": 1790939870544,
+  "wall_ms": 118172,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 1081,
+  "resources": {
+    "cpu_seconds": 31.810635,
+    "avg_cpu_cores": 0.2691869970297784,
+    "peak_mem_bytes": 6421303296,
+    "peak_anon_bytes": 735653888,
+    "avg_anon_bytes": 270546444.90756303,
+    "avg_mem_bytes": 5119753224.605042,
+    "wall_seconds": 118.173,
+    "samples": 238
+  },
+  "check": null
+}

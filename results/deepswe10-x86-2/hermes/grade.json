@@ -1,0 +1,52 @@
+{
+  "cattrs-partial-structuring-recovery": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "csstree-shorthand-expansion-compression": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "anko-default-function-arguments": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "koota-pair-relation-tracking": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "kombu-single-active-consumer-priority": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "optique-conditional-option-dependencies": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "tengo-destructuring-bindings": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "narwhals-rolling-window-suite": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false
+  },
+  "vitest-duration-sharding": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "ytt-jsonpath-query-api": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  }
+}

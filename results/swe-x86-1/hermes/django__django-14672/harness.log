@@ -1,0 +1,5 @@
+Done. The fix is a one-line change in `django/db/models/fields/reverse_related.py:313`: wrap `self.through_fields` in `make_hashable()` inside `ManyToManyRel.identity`, matching how `limit_choices_to` is already handled in `ForeignObjectRel`.
+
+Verified:
+- The exact minimal repro from the issue now hashes the relation identity successfully (previously raised `TypeError: unhashable type: 'list'`).
+- 329 tests across `m2m_through`, `invalid_models_tests`, and `model_fields.test_manytomanyfield` pass.

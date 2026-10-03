@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "sympy__sympy-16766",
+  "started_epoch_ms": 1790939059316,
+  "ended_epoch_ms": 1790939121261,
+  "wall_ms": 61945,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 617,
+  "resources": {
+    "cpu_seconds": 25.215252,
+    "avg_cpu_cores": 0.40705871337476796,
+    "peak_mem_bytes": 2028376064,
+    "peak_anon_bytes": 1191563264,
+    "avg_anon_bytes": 989187735.552,
+    "avg_mem_bytes": 1292904628.224,
+    "wall_seconds": 61.945,
+    "samples": 125
+  },
+  "check": null
+}

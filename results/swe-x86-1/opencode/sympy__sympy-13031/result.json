@@ -1,0 +1,21 @@
+{
+  "harness": "opencode",
+  "task": "sympy__sympy-13031",
+  "started_epoch_ms": 1790938008442,
+  "ended_epoch_ms": 1790938136632,
+  "wall_ms": 128190,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 1081,
+  "resources": {
+    "cpu_seconds": 37.854018,
+    "avg_cpu_cores": 0.2952938817857728,
+    "peak_mem_bytes": 926941184,
+    "peak_anon_bytes": 688893952,
+    "avg_anon_bytes": 540614957.6434108,
+    "avg_mem_bytes": 797085838.8837209,
+    "wall_seconds": 128.191,
+    "samples": 258
+  },
+  "check": null
+}

@@ -1,0 +1,12 @@
+Fixed. `requests/models.py:406` now rejects hosts starting with a dot as well as a wildcard:
+
+    elif host.startswith((u'*', u'.')):
+        raise InvalidURL('URL has an invalid label.')
+
+Previously `.example.com` is ASCII, so it skipped the IDNA branch and the wildcard-only check, then failed later inside urllib3 with `LocationParseError`/`UnicodeError`. Now it raises `InvalidURL` at prepare time, matching the issue's expected result.
+
+Verified:
+- `http://.example.com` -> `InvalidURL: URL has an invalid label.`
+- `http://*.example.com` -> `InvalidURL: URL has an invalid label.`
+- `http://localhost:8000` still prepares fine.
+- Existing `TestPreparingURLs` (25) and invalid-URL tests pass. The 3 fixture errors are a pre-existing pytest-httpbin recursive-fixture issue, unrelated to this change.

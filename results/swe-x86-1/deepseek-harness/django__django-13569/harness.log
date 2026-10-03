@@ -1,0 +1,35 @@
+[dsh_run] finish_reason=completed
+The fix is complete and minimal. Here's a summary of the change:
+
+## Root cause
+
+`order_by('?')` is compiled into an `OrderBy(Random())` expression. In `SQLCompiler.get_group_by()` (`django/db/models/sql/compiler.py:128-132`), every non-reference `ORDER BY` expression contributes its grouping columns via `get_group_by_cols()`. Since `Random.contains_aggregate` is `False`, the base `BaseExpression.get_group_by_cols()` returned `[self]`, injecting `RANDOM()` into the `GROUP BY` clause. That extra grouping key split the rows and broke the aggregation.
+
+## Fix
+
+Overrode `get_group_by_cols()` on the `Random` function to return an empty list, so a non-deterministic random expression is never added to `GROUP BY` regardless of whether it appears in `ORDER BY`, `SELECT`, or `HAVING`:
+
+```python
+class Random(NumericOutputFieldMixin, Func):
+    function = 'RANDOM'
+    arity = 0
+    ...
+    def as_sqlite(self, compiler, connection, **extra_context):
+        return super().as_sql(compiler, connection, function='RAND', **extra_context)
+
+    def get_group_by_cols(self, alias=None):
+        return []
+```
+
+With this, the example query now compiles to:
+
+```sql
+SELECT "thing"."id", COUNT("related"."id") AS "rc"
+FROM "thing" LEFT OUTER JOIN "related" ON ("thing"."id" = "related"."thing_id")
+GROUP BY "thing"."id"
+ORDER BY RANDOM() ASC
+```
+
+`RANDOM()` remains in `ORDER BY` (its intended purpose) but no longer pollutes `GROUP BY`. The `alias=None` parameter matches the signature required by Django's system check, and placing the override on the expression itself (rather than special-casing the compiler) also covers `Random()` used as an annotation or inside `values()`.
+
+I could not execute the test suite because the shell sandbox has no usable backend and approval isn't available, so verification was done by tracing the code path from `Query.add_ordering` → `SQLCompiler.get_order_by` → `get_group_by`.

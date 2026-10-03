@@ -1,0 +1,14 @@
+[dsh_run] finish_reason=completed
+The fix is complete. I modified `CharField.__init__` in `/testbed/django/db/models/fields/__init__.py` so the `MaxLengthValidator` is only attached when `max_length` is not `None`:
+
+```python
+def __init__(self, *args, db_collation=None, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.db_collation = db_collation
+    if self.max_length is not None:
+        self.validators.append(validators.MaxLengthValidator(self.max_length))
+```
+
+This mirrors the existing precedent in `BinaryField.__init__`, avoids constructing a useless `MaxLengthValidator` (and its deconstructible overhead) when `Value._resolve_output_field()` instantiates `fields.CharField()` with no `max_length`, and eliminates the broken validator that raised `TypeError` on `clean()`. Explicit `CharField(max_length=...)` usage is unchanged. Per the issue, existing tests pass with this change, and no test files were modified.
+
+(Note: runtime verification via Python was blocked because the sandbox has no usable backend and no approval channel is available, but the edit is a minimal, self-contained conditional.)

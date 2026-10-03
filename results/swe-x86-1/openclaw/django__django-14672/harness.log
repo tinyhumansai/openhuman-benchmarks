@@ -1,0 +1,61 @@
+[agent/embedded] tool-search: cataloged 39 tools behind compact prompt surface
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1403 dispatcher=new contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1120 dispatcher=reused contentType=text/event-stream
+[memory] memory_index_chunks_vec not updated — semantic vector embeddings unavailable — no vector dimensions resolved. Vector recall degraded. Further duplicate warnings suppressed.
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1082 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1094 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1124 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1076 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1131 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1124 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1124 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1067 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1133 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1241 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1195 dispatcher=reused contentType=text/event-stream
+[agents/agent-command] [agent] run ce8d7131-c575-45db-b2a9-978afaf3ae79 ended with stopReason=stop
+[session-sqlite] SQLite reclamation Worker failed pid=79 threadId=0 isMainThread=true reclamationKind=maintenance-plan workerThreadId=8 elapsedMs=8 outcome=rejected error="SQLite session reclamation database owner is no longer current" errorFrame="at SqliteReclamationWorker.assertCurrent (file:///opt/harness/openclaw/lib/node_modules/openclaw/dist/session-accessor.sqlite-reclamation-worker-BekkMUCk.mjs:750:44)"
+[session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=36363 opsServed=3
+{
+  "ok": true,
+  "status": "ok",
+  "final": "Fix verified.\n\n**Change** — `django/db/models/fields/reverse_related.py`, `ManyToManyRel.identity`:\n\n```python\nreturn super().identity + (\n    self.through,\n    make_hashable(self.through_fields),\n    self.db_constraint,\n)\n```\n\n`through_fields` can be a list, so hashing the `identity` tuple raised `TypeError: unhashable type: 'list'` (surfaced via `_check_field_name_clashes` on proxy models). Wrapping it in `make_hashable` — consistent with how `limit_choices_to` is handled in `ForeignObjectRel.identity` — makes it hashable again.\n\nVerified with a standalone reproduction of the issue's models: `Child.check()` now returns only the unrelated `models.W042` warning, and `hash(...remote_field)` succeeds instead of raising.",
+  "payloads": [
+    {
+      "text": "Fix verified.\n\n**Change** — `django/db/models/fields/reverse_related.py`, `ManyToManyRel.identity`:\n\n```python\nreturn super().identity + (\n    self.through,\n    make_hashable(self.through_fields),\n    self.db_constraint,\n)\n```\n\n`through_fields` can be a list, so hashing the `identity` tuple raised `TypeError: unhashable type: 'list'` (surfaced via `_check_field_name_clashes` on proxy models). Wrapping it in `make_hashable` — consistent with how `limit_choices_to` is handled in `ForeignObjectRel.identity` — makes it hashable again.\n\nVerified with a standalone reproduction of the issue's models: `Child.check()` now returns only the unrelated `models.W042` warning, and `hash(...remote_field)` succeeds instead of raising.",
+      "mediaUrl": null
+    }
+  ],
+  "usage": {
+    "input": 9365,
+    "output": 2546,
+    "cacheRead": 166528,
+    "cacheWrite": 0,
+    "reasoningTokens": 640,
+    "total": 178439,
+    "cost": {
+      "total": 0.003431934,
+      "totalOrigin": "provider-billed"
+    }
+  },
+  "costUsd": 0.003431934,
+  "codeModeEngaged": false,
+  "assistantTurns": 14,
+  "bridgeCalls": {
+    "search": 0,
+    "describe": 0,
+    "call": 0
+  },
+  "toolSummary": {
+    "calls": 13,
+    "tools": [
+      "read",
+      "exec",
+      "edit"
+    ],
+    "failures": 0
+  },
+  "model": "deepseek/deepseek-v4.1-flash",
+  "provider": "proxy",
+  "sessionId": "ce8d7131-c575-45db-b2a9-978afaf3ae79"
+}

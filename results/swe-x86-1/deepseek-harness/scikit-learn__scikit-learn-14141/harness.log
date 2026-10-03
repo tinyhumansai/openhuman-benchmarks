@@ -1,0 +1,21 @@
+[dsh_run] finish_reason=completed
+I added `joblib` to the dependency list in `_get_deps_info()`, which is what `show_versions()` reports.
+
+**Change** (`sklearn/utils/_show_versions.py`):
+```python
+deps = [
+    "pip",
+    "setuptools",
+    "sklearn",
+    "numpy",
+    "scipy",
+    "Cython",
+    "pandas",
+    "matplotlib",
+    "joblib",
+]
+```
+
+This is the correct fix since `joblib` is already a hard runtime dependency (`setup.py` lists `joblib>=...` in `install_requires`). No issue template exists in this checkout (`.github/` is absent), so updating `show_versions` is the applicable path. The existing `_get_deps_info` machinery handles importing it and reports `None` if unavailable.
+
+Note: I couldn't execute the test suite because the host has no usable `workspace-write` sandbox backend and `danger-full-access` escalation requires an approval channel that isn't available, so verification was done by inspection only. The change is a one-line addition matching the pattern the tests already assert against (`assert 'matplotlib' in deps_info`, etc.).

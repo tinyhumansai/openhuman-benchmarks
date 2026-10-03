@@ -1,0 +1,18 @@
+Fixed. The `top`/`bottom` alignment groups in `_get_aligned_offsets` were swapped.
+
+Change in lib/matplotlib/offsetbox.py (`_get_aligned_offsets`):
+
+    elif align in ["left", "bottom"]:
+        descent = 0.
+        offsets = [d for h, d in hd_list]
+    elif align in ["right", "top"]:
+        descent = 0.
+        offsets = [height - h + d for h, d in hd_list]
+
+Rationale: for bottom/left alignment the anchor offset should be the child's own descent `d` (putting its lower edge at the pack's lower edge); for top/right it should be `height - h + d` (putting its upper edge at the pack's upper edge). The old grouping `["left", "top"] -> d` was accidentally bottom alignment for the vertical case, hence reversed for `HPacker`.
+
+Also added doc/api/next_api_changes/behavior/24570-GL.rst noting the behavior correction (matches upstream).
+
+Verification:
+- Replicated the upstream `test_packers` (all 6 align values, HPacker + VPacker): 6 passed.
+- Full lib/matplotlib/tests/test_offsetbox.py: 271 passed, 1 skipped.

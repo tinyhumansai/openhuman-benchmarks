@@ -1,0 +1,21 @@
+{
+  "harness": "codex",
+  "task": "scikit-learn__scikit-learn-14141",
+  "started_epoch_ms": 1790937475367,
+  "ended_epoch_ms": 1790937486886,
+  "wall_ms": 11519,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 348,
+  "resources": {
+    "cpu_seconds": 1.942783,
+    "avg_cpu_cores": 0.16864435763888888,
+    "peak_mem_bytes": 230785024,
+    "peak_anon_bytes": 62808064,
+    "avg_anon_bytes": 55829626.88,
+    "avg_mem_bytes": 162431795.2,
+    "wall_seconds": 11.52,
+    "samples": 25
+  },
+  "check": null
+}

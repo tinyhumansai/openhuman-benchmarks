@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "psf__requests-5414",
+  "started_epoch_ms": 1790936848395,
+  "ended_epoch_ms": 1790936867738,
+  "wall_ms": 19343,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 571,
+  "resources": {
+    "cpu_seconds": 1.390021,
+    "avg_cpu_cores": 0.07185799214226633,
+    "peak_mem_bytes": 219041792,
+    "peak_anon_bytes": 167899136,
+    "avg_anon_bytes": 120296652.8,
+    "avg_mem_bytes": 163303116.8,
+    "wall_seconds": 19.344,
+    "samples": 40
+  },
+  "check": null
+}

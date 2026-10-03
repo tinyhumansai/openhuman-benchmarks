@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "sympy__sympy-13031",
+  "started_epoch_ms": 1790940470071,
+  "ended_epoch_ms": 1790940769070,
+  "wall_ms": 298999,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 1081,
+  "resources": {
+    "cpu_seconds": 6.832196,
+    "avg_cpu_cores": 0.022850153846153846,
+    "peak_mem_bytes": 450129920,
+    "peak_anon_bytes": 223768576,
+    "avg_anon_bytes": 193500380.5275459,
+    "avg_mem_bytes": 366374323.92654425,
+    "wall_seconds": 299,
+    "samples": 599
+  },
+  "check": null
+}

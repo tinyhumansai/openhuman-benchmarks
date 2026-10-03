@@ -1,0 +1,5 @@
+Added `joblib` to the dependency list in `sklearn/utils/_show_versions.py:51`.
+
+Verified the key is now present in `_get_deps_info()` output (returns `None` here only because joblib isn't installed in this env). The issue template already tells users on scikit-learn >= 0.20 to run `show_versions()`, so no template change is needed.
+
+Note: `import sklearn` fails in this checkout due to a pre-existing stale build artifact (`_check_build` compiled for a different Python), unrelated to this change — I exercised `_get_deps_info` directly to confirm.

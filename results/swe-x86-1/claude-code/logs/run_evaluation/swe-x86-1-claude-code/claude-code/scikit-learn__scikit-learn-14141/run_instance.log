@@ -1,0 +1,44 @@
+2026-10-02 13:33:42,362 - INFO - Creating container for scikit-learn__scikit-learn-14141...
+2026-10-02 13:33:42,380 - INFO - Container for scikit-learn__scikit-learn-14141 created: 6af35b1f680015f04b7a126b484f711fb20efc0e67f9ca8bc55a91f8bf666a63
+2026-10-02 13:33:42,454 - INFO - Container for scikit-learn__scikit-learn-14141 started: 6af35b1f680015f04b7a126b484f711fb20efc0e67f9ca8bc55a91f8bf666a63
+2026-10-02 13:33:42,454 - INFO - Intermediate patch for scikit-learn__scikit-learn-14141 written to logs/run_evaluation/swe-x86-1-claude-code/claude-code/scikit-learn__scikit-learn-14141/patch.diff, now applying to container...
+2026-10-02 13:33:42,497 - INFO - >>>>> Applied Patch:
+Checking patch sklearn/utils/_show_versions.py...
+Applied patch sklearn/utils/_show_versions.py cleanly.
+
+2026-10-02 13:33:42,656 - INFO - Git diff before:
+diff --git a/sklearn/utils/_show_versions.py b/sklearn/utils/_show_versions.py
+index e5d3141bf..bb6194ddb 100644
+--- a/sklearn/utils/_show_versions.py
++++ b/sklearn/utils/_show_versions.py
+@@ -45,6 +45,7 @@ def _get_deps_info():
+         "sklearn",
+         "numpy",
+         "scipy",
++        "joblib",
+         "Cython",
+         "pandas",
+         "matplotlib",
+2026-10-02 13:33:42,656 - INFO - Eval script for scikit-learn__scikit-learn-14141 written to logs/run_evaluation/swe-x86-1-claude-code/claude-code/scikit-learn__scikit-learn-14141/eval.sh; copying to container...
+2026-10-02 13:33:44,937 - INFO - Test runtime: 2.25 seconds
+2026-10-02 13:33:44,937 - INFO - Test output for scikit-learn__scikit-learn-14141 written to logs/run_evaluation/swe-x86-1-claude-code/claude-code/scikit-learn__scikit-learn-14141/test_output.txt
+2026-10-02 13:33:44,963 - INFO - Git diff after:
+diff --git a/sklearn/utils/_show_versions.py b/sklearn/utils/_show_versions.py
+index e5d3141bf..bb6194ddb 100644
+--- a/sklearn/utils/_show_versions.py
++++ b/sklearn/utils/_show_versions.py
+@@ -45,6 +45,7 @@ def _get_deps_info():
+         "sklearn",
+         "numpy",
+         "scipy",
++        "joblib",
+         "Cython",
+         "pandas",
+         "matplotlib",
+2026-10-02 13:33:44,963 - INFO - Grading answer for scikit-learn__scikit-learn-14141...
+2026-10-02 13:33:44,963 - INFO - report: {'scikit-learn__scikit-learn-14141': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/utils/tests/test_show_versions.py::test_get_deps_info'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/utils/tests/test_show_versions.py::test_get_sys_info', 'sklearn/utils/tests/test_show_versions.py::test_show_versions_with_blas'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-14141: resolved: True
+2026-10-02 13:33:44,963 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-14141.swe-x86-1-claude-code...
+2026-10-02 13:34:00,068 - INFO - Container sweb.eval.scikit-learn__scikit-learn-14141.swe-x86-1-claude-code stopped successfully.
+2026-10-02 13:34:00,068 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-14141.swe-x86-1-claude-code...
+2026-10-02 13:34:00,095 - INFO - Container sweb.eval.scikit-learn__scikit-learn-14141.swe-x86-1-claude-code removed successfully.

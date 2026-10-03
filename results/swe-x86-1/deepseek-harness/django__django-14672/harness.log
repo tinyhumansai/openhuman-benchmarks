@@ -1,0 +1,16 @@
+[dsh_run] finish_reason=completed
+The change is complete. I applied the minimal fix in `ManyToManyRel.identity`:
+
+```python
+@property
+def identity(self):
+    return super().identity + (
+        self.through,
+        make_hashable(self.through_fields),
+        self.db_constraint,
+    )
+```
+
+`through_fields` can be a list, so wrapping it in `make_hashable` ensures the identity tuple remains hashable, matching how `limit_choices_to` is already handled in `ForeignObjectRel.identity`. This resolves the `TypeError: unhashable type: 'list'` raised from `ForeignObjectRel.__hash__` during model checks.
+
+Note: I couldn't execute Python to sanity-check because no usable sandbox backend / approval channel is available in this environment, but the edit is a one-line, well-understood fix consistent with the existing code.

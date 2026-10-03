@@ -1,0 +1,13 @@
+The fix is in and verified.
+
+Change made — `django/db/models/functions/math.py`, `Random`:
+
+    def get_group_by_cols(self, alias=None):
+        return []
+
+Why: `BaseExpression.get_group_by_cols()` returns `[self]` for any non-aggregate expression, so `.order_by('?')` (which wraps `Random()` in an `OrderBy`) leaked `RANDOM()` into the `GROUP BY` clause, breaking aggregation semantics. `Random` has no grouping relevance, so it now contributes no grouping columns. This matches upstream Django commit 509d9da26f (ticket #26390, "Disabled grouping by Random()").
+
+Verification:
+- Before: `GROUP BY "aggregation_author"."id", ..., RANDOM()` — after: `GROUP BY "aggregation_author"."id", ..., ORDER BY RAND() ASC`. RANDOM no longer appears in GROUP BY, ordering still random.
+- `tests/aggregation` (81 tests): OK.
+- `tests/ordering` + `tests/queries` (425 tests): OK (the lone "functions" error was my typo — no such test module exists).

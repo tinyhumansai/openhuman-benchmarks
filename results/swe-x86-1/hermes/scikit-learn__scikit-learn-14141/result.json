@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "scikit-learn__scikit-learn-14141",
+  "started_epoch_ms": 1790939721017,
+  "ended_epoch_ms": 1790939750000,
+  "wall_ms": 28983,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 348,
+  "resources": {
+    "cpu_seconds": 13.009268,
+    "avg_cpu_cores": 0.44885857226650105,
+    "peak_mem_bytes": 4413227008,
+    "peak_anon_bytes": 324431872,
+    "avg_anon_bytes": 178609551.18644068,
+    "avg_mem_bytes": 3071835743.4576273,
+    "wall_seconds": 28.983,
+    "samples": 59
+  },
+  "check": null
+}

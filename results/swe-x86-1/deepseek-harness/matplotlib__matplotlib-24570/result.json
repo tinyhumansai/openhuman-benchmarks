@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "matplotlib__matplotlib-24570",
+  "started_epoch_ms": 1790940228683,
+  "ended_epoch_ms": 1790940306824,
+  "wall_ms": 78141,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 715,
+  "resources": {
+    "cpu_seconds": 2.685581,
+    "avg_cpu_cores": 0.03436839815205846,
+    "peak_mem_bytes": 1099317248,
+    "peak_anon_bytes": 221749248,
+    "avg_anon_bytes": 171061792.4050633,
+    "avg_mem_bytes": 1044718656.8101265,
+    "wall_seconds": 78.141,
+    "samples": 158
+  },
+  "check": null
+}

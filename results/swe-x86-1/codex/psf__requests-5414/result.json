@@ -1,0 +1,21 @@
+{
+  "harness": "codex",
+  "task": "psf__requests-5414",
+  "started_epoch_ms": 1790937378343,
+  "ended_epoch_ms": 1790937387196,
+  "wall_ms": 8853,
+  "exit_code": 1,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 1.233914,
+    "avg_cpu_cores": 0.13936232211429864,
+    "peak_mem_bytes": 197255168,
+    "peak_anon_bytes": 58781696,
+    "avg_anon_bytes": 48978027.78947368,
+    "avg_mem_bytes": 126842772.21052632,
+    "wall_seconds": 8.854,
+    "samples": 19
+  },
+  "check": null
+}

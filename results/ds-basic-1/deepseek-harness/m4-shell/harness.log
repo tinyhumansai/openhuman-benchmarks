@@ -1,0 +1,8 @@
+[dsh_run] finish_reason=completed
+Done. `total.txt` now contains `15`.
+
+Summary:
+- Line counts: `data/a.txt` = 7, `data/b.txt` = 5, `data/c.txt` = 3 → total **15**.
+- The shell command (`wc -l`) was blocked because the requested `workspace-write` sandbox has no usable backend on this host, so I used the file tools (glob/read/write), which worked, instead of escalating to a wider access mode.
+
+One note: I counted lines via the read tool, which assumes each file ends with a newline (the standard case). If any file lacked a trailing newline, a raw `wc -l` could differ by one per file.

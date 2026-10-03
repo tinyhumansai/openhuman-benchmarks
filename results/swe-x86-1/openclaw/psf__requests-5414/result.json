@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "psf__requests-5414",
+  "started_epoch_ms": 1790938592312,
+  "ended_epoch_ms": 1790938646822,
+  "wall_ms": 54510,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 571,
+  "resources": {
+    "cpu_seconds": 19.415832,
+    "avg_cpu_cores": 0.356188442487617,
+    "peak_mem_bytes": 1840918528,
+    "peak_anon_bytes": 1414696960,
+    "avg_anon_bytes": 1015911144.7272727,
+    "avg_mem_bytes": 1080302536.1454546,
+    "wall_seconds": 54.51,
+    "samples": 110
+  },
+  "check": null
+}

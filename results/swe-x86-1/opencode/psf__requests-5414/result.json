@@ -1,0 +1,21 @@
+{
+  "harness": "opencode",
+  "task": "psf__requests-5414",
+  "started_epoch_ms": 1790937886766,
+  "ended_epoch_ms": 1790937923408,
+  "wall_ms": 36642,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 571,
+  "resources": {
+    "cpu_seconds": 12.000645,
+    "avg_cpu_cores": 0.32750170564637177,
+    "peak_mem_bytes": 890548224,
+    "peak_anon_bytes": 729853952,
+    "avg_anon_bytes": 512736515.41333336,
+    "avg_mem_bytes": 705954447.36,
+    "wall_seconds": 36.643,
+    "samples": 75
+  },
+  "check": null
+}

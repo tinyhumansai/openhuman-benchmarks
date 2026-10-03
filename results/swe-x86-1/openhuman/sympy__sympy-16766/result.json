@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "sympy__sympy-16766",
+  "started_epoch_ms": 1790936516438,
+  "ended_epoch_ms": 1790936542291,
+  "wall_ms": 25853,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 1.23616,
+    "avg_cpu_cores": 0.047814953777124504,
+    "peak_mem_bytes": 292040704,
+    "peak_anon_bytes": 68104192,
+    "avg_anon_bytes": 60243736.1509434,
+    "avg_mem_bytes": 274623120.9056604,
+    "wall_seconds": 25.853,
+    "samples": 53
+  },
+  "check": null
+}

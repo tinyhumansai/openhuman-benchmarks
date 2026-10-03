@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "psf__requests-5414",
+  "started_epoch_ms": 1790940307224,
+  "ended_epoch_ms": 1790940348456,
+  "wall_ms": 41232,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 571,
+  "resources": {
+    "cpu_seconds": 2.193529,
+    "avg_cpu_cores": 0.05319838478888269,
+    "peak_mem_bytes": 334938112,
+    "peak_anon_bytes": 222261248,
+    "avg_anon_bytes": 179302887.6190476,
+    "avg_mem_bytes": 288300617.14285713,
+    "wall_seconds": 41.233,
+    "samples": 84
+  },
+  "check": null
+}

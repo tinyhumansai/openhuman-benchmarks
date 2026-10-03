@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "scikit-learn__scikit-learn-14141",
+  "started_epoch_ms": 1790936936421,
+  "ended_epoch_ms": 1790936947272,
+  "wall_ms": 10851,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 365,
+  "resources": {
+    "cpu_seconds": 1.802374,
+    "avg_cpu_cores": 0.16610211040457099,
+    "peak_mem_bytes": 371826688,
+    "peak_anon_bytes": 136007680,
+    "avg_anon_bytes": 107120372.86956522,
+    "avg_mem_bytes": 248372179.47826087,
+    "wall_seconds": 10.851,
+    "samples": 23
+  },
+  "check": null
+}

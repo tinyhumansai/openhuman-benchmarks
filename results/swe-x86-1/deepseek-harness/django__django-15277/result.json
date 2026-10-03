@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "django__django-15277",
+  "started_epoch_ms": 1790940156599,
+  "ended_epoch_ms": 1790940171230,
+  "wall_ms": 14631,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 689,
+  "resources": {
+    "cpu_seconds": 1.724868,
+    "avg_cpu_cores": 0.11787521355839542,
+    "peak_mem_bytes": 599986176,
+    "peak_anon_bytes": 220717056,
+    "avg_anon_bytes": 199305546.32258064,
+    "avg_mem_bytes": 548314739.6129032,
+    "wall_seconds": 14.633,
+    "samples": 31
+  },
+  "check": null
+}

@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "pylint-dev__pylint-4970",
+  "started_epoch_ms": 1790936868105,
+  "ended_epoch_ms": 1790936935959,
+  "wall_ms": 67854,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 488,
+  "resources": {
+    "cpu_seconds": 4.291976,
+    "avg_cpu_cores": 0.06325217006852847,
+    "peak_mem_bytes": 251420672,
+    "peak_anon_bytes": 186503168,
+    "avg_anon_bytes": 133038169.69343066,
+    "avg_mem_bytes": 181262201.459854,
+    "wall_seconds": 67.855,
+    "samples": 137
+  },
+  "check": null
+}

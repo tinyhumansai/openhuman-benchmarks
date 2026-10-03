@@ -1,0 +1,52 @@
+{
+  "django__django-13569": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "django__django-14672": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "django__django-15277": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "django__django-15572": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "matplotlib__matplotlib-24570": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "psf__requests-5414": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "pylint-dev__pylint-4970": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "scikit-learn__scikit-learn-14141": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "sympy__sympy-13031": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  },
+  "sympy__sympy-16766": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false
+  }
+}

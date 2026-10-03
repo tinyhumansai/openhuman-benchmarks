@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "matplotlib__matplotlib-24570",
+  "started_epoch_ms": 1790936801316,
+  "ended_epoch_ms": 1790936848014,
+  "wall_ms": 46698,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 715,
+  "resources": {
+    "cpu_seconds": 9.065068,
+    "avg_cpu_cores": 0.19412111867745943,
+    "peak_mem_bytes": 1163657216,
+    "peak_anon_bytes": 234336256,
+    "avg_anon_bytes": 126967937.34736842,
+    "avg_mem_bytes": 936736875.7894737,
+    "wall_seconds": 46.698,
+    "samples": 95
+  },
+  "check": null
+}

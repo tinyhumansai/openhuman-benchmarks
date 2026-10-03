@@ -1,0 +1,11 @@
+Fixed. The regression was in `get_template_directories()`: `cwd / to_path("")` normalizes the empty string to `Path.cwd()`, so an empty entry in `TEMPLATES["DIRS"]` made `template_changed()` match everything under the project root.
+
+Change in `django/template/autoreload.py`:
+- backend dirs: `... for dir in backend.engine.dirs if dir`
+- loader dirs: `if directory and not is_django_path(directory)`
+
+The second filter is needed because the filesystem loader's `get_dirs()` returns `engine.dirs` when constructed without explicit dirs, so the empty string flows through that path too.
+
+Verified:
+- `tests/template_tests/test_autoreloader.py` — 10/10 pass.
+- Probe with `DIRS: ["", <real dir>]`: `get_template_directories()` returns only the real dir; cwd no longer included.

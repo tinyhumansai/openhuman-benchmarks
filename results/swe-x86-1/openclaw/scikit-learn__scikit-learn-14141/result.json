@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "scikit-learn__scikit-learn-14141",
+  "started_epoch_ms": 1790938792519,
+  "ended_epoch_ms": 1790938811185,
+  "wall_ms": 18666,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 348,
+  "resources": {
+    "cpu_seconds": 13.187948,
+    "avg_cpu_cores": 0.7065224472302583,
+    "peak_mem_bytes": 1820884992,
+    "peak_anon_bytes": 1205293056,
+    "avg_anon_bytes": 964065962.6666666,
+    "avg_mem_bytes": 1058006672.4102564,
+    "wall_seconds": 18.666,
+    "samples": 39
+  },
+  "check": null
+}

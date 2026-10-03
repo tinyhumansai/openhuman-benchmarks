@@ -1,0 +1,14 @@
+[dsh_run] finish_reason=completed
+Fixed `greet.py` to print `Hello, World`.
+
+Verified with:
+
+```bash
+python3 greet.py
+```
+
+Output:
+
+```text
+Hello, World
+```

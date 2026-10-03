@@ -1,0 +1,54 @@
+[agent/embedded] tool-search: cataloged 39 tools behind compact prompt surface
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1120 dispatcher=new contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1053 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1257 dispatcher=reused contentType=text/event-stream
+[memory] memory_index_chunks_vec not updated — semantic vector embeddings unavailable — no vector dimensions resolved. Vector recall degraded. Further duplicate warnings suppressed.
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1147 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1125 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1104 dispatcher=reused contentType=text/event-stream
+[agents/agent-command] [agent] run b5bac366-5cc1-4211-8fa5-e7075952a489 ended with stopReason=stop
+[session-sqlite] SQLite reclamation Worker failed pid=50 threadId=0 isMainThread=true reclamationKind=maintenance-plan workerThreadId=8 elapsedMs=14 outcome=rejected error="SQLite session reclamation database owner is no longer current" errorFrame="at SqliteReclamationWorker.assertCurrent (file:///opt/harness/openclaw/lib/node_modules/openclaw/dist/session-accessor.sqlite-reclamation-worker-BekkMUCk.mjs:750:44)"
+[session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=13558 opsServed=3
+{
+  "ok": true,
+  "status": "ok",
+  "final": "The change is complete. The build error is a pre-existing environment issue (unbuilt C extensions), unrelated to this edit.\n\nI added `\"joblib\"` to the dependency list in `sklearn/utils/_show_versions.py`, so `show_versions()` now reports the installed joblib version alongside the other core dependencies. This is the smallest correct change matching the existing test expectations pattern for `_get_deps_info()`.",
+  "payloads": [
+    {
+      "text": "The change is complete. The build error is a pre-existing environment issue (unbuilt C extensions), unrelated to this edit.\n\nI added `\"joblib\"` to the dependency list in `sklearn/utils/_show_versions.py`, so `show_versions()` now reports the installed joblib version alongside the other core dependencies. This is the smallest correct change matching the existing test expectations pattern for `_get_deps_info()`.",
+      "mediaUrl": null
+    }
+  ],
+  "usage": {
+    "input": 3903,
+    "output": 793,
+    "cacheRead": 56448,
+    "cacheWrite": 0,
+    "reasoningTokens": 284,
+    "total": 61144,
+    "cost": {
+      "total": 0.0012305940000000002,
+      "totalOrigin": "provider-billed"
+    }
+  },
+  "costUsd": 0.0012305940000000002,
+  "codeModeEngaged": false,
+  "assistantTurns": 6,
+  "bridgeCalls": {
+    "search": 0,
+    "describe": 0,
+    "call": 0
+  },
+  "toolSummary": {
+    "calls": 6,
+    "tools": [
+      "exec",
+      "read",
+      "edit"
+    ],
+    "failures": 0
+  },
+  "model": "deepseek/deepseek-v4.1-flash",
+  "provider": "proxy",
+  "sessionId": "b5bac366-5cc1-4211-8fa5-e7075952a489"
+}

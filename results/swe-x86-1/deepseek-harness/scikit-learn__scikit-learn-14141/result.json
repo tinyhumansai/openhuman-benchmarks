@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "scikit-learn__scikit-learn-14141",
+  "started_epoch_ms": 1790940446524,
+  "ended_epoch_ms": 1790940469354,
+  "wall_ms": 22830,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 348,
+  "resources": {
+    "cpu_seconds": 2.073755,
+    "avg_cpu_cores": 0.09083066882747141,
+    "peak_mem_bytes": 448798720,
+    "peak_anon_bytes": 222302208,
+    "avg_anon_bytes": 182789838.9787234,
+    "avg_mem_bytes": 402377357.61702126,
+    "wall_seconds": 22.831,
+    "samples": 47
+  },
+  "check": null
+}

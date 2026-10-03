@@ -1,0 +1,11 @@
+[dsh_run] finish_reason=completed
+Fixed. In `/work/greet.py`, `greet()` now prints `Hello, World` instead of `Goodbye, World`:
+
+```python
+def greet():
+    print("Hello, World")
+
+greet()
+```
+
+One caveat: I couldn't execute `python3 greet.py` to confirm at runtime — this host has no usable sandbox backend, so the command was refused (and the escalation to an unconfined run was denied because no approval channel is available). The change itself is a single string literal, so `python3 greet.py` will print `Hello, World` followed by a newline.

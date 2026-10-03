@@ -1,0 +1,20 @@
+diff --git a/__pycache__/calc.cpython-310.pyc b/__pycache__/calc.cpython-310.pyc
+new file mode 100644
+index 0000000..7f3c53e
+Binary files /dev/null and b/__pycache__/calc.cpython-310.pyc differ
+diff --git a/__pycache__/test_calc.cpython-310.pyc b/__pycache__/test_calc.cpython-310.pyc
+new file mode 100644
+index 0000000..5978df0
+Binary files /dev/null and b/__pycache__/test_calc.cpython-310.pyc differ
+diff --git a/calc.py b/calc.py
+index 16e0db6..d32f681 100644
+--- a/calc.py
++++ b/calc.py
+@@ -1,5 +1,5 @@
+ def add(a, b):
+-    return a - b
++    return a + b
+ 
+ def mul(a, b):
+-    return a + b
++    return a * b

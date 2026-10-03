@@ -1,0 +1,22 @@
+[dsh_run] finish_reason=completed
+The fix is complete.
+
+## Change
+
+In `/testbed/sympy/printing/pycode.py`, I added a `_print_Indexed` method to `PythonCodePrinter` (right after `_print_Not`):
+
+```python
+    def _print_Indexed(self, expr):
+        base = expr.args[0]
+        index = expr.args[1:]
+        return "{}[{}]".format(str(base), ", ".join([self._print(ind) for ind in index]))
+```
+
+## Rationale
+
+- Previously, `Indexed` had no handler in the Python code printer, so `CodePrinter._print_not_supported` was invoked, which recorded the expression in `_not_supported` and emitted the `# Not supported in Python:` warning while falling back to `str()`.
+- This adds proper support so `pycode(p[0])` produces `p[0]` (and `p[0, 1]` → `p[0, 1]`) with no warning.
+- Placing it on `PythonCodePrinter` means subclasses (`NumPyPrinter`, `MpmathPrinter`, `SciPyPrinter`, `SymPyPrinter`) inherit it, which also fixes `lambdify` output.
+- The implementation matches the fix shipped in SymPy 1.6.
+
+I was unable to execute the test suite because the environment has no usable sandbox backend and no approval channel; the change itself is a minimal, self-contained method addition.

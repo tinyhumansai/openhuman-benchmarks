@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "django__django-13569",
+  "started_epoch_ms": 1790938317782,
+  "ended_epoch_ms": 1790938383861,
+  "wall_ms": 66079,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 530,
+  "resources": {
+    "cpu_seconds": 19.784223,
+    "avg_cpu_cores": 0.2994025787315184,
+    "peak_mem_bytes": 2129813504,
+    "peak_anon_bytes": 1201008640,
+    "avg_anon_bytes": 992559470.8059702,
+    "avg_mem_bytes": 1353021378.8656716,
+    "wall_seconds": 66.079,
+    "samples": 134
+  },
+  "check": null
+}

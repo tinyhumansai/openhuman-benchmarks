@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "matplotlib__matplotlib-24570",
+  "started_epoch_ms": 1790936246021,
+  "ended_epoch_ms": 1790936334857,
+  "wall_ms": 88836,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 715,
+  "resources": {
+    "cpu_seconds": 2.821343,
+    "avg_cpu_cores": 0.03175864786068868,
+    "peak_mem_bytes": 867803136,
+    "peak_anon_bytes": 70873088,
+    "avg_anon_bytes": 66461009.51955307,
+    "avg_mem_bytes": 855438112.8938547,
+    "wall_seconds": 88.837,
+    "samples": 179
+  },
+  "check": null
+}

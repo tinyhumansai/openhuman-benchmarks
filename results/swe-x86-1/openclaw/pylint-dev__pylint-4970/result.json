@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "pylint-dev__pylint-4970",
+  "started_epoch_ms": 1790938647235,
+  "ended_epoch_ms": 1790938792085,
+  "wall_ms": 144850,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 488,
+  "resources": {
+    "cpu_seconds": 27.865451,
+    "avg_cpu_cores": 0.192374532274767,
+    "peak_mem_bytes": 1773043712,
+    "peak_anon_bytes": 1681444864,
+    "avg_anon_bytes": 957025670.5979382,
+    "avg_mem_bytes": 1051046183.5876288,
+    "wall_seconds": 144.85,
+    "samples": 291
+  },
+  "check": null
+}

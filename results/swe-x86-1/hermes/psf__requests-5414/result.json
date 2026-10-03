@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "psf__requests-5414",
+  "started_epoch_ms": 1790939599821,
+  "ended_epoch_ms": 1790939658314,
+  "wall_ms": 58493,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 571,
+  "resources": {
+    "cpu_seconds": 13.625742,
+    "avg_cpu_cores": 0.23294255821109858,
+    "peak_mem_bytes": 6711566336,
+    "peak_anon_bytes": 433926144,
+    "avg_anon_bytes": 230921129.22033897,
+    "avg_mem_bytes": 5749629413.966102,
+    "wall_seconds": 58.494,
+    "samples": 118
+  },
+  "check": null
+}

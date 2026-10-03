@@ -1,0 +1,55 @@
+[agent/embedded] tool-search: cataloged 39 tools behind compact prompt surface
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1266 dispatcher=new contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1036 dispatcher=reused contentType=text/event-stream
+[memory] memory_index_chunks_vec not updated — semantic vector embeddings unavailable — no vector dimensions resolved. Vector recall degraded. Further duplicate warnings suppressed.
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1130 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1066 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1098 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1105 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1030 dispatcher=reused contentType=text/event-stream
+[provider-transport-fetch] [model-fetch] response provider=proxy api=openai-completions model=deepseek/deepseek-v4.1-flash status=200 elapsedMs=1108 dispatcher=reused contentType=text/event-stream
+[agents/agent-command] [agent] run 488bf428-33e6-46c8-aedb-879a92c9ab7a ended with stopReason=stop
+[session-sqlite] SQLite reclamation Worker failed pid=78 threadId=0 isMainThread=true reclamationKind=maintenance-plan workerThreadId=8 elapsedMs=8 outcome=rejected error="SQLite session reclamation database owner is no longer current" errorFrame="at SqliteReclamationWorker.assertCurrent (file:///opt/harness/openclaw/lib/node_modules/openclaw/dist/session-accessor.sqlite-reclamation-worker-BekkMUCk.mjs:750:44)"
+[session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=23371 opsServed=3
+{
+  "ok": true,
+  "status": "ok",
+  "final": "Done. The fix is in `django/db/models/fields/__init__.py`:\n\n```python\ndef __init__(self, *args, db_collation=None, **kwargs):\n    super().__init__(*args, **kwargs)\n    self.db_collation = db_collation\n    if self.max_length is not None:\n        self.validators.append(validators.MaxLengthValidator(self.max_length))\n```\n\n`CharField` now only attaches a `MaxLengthValidator` when `max_length` is set, matching the `BinaryField.__init__` precedent. This avoids building an invalid validator (and paying the `@deconstructible` instantiation cost) for internal, non-user-facing instances like `Value._resolve_output_field()`.\n\nVerification:\n- `Value('test')._resolve_output_field()` now returns a `CharField` with `validators == []` (previously one `MaxLengthValidator` with `max_length=None`).\n- `model_fields` suite: 427 tests, OK (9 skipped).\n- `fields.E120` check behavior for real `CharField`s remains unchanged, since the check runs at system-check time and validators for declared fields with a valid `max_length` are still added.",
+  "payloads": [
+    {
+      "text": "Done. The fix is in `django/db/models/fields/__init__.py`:\n\n```python\ndef __init__(self, *args, db_collation=None, **kwargs):\n    super().__init__(*args, **kwargs)\n    self.db_collation = db_collation\n    if self.max_length is not None:\n        self.validators.append(validators.MaxLengthValidator(self.max_length))\n```\n\n`CharField` now only attaches a `MaxLengthValidator` when `max_length` is set, matching the `BinaryField.__init__` precedent. This avoids building an invalid validator (and paying the `@deconstructible` instantiation cost) for internal, non-user-facing instances like `Value._resolve_output_field()`.\n\nVerification:\n- `Value('test')._resolve_output_field()` now returns a `CharField` with `validators == []` (previously one `MaxLengthValidator` with `max_length=None`).\n- `model_fields` suite: 427 tests, OK (9 skipped).\n- `fields.E120` check behavior for real `CharField`s remains unchanged, since the check runs at system-check time and validators for declared fields with a valid `max_length` are still added.",
+      "mediaUrl": null
+    }
+  ],
+  "usage": {
+    "input": 4846,
+    "output": 1689,
+    "cacheRead": 114688,
+    "cacheWrite": 0,
+    "reasoningTokens": 304,
+    "total": 121223,
+    "cost": {
+      "total": 0.002084364,
+      "totalOrigin": "provider-billed"
+    }
+  },
+  "costUsd": 0.002084364,
+  "codeModeEngaged": false,
+  "assistantTurns": 11,
+  "bridgeCalls": {
+    "search": 0,
+    "describe": 0,
+    "call": 0
+  },
+  "toolSummary": {
+    "calls": 10,
+    "tools": [
+      "exec",
+      "edit"
+    ],
+    "failures": 0
+  },
+  "model": "deepseek/deepseek-v4.1-flash",
+  "provider": "proxy",
+  "sessionId": "488bf428-33e6-46c8-aedb-879a92c9ab7a"
+}

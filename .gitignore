@@ -1,4 +1,9 @@
 .env
 .cache/
-results/
 tasks/generated/
+# Raw request captures (full prompts and responses) stay on the bench host.
+results/*/captures/
+# Built by viewer/build-static.mjs (CI publishes it to GitHub Pages).
+site/
+# Local-only runs kept off the site (invalid or aborted).
+results-archive/

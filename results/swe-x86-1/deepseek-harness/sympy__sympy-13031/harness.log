@@ -1,0 +1,24 @@
+[dsh_run] finish_reason=completed
+I've applied the fix. Here's a summary of what I found and changed.
+
+## Root cause
+
+The dense `Matrix` path had already been fixed in this checkout (see the `#10770` special cases in `sympy/matrices/common.py`'s `row_join`/`col_join`), but `MutableSparseMatrix` (exported as `SparseMatrix`) still overrode both methods with an early shortcut:
+
+```python
+if not self:
+    return type(self)(other)
+```
+
+Because `not self` is true for any matrix with zero rows or zero columns (`__len__` is `rows*cols`), each successive `row_join`/`col_join` in an `hstack`/`vstack` reduction threw away the accumulator and returned just the latest argument. Hence `SparseMatrix.hstack(zeros(0,0), zeros(0,1), zeros(0,2), zeros(0,3))` ended up as the last matrix `(0, 3)` instead of `(0, 6)`.
+
+## Fix
+
+In `sympy/matrices/sparse.py`, I replaced the two `if not self` shortcuts with the same null-matrix handling used by the dense code (matching the released sympy 1.1.1 source):
+
+- `col_join`: `if self.rows == 0 and self.cols != other.cols: return self._new(0, other.cols, []).col_join(other)`
+- `row_join`: `if self.cols == 0 and self.rows != other.rows: return self._new(other.rows, 0, []).row_join(other)`
+
+Now joins accumulate dimensions correctly, so zero-row `hstack` yields `(0, 6)` and zero-column `vstack` yields `(6, 0)`, while the existing behavior for the `MutableSparseMatrix([])` join tests is preserved.
+
+(I was unable to execute the test suite because the sandbox has no usable backend and approval is unavailable, but the change is a minimal two-block edit that exactly matches the upstream 1.1.1 fix.)

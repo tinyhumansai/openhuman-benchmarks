@@ -1,0 +1,25 @@
+[0m
+> build · deepseek/deepseek-v4.1-flash
+[0m
+[0m→ [0mRead django/db/models/fields/reverse_related.py[90m [offset=60, limit=160][0m
+[0m→ [0mRead django/db/models/fields/reverse_related.py[90m [offset=250, limit=80][0m
+[0m
+[0m← [0mEdit django/db/models/fields/reverse_related.py
+Index: /testbed/django/db/models/fields/reverse_related.py
+===================================================================
+--- /testbed/django/db/models/fields/reverse_related.py
++++ /testbed/django/db/models/fields/reverse_related.py
+@@ -309,9 +309,9 @@
+ @property
+ def identity(self):
+     return super().identity + (
+         self.through,
+-        self.through_fields,
++        make_hashable(self.through_fields),
+         self.db_constraint,
+     )
+ 
+ def get_related_field(self):
+
+[0m
+Done. `make_hashable` is applied to `through_fields` in `ManyToManyRel.identity` at `django/db/models/fields/reverse_related.py:313`.

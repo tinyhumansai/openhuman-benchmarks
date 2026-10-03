@@ -1,0 +1,233 @@
+WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir "/tmp" (codex_home: AbsolutePathBuf("/tmp/bench-home/.codex"))
+Reading additional input from stdin...
+OpenAI Codex v0.159.3
+--------
+workdir: /testbed
+model: deepseek/deepseek-v4.1-flash
+provider: proxy
+approval: never
+sandbox: danger-full-access
+reasoning effort: high
+reasoning summaries: none
+session id: 01a0fc2f-aee2-76a2-8065-ab1b71ffb9df
+--------
+user
+You are working in a git checkout of the repository at /testbed. Resolve the following issue by editing the source code in place.
+
+Do not modify or add test files unless the issue requires it. Make the smallest correct change. When you are done, stop; your changes are collected from the working tree.
+
+<issue>
+Getting http://.example.com raises UnicodeError
+Attempting to get e.g. `http://.example.com` results in a `UnicodeError`. It seems like the intention so far has been to raise `InvalidUrl` instead (see e.g. [this line](https://github.com/psf/requests/blob/ca6f9af5dba09591007b15a7368bc0f006b7cc50/requests/models.py#L401)).
+
+I see there was some hesitation in fixing a similar issue (#4168) and would like to add that even catching the error just to rethrow as a requests exception would be beneficial.
+
+## Expected Result
+
+Based on PR #774: `InvalidUrl: URL has an invalid label.`
+
+## Actual Result
+
+`UnicodeError: encoding with 'idna' codec failed (UnicodeError: label empty or too long)`
+
+## Reproduction Steps
+
+```python3
+import requests
+requests.get("http://.example.com")
+```
+
+## System Information
+
+    $ python -m requests.help
+
+```
+{
+  "chardet": {
+    "version": "3.0.4"
+  },
+  "cryptography": {
+    "version": "2.8"
+  },
+  "idna": {
+    "version": "2.8"
+  },
+  "implementation": {
+    "name": "CPython",
+    "version": "3.8.0"
+  },
+  "platform": {
+    "release": "5.3.0-40-generic",
+    "system": "Linux"
+  },
+  "pyOpenSSL": {
+    "openssl_version": "1010104f",
+    "version": "19.1.0"
+  },
+  "requests": {
+    "version": "2.23.0"
+  },
+  "system_ssl": {
+    "version": "1010103f"
+  },
+  "urllib3": {
+    "version": "1.25.8"
+  },
+  "using_pyopenssl": true
+}
+```
+</issue>
+warning: Model metadata for `deepseek/deepseek-v4.1-flash` not found. Defaulting to fallback metadata; this can degrade performance and cause issues.
+codex
+I'll start by exploring the relevant source code.
+exec
+/bin/bash -lc 'cd /testbed && git log --oneline -3 && ls' in /testbed
+ succeeded in 0ms:
+45bfb54c bench-baseline
+af3e243e SWE-bench
+39d0fdd9 Update README.md (#5998)
+AUTHORS.rst
+HISTORY.md
+LICENSE
+MANIFEST.in
+Makefile
+NOTICE
+README.md
+build
+docs
+ext
+pytest.ini
+requests
+requests.egg-info
+requirements-dev.txt
+setup.cfg
+setup.py
+tests
+tox.ini
+
+exec
+/bin/bash -lc 'cd /testbed && sed -n 370,430p requests/models.py' in /testbed
+ succeeded in 0ms:
+            url = unicode(url) if is_py2 else str(url)
+
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ':' in url and not url.lower().startswith('http'):
+            self.url = url
+            return
+
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+
+        if not scheme:
+            error = ("Invalid URL {0!r}: No schema supplied. Perhaps you meant http://{0}?")
+            error = error.format(to_native_string(url, 'utf8'))
+
+            raise MissingSchema(error)
+
+        if not host:
+            raise InvalidURL("Invalid URL %r: No host supplied" % url)
+
+        # In general, we want to try IDNA encoding the hostname if the string contains
+        # non-ASCII characters. This allows users to automatically get the correct IDNA
+        # behaviour. For strings containing only ASCII characters, we need to also verify
+        # it doesn't start with a wildcard (*), before allowing the unencoded hostname.
+        if not unicode_is_ascii(host):
+            try:
+                host = self._get_idna_encoded_host(host)
+            except UnicodeError:
+                raise InvalidURL('URL has an invalid label.')
+        elif host.startswith(u'*'):
+            raise InvalidURL('URL has an invalid label.')
+
+        # Carefully reconstruct the network location
+        netloc = auth or ''
+        if netloc:
+            netloc += '@'
+        netloc += host
+        if port:
+            netloc += ':' + str(port)
+
+        # Bare domains aren't valid URLs.
+        if not path:
+            path = '/'
+
+        if is_py2:
+            if isinstance(scheme, str):
+                scheme = scheme.encode('utf-8')
+            if isinstance(netloc, str):
+                netloc = netloc.encode('utf-8')
+            if isinstance(path, str):
+                path = path.encode('utf-8')
+            if isinstance(query, str):
+                query = query.encode('utf-8')
+            if isinstance(fragment, str):
+
+exec
+/bin/bash -lc "cd /testbed && python -c \"
+import requests
+try:
+    requests.get('http://.example.com')
+except Exception as e:
+    import traceback; traceback.print_exc()
+\"" in /testbed
+ succeeded in 0ms:
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+  File "/testbed/requests/api.py", line 75, in get
+    return request('get', url, params=params, **kwargs)
+  File "/testbed/requests/api.py", line 61, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "/testbed/requests/sessions.py", line 529, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/testbed/requests/sessions.py", line 645, in send
+    r = adapter.send(request, **kwargs)
+  File "/testbed/requests/adapters.py", line 440, in send
+    resp = conn.urlopen(
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/urllib3/connectionpool.py", line 716, in urlopen
+    httplib_response = self._make_request(
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/urllib3/connectionpool.py", line 416, in _make_request
+    conn.request(method, url, **httplib_request_kw)
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/urllib3/connection.py", line 244, in request
+    super(HTTPConnection, self).request(method, url, body=body, headers=headers)
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/http/client.py", line 1285, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/http/client.py", line 1331, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/http/client.py", line 1280, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/http/client.py", line 1040, in _send_output
+    self.send(msg)
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/http/client.py", line 980, in send
+    self.connect()
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/urllib3/connection.py", line 205, in connect
+    conn = self._new_conn()
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/urllib3/connection.py", line 174, in _new_conn
+    conn = connection.create_connection(
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/urllib3/util/connection.py", line 68, in create_connection
+    return six.raise_from(
+  File "<string>", line 3, in raise_from
+urllib3.exceptions.LocationParseError: Failed to parse: '.example.com', label empty or too long
+
+exec
+/bin/bash -lc "cd /testbed && grep -rn \"invalid label\\|InvalidURL\\|_get_idna\" requests/models.py | head -40" in /testbed
+ succeeded in 0ms:
+31:    HTTPError, MissingSchema, InvalidURL, ChunkedEncodingError,
+351:    def _get_idna_encoded_host(host):
+386:            raise InvalidURL(*e.args)
+395:            raise InvalidURL("Invalid URL %r: No host supplied" % url)
+403:                host = self._get_idna_encoded_host(host)
+405:                raise InvalidURL('URL has an invalid label.')
+407:            raise InvalidURL('URL has an invalid label.')
+
+ERROR: {"error":{"message":"Server tool \"openrouter:web_search\" failed: invalid request (400)","code":400,"metadata":{"provider_name":null}},"user_id":"user_38Vo8Egp9gRl3ayqQojR70QCxZ6"}
+ERROR: {"error":{"message":"Server tool \"openrouter:web_search\" failed: invalid request (400)","code":400,"metadata":{"provider_name":null}},"user_id":"user_38Vo8Egp9gRl3ayqQojR70QCxZ6"}
+tokens used
+12,121

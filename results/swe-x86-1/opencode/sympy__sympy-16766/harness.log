@@ -1,0 +1,374 @@
+[0m
+> build · deepseek/deepseek-v4.1-flash
+[0m
+[0m$ [0mgrep -rn "class PythonCodePrinter" /testbed/sympy
+/testbed/sympy/printing/pycode.py:350:class PythonCodePrinter(AbstractPythonCodePrinter):
+[0m
+[0m→ [0mRead sympy/printing/pycode.py[90m [offset=1, limit=120][0m
+[0m→ [0mRead sympy/printing/pycode.py[90m [limit=220, offset=350][0m
+[0m
+[0m$ [0mgrep -n "Indexed\|_print_Indexed\|_print_IndexedBase" /testbed/sympy/printing/pycode.py
+(no output)
+[0m
+[0m$ [0mgrep -rn "Indexed\|_print_Indexed" /testbed/sympy/printing/tests/test_pycode.py
+(no output)
+[0m
+[0m$ [0mcd /testbed && python -c "
+from sympy import *
+p = IndexedBase('p')
+print(repr(pycode(p[0])))
+print(repr(pycode(p[0,1])))
+"
+/testbed/sympy/solvers/diophantine.py:3185: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  if feasible is 1:  # it's prime and k == 2
+/testbed/sympy/plotting/plot.py:644: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  if self.xscale is 'log':
+/testbed/sympy/plotting/plot.py:664: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  if self.xscale is 'log':
+/testbed/sympy/plotting/plot.py:677: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  if self.xscale is 'log':
+/testbed/sympy/plotting/plot.py:684: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  if self.xscale is 'log':
+'  # Not supported in Python:\n  # Indexed\np[0]'
+'  # Not supported in Python:\n  # Indexed\np[0, 1]'
+[0m
+[0m$ [0mcd /testbed && python -c "
+from sympy import *
+p = IndexedBase('p')
+e = p[0,1]
+print(e.args)
+print(e.base, e.indices)
+print(p.args if hasattr(p,'args') else None)
+print(p.label)
+" 2>/dev/null
+(p, 0, 1)
+p (0, 1)
+(p,)
+p
+[0m
+[0m$ [0mcd /testbed && grep -n "_print_not_supported\|Not supported" sympy/printing/codeprinter.py sympy/printing/printer.py
+sympy/printing/codeprinter.py:107:                        "Not supported in {0}:".format(self.language)))
+sympy/printing/codeprinter.py:384:            return self._print_not_supported(expr)
+sympy/printing/codeprinter.py:423:            return self._print_not_supported(expr)
+sympy/printing/codeprinter.py:430:            return self._print_not_supported(expr)
+sympy/printing/codeprinter.py:490:    def _print_not_supported(self, expr):
+sympy/printing/codeprinter.py:495:    _print_Basic = _print_not_supported
+sympy/printing/codeprinter.py:496:    _print_ComplexInfinity = _print_not_supported
+sympy/printing/codeprinter.py:497:    _print_Derivative = _print_not_supported
+sympy/printing/codeprinter.py:498:    _print_ExprCondPair = _print_not_supported
+sympy/printing/codeprinter.py:499:    _print_GeometryEntity = _print_not_supported
+sympy/printing/codeprinter.py:500:    _print_Infinity = _print_not_supported
+sympy/printing/codeprinter.py:501:    _print_Integral = _print_not_supported
+sympy/printing/codeprinter.py:502:    _print_Interval = _print_not_supported
+sympy/printing/codeprinter.py:503:    _print_AccumulationBounds = _print_not_supported
+sympy/printing/codeprinter.py:504:    _print_Limit = _print_not_supported
+sympy/printing/codeprinter.py:505:    _print_Matrix = _print_not_supported
+sympy/printing/codeprinter.py:506:    _print_ImmutableMatrix = _print_not_supported
+sympy/printing/codeprinter.py:507:    _print_ImmutableDenseMatrix = _print_not_supported
+sympy/printing/codeprinter.py:508:    _print_MutableDenseMatrix = _print_not_supported
+sympy/printing/codeprinter.py:509:    _print_MatrixBase = _print_not_supported
+sympy/printing/codeprinter.py:510:    _print_DeferredVector = _print_not_supported
+sympy/printing/codeprinter.py:511:    _print_NaN = _print_not_supported
+sympy/printing/codeprinter.py:512:    _print_NegativeInfinity = _print_not_supported
+sympy/printing/codeprinter.py:513:    _print_Order = _print_not_supported
+sympy/printing/codeprinter.py:514:    _print_RootOf = _print_not_supported
+sympy/printing/codeprinter.py:515:    _print_RootsOf = _print_not_supported
+sympy/printing/codeprinter.py:516:    _print_RootSum = _print_not_supported
+sympy/printing/codeprinter.py:517:    _print_SparseMatrix = _print_not_supported
+sympy/printing/codeprinter.py:518:    _print_MutableSparseMatrix = _print_not_supported
+sympy/printing/codeprinter.py:519:    _print_ImmutableSparseMatrix = _print_not_supported
+sympy/printing/codeprinter.py:520:    _print_Uniform = _print_not_supported
+sympy/printing/codeprinter.py:521:    _print_Unit = _print_not_supported
+sympy/printing/codeprinter.py:522:    _print_Wild = _print_not_supported
+sympy/printing/codeprinter.py:523:    _print_WildFunction = _print_not_supported
+[0m
+[0m$ [0mcd /testbed && grep -rn "_print_Indexed\|def _print_IndexedBase" sympy/printing/
+sympy/printing/julia.py:393:    def _print_Indexed(self, expr):
+sympy/printing/latex.py:647:    def _print_Indexed(self, expr):
+sympy/printing/latex.py:653:    def _print_IndexedBase(self, expr):
+sympy/printing/glsl.py:250:    def _print_Indexed(self, expr):
+sympy/printing/ccode.py:303:    def _print_Indexed(self, expr):
+sympy/printing/octave.py:381:    def _print_Indexed(self, expr):
+sympy/printing/mathml.py:1732:    def _print_IndexedBase(self, e):
+sympy/printing/mathml.py:1735:    def _print_Indexed(self, e):
+sympy/printing/llvmjitcode.py:119:    def _print_Indexed(self, expr):
+sympy/printing/rcode.py:161:    def _print_Indexed(self, expr):
+sympy/printing/rust.py:361:    def _print_Indexed(self, expr):
+sympy/printing/fcode.py:368:    def _print_Indexed(self, expr):
+sympy/printing/tests/test_ccode.py:305:    assert p._print_Indexed(x) == 'x[j]'
+sympy/printing/tests/test_ccode.py:306:    assert p._print_Indexed(A) == 'A[%s]' % (m*i+j)
+sympy/printing/tests/test_ccode.py:307:    assert p._print_Indexed(B) == 'B[%s]' % (i*o*m+j*o+k)
+sympy/printing/tests/test_ccode.py:311:    assert p._print_Indexed(A) == 'A[%s]' % (3*i + j)
+sympy/printing/tests/test_mathml.py:1428:def test_print_IndexedBase():
+sympy/printing/tests/test_mathml.py:1439:def test_print_Indexed():
+sympy/printing/tests/test_jscode.py:153:    assert p._print_Indexed(x) == 'x[j]'
+sympy/printing/tests/test_jscode.py:155:    assert p._print_Indexed(A) == 'A[%s]' % (m*i+j)
+sympy/printing/tests/test_jscode.py:157:    assert p._print_Indexed(B) == 'B[%s]' % (i*o*m+j*o+k)
+sympy/printing/tests/test_rcode.py:212:    assert p._print_Indexed(x) == 'x[j]'
+sympy/printing/tests/test_rcode.py:214:    assert p._print_Indexed(A) == 'A[i, j]'
+sympy/printing/tests/test_rcode.py:216:    assert p._print_Indexed(B) == 'B[i, j, k]'
+sympy/printing/tests/test_glsl.py:152:    assert p._print_Indexed(x) == 'x[j]'
+sympy/printing/tests/test_glsl.py:154:    assert p._print_Indexed(A) == 'A[%s]' % (m*i+j)
+sympy/printing/tests/test_glsl.py:156:    assert p._print_Indexed(B) == 'B[%s]' % (i*o*m+j*o+k)
+sympy/printing/jscode.py:116:    def _print_Indexed(self, expr):
+grep: sympy/printing/__pycache__/latex.cpython-39.pyc: binary file matches
+grep: sympy/printing/__pycache__/ccode.cpython-39.pyc: binary file matches
+grep: sympy/printing/__pycache__/jscode.cpython-39.pyc: binary file matches
+grep: sympy/printing/__pycache__/mathml.cpython-39.pyc: binary file matches
+grep: sympy/printing/__pycache__/glsl.cpython-39.pyc: binary file matches
+grep: sympy/printing/__pycache__/fcode.cpython-39.pyc: binary file matches
+grep: sympy/printing/__pycache__/julia.cpython-39.pyc: binary file matches
+grep: sympy/printing/__pycache__/rcode.cpython-39.pyc: binary file matches
+grep: sympy/printing/__pycache__/octave.cpython-39.pyc: binary file matches
+grep: sympy/printing/__pycache__/rust.cpython-39.pyc: binary file matches
+[0m
+[0m→ [0mRead sympy/printing/rcode.py[90m [limit=20, offset=158][0m
+[0m→ [0mRead sympy/printing/codeprinter.py[90m [limit=30, offset=485][0m
+[0m
+[0m$ [0mcd /testbed && grep -n "emptyPrinter" sympy/printing/*.py
+sympy/printing/codeprinter.py:492:        return self.emptyPrinter(expr)
+sympy/printing/llvmjitcode.py:108:    def emptyPrinter(self, expr):
+sympy/printing/printer.py:10:  3. As fall-back use the emptyPrinter method for the printer.
+sympy/printing/printer.py:68:3. **As a fall-back use the emptyPrinter method for the printer.**
+sympy/printing/printer.py:70:    As fall-back ``self.emptyPrinter`` will be called with the expression. If
+sympy/printing/printer.py:208:    emptyPrinter = str
+sympy/printing/printer.py:257:            3. As fall-back use the emptyPrinter method for the printer.
+sympy/printing/printer.py:288:            # Unknown object, fall back to the emptyPrinter.
+sympy/printing/printer.py:289:            return self.emptyPrinter(expr)
+sympy/printing/repr.py:29:    def emptyPrinter(self, expr):
+sympy/printing/str.py:38:    def emptyPrinter(self, expr):
+sympy/printing/theanocode.py:251:    def emptyPrinter(self, expr):
+[0m
+[0m← [0mEdit sympy/printing/pycode.py
+Index: /testbed/sympy/printing/pycode.py
+===================================================================
+--- /testbed/sympy/printing/pycode.py
++++ /testbed/sympy/printing/pycode.py
+@@ -356,9 +356,19 @@
+     def _print_Not(self, expr):
+         PREC = precedence(expr)
+         return self._operators['not'] + self.parenthesize(expr.args[0], PREC)
+ 
++    def _print_Indexed(self, expr):
++        # for one-indexed objects this gives x[1] when code printer normally
++        # would give x[0]
++        return "{}[{}]".format(
++            self._print(expr.base),
++            ", ".join(self._print(index) for index in expr.indices))
+ 
++    def _print_IndexedBase(self, expr):
++        return self._print(expr.label)
++
++
+ for k in PythonCodePrinter._kf:
+     setattr(PythonCodePrinter, '_print_%s' % k, _print_known_func)
+ 
+ for k in _known_constants_math:
+
+[0m
+[0m$ [0mcd /testbed && python -c "
+from sympy import *
+from sympy.printing.pycode import pycode
+from sympy.printing.numpy import NumPyPrinter
+p = IndexedBase('p')
+i, j = symbols('i j')
+print(repr(pycode(p[0])))
+print(repr(pycode(p[i, j])))
+print(repr(pycode(p[i+1])))
+" 2>/dev/null
+(no output)
+[0m
+[0m$ [0mcd /testbed && python -c "
+from sympy import *
+from sympy.printing.pycode import pycode
+p = IndexedBase('p')
+i, j = symbols('i j')
+print(repr(pycode(p[0])))
+print(repr(pycode(p[i, j])))
+print(repr(pycode(p[i+1])))
+"
+'p[0]'
+'p[i, j]'
+'p[i + 1]'
+[0m
+[0m$ [0mcd /testbed && python -m pytest sympy/printing/tests/test_pycode.py sympy/printing/tests/test_numpy.py -q 2>&1 | tail -20
+/opt/miniconda3/envs/testbed/bin/python: No module named pytest
+[0m
+[0m$ [0mcd /testbed && python -m sympy.testing.runtests sympy/printing/tests/test_pycode.py 2>&1 | tail -20
+/opt/miniconda3/envs/testbed/bin/python: Error while finding module specification for 'sympy.testing.runtests' (ModuleNotFoundError: No module named 'sympy.testing')
+[0m
+[0m$ [0mcd /testbed && ls && python -c "import sympy; print(sympy.__version__)"
+AUTHORS
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+LICENSE
+MANIFEST.in
+PULL_REQUEST_TEMPLATE.md
+README.rst
+bin
+codecov.yml
+conftest.py
+coveragerc_travis
+data
+doc
+examples
+github_deploy_key.enc
+isympy.py
+pytest.ini
+release
+setup.py
+setupegg.py
+sympy
+sympy.egg-info
+tox.ini.sample
+1.5.dev
+[0m
+[0m$ [0mcd /testbed && ls sympy/printing/tests/ | head && python -m unittest sympy.printing.tests.test_pycode -v 2>&1 | tail -20
+__init__.py
+test_ccode.py
+test_codeprinter.py
+test_conventions.py
+test_cxxcode.py
+test_dot.py
+test_fcode.py
+test_glsl.py
+test_gtk.py
+test_jscode.py
+
+----------------------------------------------------------------------
+Ran 0 tests in 0.000s
+
+OK
+[0m
+[0m$ [0mcd /testbed && ls sympy/printing/tests/ | grep -i pycode; ls sympy/testing 2>&1
+test_pycode.py
+ls: cannot access 'sympy/testing': No such file or directory
+[0m
+[0m$ [0mcd /testbed && python -c "
+import sympy.printing.tests.test_pycode as t
+import inspect
+funcs=[n for n in dir(t) if n.startswith('test')]
+print(len(funcs))
+import unittest
+suite=unittest.TestLoader().loadTestsFromModule(t)
+r=unittest.TextTestRunner(verbosity=1).run(suite)
+" 2>&1 | tail -20
+----------------------------------------------------------------------
+Ran 0 tests in 0.000s
+
+OK
+9
+[0m
+[0m$ [0mcd /testbed && python -c "
+import sympy.printing.tests.test_pycode as t
+funcs=[n for n in dir(t) if n.startswith('test')]
+for f in funcs:
+    try:
+        getattr(t,f)()
+        print('PASS', f)
+    except Exception as e:
+        print('FAIL', f, e)
+" 2>&1 | tail -20
+PASS test_MpmathPrinter
+PASS test_NumPyPrinter
+PASS test_NumPyPrinter_print_seq
+PASS test_PythonCodePrinter
+PASS test_SciPyPrinter
+PASS test_codegen_ast_nodes
+PASS test_issue_14283
+PASS test_printmethod
+PASS test_pycode_reserved_words
+[0m
+[0m$ [0mcd /testbed && python -c "
+from sympy import *
+from sympy.printing.pycode import pycode
+from sympy.printing.numpy import NumPyPrinter
+p = IndexedBase('p')
+i, j = symbols('i j')
+print(repr(NumPyPrinter().doprint(p[i, j])))
+f = lambdify(p, p[0] + p[1], 'numpy')
+import numpy as np
+print(f(np.array([3.0,4.0])))
+"
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+ModuleNotFoundError: No module named 'sympy.printing.numpy'
+[0m
+[0m$ [0mcd /testbed && python -c "
+from sympy import *
+from sympy.printing.pycode import pycode, NumPyPrinter
+p = IndexedBase('p')
+i, j = symbols('i j')
+print(repr(NumPyPrinter().doprint(p[i, j])))
+f = lambdify(p, p[0] + p[1], 'numpy')
+import numpy as np
+print(f(np.array([3.0,4.0])))
+"
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+  File "/testbed/sympy/utilities/lambdify.py", line 694, in lambdify
+    buf = _get_namespace(m)
+  File "/testbed/sympy/utilities/lambdify.py", line 812, in _get_namespace
+    _import(m)
+  File "/testbed/sympy/utilities/lambdify.py", line 153, in _import
+    raise ImportError(
+ImportError: can't import 'numpy' with 'import numpy; from numpy import *; from numpy.linalg import *' command
+'p[i, j]'
+[0m
+[0m$ [0mcd /testbed && git diff
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index a3f031073..66475612c 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -357,6 +357,16 @@ def _print_Not(self, expr):
+         PREC = precedence(expr)
+         return self._operators['not'] + self.parenthesize(expr.args[0], PREC)
+ 
++    def _print_Indexed(self, expr):
++        # for one-indexed objects this gives x[1] when code printer normally
++        # would give x[0]
++        return "{}[{}]".format(
++            self._print(expr.base),
++            ", ".join(self._print(index) for index in expr.indices))
++
++    def _print_IndexedBase(self, expr):
++        return self._print(expr.label)
++
+ 
+ for k in PythonCodePrinter._kf:
+     setattr(PythonCodePrinter, '_print_%s' % k, _print_known_func)
+[0m
+[0m← [0mEdit sympy/printing/pycode.py
+Index: /testbed/sympy/printing/pycode.py
+===================================================================
+--- /testbed/sympy/printing/pycode.py
++++ /testbed/sympy/printing/pycode.py
+@@ -357,10 +357,8 @@
+     PREC = precedence(expr)
+     return self._operators['not'] + self.parenthesize(expr.args[0], PREC)
+ 
+ def _print_Indexed(self, expr):
+-    # for one-indexed objects this gives x[1] when code printer normally
+-    # would give x[0]
+     return "{}[{}]".format(
+         self._print(expr.base),
+         ", ".join(self._print(index) for index in expr.indices))
+ 
+
+[0m
+[0m$ [0mcd /testbed && python -c "
+import sympy.printing.tests.test_pycode as t
+for f in [n for n in dir(t) if n.startswith('test')]:
+    getattr(t,f)()
+print('all pass')
+from sympy import *
+from sympy.printing.pycode import pycode
+p = IndexedBase('p'); i,j = symbols('i j')
+assert pycode(p[0]) == 'p[0]'
+assert pycode(p[i,j]) == 'p[i, j]'
+print('indexed ok')
+" 2>&1 | tail -5
+all pass
+indexed ok
+[0m
+Added `_print_Indexed` and `_print_IndexedBase` to `PythonCodePrinter` in `sympy/printing/pycode.py:360`, so `pycode(p[0])` now returns `p[0]` without warnings; multi-index and expression indices work too.

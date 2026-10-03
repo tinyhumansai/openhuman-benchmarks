@@ -1,0 +1,46 @@
+2026-10-02 13:50:59,089 - INFO - Creating container for pylint-dev__pylint-4970...
+2026-10-02 13:50:59,108 - INFO - Container for pylint-dev__pylint-4970 created: 583d1b8b0c2a36b1f720a63fe3144c33d810d0fe3d76d4e64630cc3ecd002277
+2026-10-02 13:50:59,174 - INFO - Container for pylint-dev__pylint-4970 started: 583d1b8b0c2a36b1f720a63fe3144c33d810d0fe3d76d4e64630cc3ecd002277
+2026-10-02 13:50:59,174 - INFO - Intermediate patch for pylint-dev__pylint-4970 written to logs/run_evaluation/swe-x86-1-opencode/opencode/pylint-dev__pylint-4970/patch.diff, now applying to container...
+2026-10-02 13:50:59,223 - INFO - >>>>> Applied Patch:
+Checking patch pylint/checkers/similar.py...
+Applied patch pylint/checkers/similar.py cleanly.
+
+2026-10-02 13:50:59,286 - INFO - Git diff before:
+diff --git a/pylint/checkers/similar.py b/pylint/checkers/similar.py
+index c65b1c89..88d7eac5 100644
+--- a/pylint/checkers/similar.py
++++ b/pylint/checkers/similar.py
+@@ -390,6 +390,8 @@ class Similar:
+ 
+     def run(self) -> None:
+         """start looking for similarities and display results on stdout"""
++        if self.min_lines == 0:
++            return
+         self._display_sims(self._compute_sims())
+ 
+     def _compute_sims(self) -> List[Tuple[int, Set[LinesChunkLimits_T]]]:
+2026-10-02 13:50:59,286 - INFO - Eval script for pylint-dev__pylint-4970 written to logs/run_evaluation/swe-x86-1-opencode/opencode/pylint-dev__pylint-4970/eval.sh; copying to container...
+2026-10-02 13:51:00,863 - INFO - Test runtime: 1.55 seconds
+2026-10-02 13:51:00,864 - INFO - Test output for pylint-dev__pylint-4970 written to logs/run_evaluation/swe-x86-1-opencode/opencode/pylint-dev__pylint-4970/test_output.txt
+2026-10-02 13:51:00,890 - INFO - Git diff after:
+diff --git a/pylint/checkers/similar.py b/pylint/checkers/similar.py
+index c65b1c89..88d7eac5 100644
+--- a/pylint/checkers/similar.py
++++ b/pylint/checkers/similar.py
+@@ -390,6 +390,8 @@ class Similar:
+ 
+     def run(self) -> None:
+         """start looking for similarities and display results on stdout"""
++        if self.min_lines == 0:
++            return
+         self._display_sims(self._compute_sims())
+ 
+     def _compute_sims(self) -> List[Tuple[int, Set[LinesChunkLimits_T]]]:
+2026-10-02 13:51:00,890 - INFO - Grading answer for pylint-dev__pylint-4970...
+2026-10-02 13:51:00,891 - INFO - report: {'pylint-dev__pylint-4970': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'infra_failure': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/checkers/unittest_similar.py::test_set_duplicate_lines_to_zero'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/checkers/unittest_similar.py::test_ignore_comments', 'tests/checkers/unittest_similar.py::test_ignore_docstrings', 'tests/checkers/unittest_similar.py::test_ignore_imports', 'tests/checkers/unittest_similar.py::test_multiline_imports', 'tests/checkers/unittest_similar.py::test_ignore_multiline_imports', 'tests/checkers/unittest_similar.py::test_ignore_signatures_fail', 'tests/checkers/unittest_similar.py::test_ignore_signatures_pass', 'tests/checkers/unittest_similar.py::test_ignore_signatures_class_methods_fail', 'tests/checkers/unittest_similar.py::test_ignore_signatures_class_methods_pass', 'tests/checkers/unittest_similar.py::test_ignore_signatures_empty_functions_fail', 'tests/checkers/unittest_similar.py::test_ignore_signatures_empty_functions_pass', 'tests/checkers/unittest_similar.py::test_no_hide_code_with_imports', 'tests/checkers/unittest_similar.py::test_ignore_nothing', 'tests/checkers/unittest_similar.py::test_lines_without_meaningful_content_do_not_trigger_similarity', 'tests/checkers/unittest_similar.py::test_help', 'tests/checkers/unittest_similar.py::test_no_args', 'tests/checkers/unittest_similar.py::test_get_map_data'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for pylint-dev__pylint-4970: resolved: True
+2026-10-02 13:51:00,891 - INFO - Attempting to stop container sweb.eval.pylint-dev__pylint-4970.swe-x86-1-opencode...
+2026-10-02 13:51:15,994 - INFO - Container sweb.eval.pylint-dev__pylint-4970.swe-x86-1-opencode stopped successfully.
+2026-10-02 13:51:15,994 - INFO - Attempting to remove container sweb.eval.pylint-dev__pylint-4970.swe-x86-1-opencode...
+2026-10-02 13:51:16,023 - INFO - Container sweb.eval.pylint-dev__pylint-4970.swe-x86-1-opencode removed successfully.

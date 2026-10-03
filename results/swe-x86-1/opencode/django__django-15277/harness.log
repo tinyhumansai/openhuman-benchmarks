@@ -1,0 +1,26 @@
+[0m
+> build · deepseek/deepseek-v4.1-flash
+[0m
+[0m✱ [0mGrep "class CharField"[90m in django/db/models/fields · 1 match[0m
+[0m→ [0mRead django/db/models/fields/__init__.py[90m [offset=1007, limit=50][0m
+[0m
+[0m← [0mEdit django/db/models/fields/__init__.py
+Index: /testbed/django/db/models/fields/__init__.py
+===================================================================
+--- /testbed/django/db/models/fields/__init__.py
++++ /testbed/django/db/models/fields/__init__.py
+@@ -1009,9 +1009,10 @@
+ 
+ def __init__(self, *args, db_collation=None, **kwargs):
+     super().__init__(*args, **kwargs)
+     self.db_collation = db_collation
+-    self.validators.append(validators.MaxLengthValidator(self.max_length))
++    if self.max_length is not None:
++        self.validators.append(validators.MaxLengthValidator(self.max_length))
+ 
+ def check(self, **kwargs):
+     databases = kwargs.get('databases') or []
+     return [
+
+[0m
+Done.

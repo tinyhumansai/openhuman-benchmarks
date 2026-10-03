@@ -1,0 +1,76 @@
+[0m
+> build · deepseek/deepseek-v4.1-flash
+[0m
+[0m→ [0mRead django/template/autoreload.py
+[0m
+[0m$ [0mcd /testbed && git log --oneline -3 && cat django/__init__.py | grep VERSION
+ee99997f0c bench-baseline
+514997af5e SWE-bench
+0b31e02487 Fixed #33618 -- Fixed MTI updates outside of primary key chain.
+VERSION = (4, 1, 0, "alpha", 0)
+__version__ = get_version(VERSION)
+[0m
+[0m$ [0mcd /testbed && grep -rn "get_template_directories" tests/ django/ | head -50
+tests/template_tests/test_autoreloader.py:70:    def test_get_template_directories(self):
+tests/template_tests/test_autoreloader.py:72:            autoreload.get_template_directories(),
+tests/template_tests/test_autoreloader.py:98:            autoreload.get_template_directories(),
+tests/template_tests/test_autoreloader.py:120:    def test_get_template_directories(self):
+tests/template_tests/test_autoreloader.py:122:            autoreload.get_template_directories(),
+django/template/autoreload.py:10:def get_template_directories():
+django/template/autoreload.py:43:    for directory in get_template_directories():
+django/template/autoreload.py:51:    for template_dir in get_template_directories():
+[0m
+[0m→ [0mRead tests/template_tests/test_autoreloader.py
+[0m
+[0m$ [0mcd /testbed && grep -n "def to_path" -A 8 django/utils/_os.py
+56:def to_path(value):
+57-    """Convert value to a pathlib.Path instance, if not already a Path."""
+58-    if isinstance(value, Path):
+59-        return value
+60-    elif not isinstance(value, str):
+61-        raise TypeError("Invalid path type: %s" % type(value).__name__)
+62-    return Path(value)
+[0m
+[0m← [0mEdit django/template/autoreload.py
+Index: /testbed/django/template/autoreload.py
+===================================================================
+--- /testbed/django/template/autoreload.py
++++ /testbed/django/template/autoreload.py
+@@ -16,17 +16,17 @@
+ for backend in engines.all():
+     if not isinstance(backend, DjangoTemplates):
+         continue
+ 
+-    items.update(cwd / to_path(dir) for dir in backend.engine.dirs)
++    items.update(cwd / to_path(dir) for dir in backend.engine.dirs if dir)
+ 
+     for loader in backend.engine.template_loaders:
+         if not hasattr(loader, "get_dirs"):
+             continue
+         items.update(
+             cwd / to_path(directory)
+             for directory in loader.get_dirs()
+-            if not is_django_path(directory)
++            if directory and not is_django_path(directory)
+         )
+ return items
+ 
+ 
+
+[0m
+[0m$ [0mcd /testbed && python -m pytest tests/template_tests/test_autoreloader.py -q 2>&1 | tail -20
+/opt/miniconda3/envs/testbed/bin/python: No module named pytest
+[0m
+[0m$ [0mcd /testbed/tests && python runtests.py template_tests.test_autoreloader 2>&1 | tail -25
+Testing against Django installed in '/testbed/django' with up to 28 processes
+Found 10 test(s).
+System check identified no issues (0 silenced).
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.025s
+
+OK
+[0m
+The fix filters out empty (falsy) template directory entries before normalizing, so `""` no longer becomes the project root.
+[0m→ [0mRead django/template/autoreload.py[90m [offset=10, limit=22][0m
+Done. `get_template_directories()` now skips falsy directory entries in both `backend.engine.dirs` and loader `get_dirs()`, preventing `""` from normalizing to `cwd` and breaking autoreload.

