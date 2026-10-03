@@ -32,7 +32,7 @@ details{margin:6px 0}summary{cursor:pointer}
 </head>
 <body><main id="app"></main>
 <script type="module">
-import { count, mem, ms, pct as fpct, secs, usd } from "/format.mjs";
+import { count, mem, ms, pct as fpct, secs, usd } from "./format.mjs";
 // Everything from results/ is untrusted text (prompts, model output): it only ever
 // reaches the DOM through textContent, never innerHTML.
 const app = document.getElementById("app");
@@ -44,7 +44,11 @@ const h = (tag, attrs = {}, ...kids) => {
   for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(String(k)));
   return e;
 };
-const api = async (p) => { const r = await fetch(p); if (!r.ok) throw new Error(`${p}: ${r.status}`); return r.json(); };
+// The GitHub Pages build (build-static.mjs) sets data-static and serves each API path as a
+// pre-rendered `.json` file next to the page.
+const STATIC = document.documentElement.dataset.static === "1";
+const REPO = "https://github.com/tinyhumansai/openhuman-benchmarks/tree/main/results";
+const api = async (p) => { const r = await fetch(STATIC ? `.${p}.json` : p); if (!r.ok) throw new Error(`${p}: ${r.status}`); return r.json(); };
 const e = encodeURIComponent;
 // Rough token count for a text of `chars` characters (about 3 per token); the tables' measured o200k counts stay as they are.
 const estTok = (chars) => (chars == null ? null : Math.round(chars / 3));
@@ -114,7 +118,25 @@ async function run(id) {
         tasks.map((t) => h("div", {}, link(`#/task/${e(id)}/${e(x.harness)}/${e(t.task)}`, t.task), h("span", { class: "mut" }, ` ${t.calls} ${t.calls === 1 ? "turn" : "turns"}`))))));
     }
     kids.push(grid);
-  } else kids.push(h("p", { class: "mut" }, "No request captures for this run (it predates capture, or METER_CAPTURE=0)."));
+  } else kids.push(h("p", { class: "mut" }, STATIC
+    ? "Request captures (prompts, tool schemas, transcripts) stay on the bench host; run viewer/server.mjs there to browse them."
+    : "No request captures for this run (it predates capture, or METER_CAPTURE=0)."));
+  const o = await api(`/api/runs/${e(id)}/outcomes`);
+  if (o.tasks.length) {
+    const cell = (x, t) => {
+      const c = o.cells[`${x}/${t}`];
+      if (!c) return h("span", { class: "mut" }, "–");
+      const [label, cls] = c.resolved ? ["pass", "ok"] : c.timed_out ? ["timeout", "bad"] : c.error ? ["error", "bad"]
+        : c.empty_patch ? ["no patch", "warn"] : c.resolved === false ? ["fail", "bad"] : ["ungraded", "mut"];
+      return h("a", { href: `${REPO}/${e(id)}/${e(x)}/${e(t)}`, class: cls, title: `${secs((c.wall_ms ?? 0) / 1000)} · patch ${count(c.patch_bytes)} B` }, label);
+    };
+    const passed = (x) => o.tasks.filter((t) => o.cells[`${x}/${t}`]?.resolved).length;
+    kids.push(h("h2", {}, "Outcomes (per task; links open the patch and logs on GitHub)"),
+      table(["task", ...o.harnesses], [
+        ...o.tasks.map((t) => [t, ...o.harnesses.map((x) => cell(x, t))]),
+        [h("b", {}, "resolved"), ...o.harnesses.map((x) => h("b", {}, `${passed(x)}/${o.tasks.length}`))],
+      ]));
+  }
   if (d.summary_md) kids.push(h("h2", {}, "Summary"), mdView(d.summary_md));
   if (mine === nav) app.replaceChildren(...kids);
 }
