@@ -57,6 +57,7 @@ runner/                in-container entry (cgroup CPU/RAM sampler, patch capture
 bundles/               per-harness build (/opt/harness) + adapters/*.sh headless entry points
 tasks/micro.mjs        5-task micro suite generator
 swebench/              prepare.py (select + task dirs), grade.mjs (official evaluator)
+tbench/                Terminal-Bench via Harbor: OpenHuman agent, run + result conversion
 orchestrate.mjs        host driver: tags the proxy, runs one container per task
 report.mjs             merges everything into results/<run>/summary.{json,md}
 harnesses.lock         pinned harness versions
@@ -90,6 +91,37 @@ node report.mjs --run-id swe-1
 
 Harnesses run one at a time on purpose: two harnesses sharing the host would
 contend for CPU and distort the CPU and latency columns.
+
+## Terminal-Bench 2.0 / 4.0 (OpenHuman only)
+
+Terminal-Bench runs through [Harbor](https://github.com/harbor-framework/harbor), the
+benchmark's own harness, so each task keeps its own environment (prebuilt image or
+Dockerfile), CPU/memory, network policy (public internet, as Terminal-Bench specifies), agent
+timeout and verifier (2.0 grades the agent's container; 4.0 a separate verifier image fed the
+declared artifacts). The bench adds three things:
+
+- `tbench/openhuman_agent.py`: OpenHuman as a Harbor agent. It runs the usual
+  `runner/entry.mjs` + `bundles/adapters/openhuman.sh` inside the task container, so CPU/RAM
+  sampling and the adapter are the same as for every other suite.
+- A compose overlay (written by `tbench/run.mjs`) that mounts the bundle and runner read-only
+  and joins the task container to the meter proxy's network. Every call is metered and
+  captured under `results/<run>/captures/` like any other run.
+- A conversion of Harbor's job dir (kept at `.cache/harbor-jobs/<run>/`) into
+  `results/<run>/openhuman/<task>/` (`result.json`, `harness.log`, `verifier/`,
+  `harbor-result.json`), `runs.jsonl` and `grade.json` (resolved = verifier reward 1), which
+  `report.mjs` and the viewer read.
+
+```bash
+uv tool install harbor
+./run-tbench.sh 2 tb2-sample5     # tbench/instances-tb2-5.txt, dataset terminal-bench@2.0
+./run-tbench.sh 4 tb4-sample5     # tbench/instances-tb4-5.txt, terminal-bench/terminal-bench@4.0.0
+```
+
+Trials run one at a time (`--n-concurrent 1`): the proxy attributes calls to the task tagged
+last. The sample lists are seeded draws over tasks that need no GPU, at most 16 GB, and a
+public network. Unlike the other suites, these containers have internet access, because
+Terminal-Bench is defined that way and its verifiers install their own tooling. The task
+solutions are public on GitHub, so check `captures/` before trusting a pass.
 
 ## Seeing what each harness sends
 

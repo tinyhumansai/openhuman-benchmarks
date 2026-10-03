@@ -1,0 +1,6 @@
+# seed=20261003, 5 of 63 terminal-bench 4 tasks sorted by id (no GPU, memory <= 16 GB, public network)
+atrx-vep-crispr
+batched-eval-parity
+heat-pump-warranty
+payments-pipeline-fix
+vf2-speedup-networkx

@@ -230,7 +230,8 @@ export function toMarkdown(meta, summary) {
   return [
     `# Harness benchmark: ${meta.run_id}`,
     "",
-    `model \`${meta.model}\`, reasoning \`${meta.reasoning}\`, ${meta.cpus} vCPU / ${meta.mem} per task, suite \`${meta.suite}\`.`,
+    // Terminal-Bench runs through Harbor, which applies each task's own CPU/memory limits.
+    `model \`${meta.model}\`, reasoning \`${meta.reasoning}\`, ${/terminal-bench/.test(meta.suite) ? "each task's own CPU/RAM limits (Harbor)" : `${meta.cpus} vCPU / ${meta.mem} per task`}, suite \`${meta.suite}\`.`,
     "",
     head,
     body,

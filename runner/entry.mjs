@@ -5,6 +5,8 @@
 //
 // Env: BENCH_HARNESS BENCH_TASK_ID WORKDIR PROMPT_FILE RESULT_DIR
 //      TASK_TIMEOUT_S (default 1800). /bench/task/{setup,check}.sh run when present.
+//      BENCH_CAPTURE_PATCH=0 leaves the workdir's git state alone (Terminal-Bench tasks grade
+//      the container itself, some of them its git history).
 
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -70,10 +72,14 @@ if (setupScript) {
   if (r.code !== 0) throw new Error(`setup failed (${r.code})`);
 }
 
+const capturePatch = env("BENCH_CAPTURE_PATCH", "1") !== "0";
 // Baseline so the patch contains only what the harness changed.
-spawnSync("git", ["add", "-A"], { cwd: workdir });
-spawnSync("git", ["-c", "user.email=bench@local", "-c", "user.name=bench", "commit", "-q", "--allow-empty", "-m", "bench-baseline"], { cwd: workdir });
-const baseline = spawnSync("git", ["rev-parse", "HEAD"], { cwd: workdir, encoding: "utf8" }).stdout.trim();
+let baseline = null;
+if (capturePatch) {
+  spawnSync("git", ["add", "-A"], { cwd: workdir });
+  spawnSync("git", ["-c", "user.email=bench@local", "-c", "user.name=bench", "commit", "-q", "--allow-empty", "-m", "bench-baseline"], { cwd: workdir });
+  baseline = spawnSync("git", ["rev-parse", "HEAD"], { cwd: workdir, encoding: "utf8" }).stdout.trim();
+}
 
 log("running adapter");
 const sampler = startSampler(500);
@@ -86,12 +92,15 @@ const run = await runShell("/opt/harness/adapter.sh", {
 const endedAt = Date.now();
 const resources = summarize(sampler.stop());
 
-spawnSync("git", ["add", "-A"], { cwd: workdir });
-const diff = spawnSync("git", ["diff", "--cached", baseline], {
-  cwd: workdir,
-  encoding: "utf8",
-  maxBuffer: 256 * 1024 * 1024,
-});
+let diff = { stdout: "" };
+if (capturePatch) {
+  spawnSync("git", ["add", "-A"], { cwd: workdir });
+  diff = spawnSync("git", ["diff", "--cached", baseline], {
+    cwd: workdir,
+    encoding: "utf8",
+    maxBuffer: 256 * 1024 * 1024,
+  });
+}
 fs.writeFileSync(path.join(resultDir, "patch.diff"), diff.stdout ?? "");
 
 let check = null;

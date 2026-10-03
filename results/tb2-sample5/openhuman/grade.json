@@ -1,0 +1,32 @@
+{
+  "adaptive-rejection-sampler": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0
+  },
+  "build-cython-ext": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false,
+    "reward": 1
+  },
+  "db-wal-recovery": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0
+  },
+  "mailman": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0
+  },
+  "sparql-university": {
+    "resolved": true,
+    "empty_patch": false,
+    "error": false,
+    "reward": 1
+  }
+}

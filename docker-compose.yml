@@ -76,6 +76,8 @@ services:
       BENCH_MODEL: ${BENCH_MODEL:-deepseek/deepseek-v4.1-flash}
       BENCH_REASONING: ${BENCH_REASONING:-high}
       DUMMY_API_KEY: bench-dummy-key
+      # Bench-only harness knobs, empty unless a run sets them.
+      OPENHUMAN_COMPACTION_TRIGGER_TOKENS: ${OPENHUMAN_COMPACTION_TRIGGER_TOKENS:-}
       # No telemetry / update checks from any harness.
       DISABLE_TELEMETRY: "1"
       DISABLE_AUTOUPDATER: "1"
