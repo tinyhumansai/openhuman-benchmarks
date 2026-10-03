@@ -17,13 +17,15 @@ Host env (set by tbench/run.mjs):
   BENCH_METER_LOG       host path of meter.jsonl (to report tokens/cost back to Harbor)
   BENCH_HARNESS_VERSION the OpenHuman build (bundle GIT_SHA), reported as the agent version
   BENCH_MODEL, BENCH_REASONING
-  OPENHUMAN_AGENT_TURN_TIMEOUT_SECS  OpenHuman's own turn ceiling; default 0 (none), so the
-                        task's agent timeout, enforced by Harbor, is the only limit
+  OPENHUMAN_AGENT_TURN_TIMEOUT_SECS  OpenHuman's own turn ceiling; unset = the task's agent timeout
+                        (task.toml) minus BENCH_TURN_MARGIN_S (default 120), set by runner/turn-budget.mjs;
+                        0 = no ceiling, so only Harbor's timeout limits the turn
 """
 
 import json
 import os
 import shlex
+import tomllib
 from pathlib import Path
 from urllib.parse import quote
 
@@ -37,6 +39,21 @@ HARNESS = "openhuman"
 def task_key(logs_dir: Path) -> str:
     """Trial dirs are named <task>__<suffix>; the agent's logs dir sits inside one."""
     return logs_dir.parent.name.rsplit("__", 1)[0]
+
+
+def task_budget_secs(key: str) -> str:
+    """The task's agent timeout as Harbor will enforce it (task.toml [agent] timeout_sec, times
+    BENCH_AGENT_TIMEOUT_MULTIPLIER if the run passed --agent-timeout-multiplier); "" when unknown."""
+    cache = Path(os.environ.get("HARBOR_TASK_CACHE", Path.home() / ".cache/harbor/tasks"))
+    tomls = sorted(cache.glob(f"*/{key}/task.toml"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for toml in tomls:
+        try:
+            secs = tomllib.loads(toml.read_text(encoding="utf8")).get("agent", {}).get("timeout_sec")
+        except (OSError, ValueError):
+            continue
+        if isinstance(secs, (int, float)) and secs > 0:
+            return str(int(secs * float(os.environ.get("BENCH_AGENT_TIMEOUT_MULTIPLIER", "1"))))
+    return ""
 
 
 def tag_prefix(tag: dict) -> str:
@@ -88,6 +105,7 @@ class OpenHuman(BaseAgent):
         # /logs/agent is the host's trial agent dir, mounted into the container.
         (self.logs_dir / "prompt.txt").write_text(instruction, encoding="utf8")
         workdir = (await environment.exec("pwd", timeout_sec=30)).stdout.strip() or "/"
+        budget = task_budget_secs(key)
         env = {
             "BENCH_HARNESS": HARNESS,
             "BENCH_TASK_ID": key,
@@ -104,8 +122,10 @@ class OpenHuman(BaseAgent):
             "BENCH_REASONING": os.environ.get("BENCH_REASONING", "high"),
             "DUMMY_API_KEY": "bench-dummy-key",
             "OPENHUMAN_COMPACTION_TRIGGER_TOKENS": os.environ.get("OPENHUMAN_COMPACTION_TRIGGER_TOKENS", ""),
-            # OpenHuman's default 60 min turn ceiling would cut 8 h Terminal-Bench 4.0 tasks short.
-            "OPENHUMAN_AGENT_TURN_TIMEOUT_SECS": os.environ.get("OPENHUMAN_AGENT_TURN_TIMEOUT_SECS") or "0",
+            # OpenHuman's default 60 min turn ceiling would cut 8 h Terminal-Bench 4.0 tasks short, so
+            # runner/turn-budget.mjs sets it to the task's own agent budget minus a margin.
+            "OPENHUMAN_AGENT_TURN_TIMEOUT_SECS": os.environ.get("OPENHUMAN_AGENT_TURN_TIMEOUT_SECS", ""),
+            "BENCH_TURN_BUDGET_S": budget,
             "DISABLE_TELEMETRY": "1",
             "DISABLE_AUTOUPDATER": "1",
             "DO_NOT_TRACK": "1",

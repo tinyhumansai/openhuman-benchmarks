@@ -56,6 +56,16 @@ if (instances) {
       .filter((l) => l && !l.startsWith("#")),
   );
 }
+/** Harbor's agent timeout multiplier from extra harbor args (defaults to --timeout-multiplier, then 1). */
+function agentTimeoutMultiplier(args) {
+  const flag = (name) => {
+    const i = args.findIndex((a) => a === name || a.startsWith(`${name}=`));
+    if (i === -1) return null;
+    const v = Number(args[i].includes("=") ? args[i].split("=")[1] : args[i + 1]);
+    return Number.isFinite(v) && v > 0 ? v : null;
+  };
+  return flag("--agent-timeout-multiplier") ?? flag("--timeout-multiplier") ?? 1;
+}
 const nConcurrent = opt("--n-concurrent", "1");
 const convertOnly = own.includes("--convert-only");
 const suite = `terminal-bench-${bench}`;
@@ -124,6 +134,8 @@ services:
       BENCH_RUN_ID: runId,
       BENCH_METER_LOG: path.join(root, "results", "meter.jsonl"),
       BENCH_HARNESS_VERSION: meta.harness_version ?? "",
+      // The agent derives OpenHuman's turn timeout from the task's budget, which these scale.
+      BENCH_AGENT_TIMEOUT_MULTIPLIER: String(agentTimeoutMultiplier(extra)),
     },
   });
   process.stdout.write(`[tbench] harbor exited ${h.status}\n`);

@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 /** Bench-only harness knobs a run may set; recorded when non-empty. */
-const KNOB = /^(OPENHUMAN_|TASK_TIMEOUT_S$|BENCH_(MODEL|REASONING|PROVIDER|CPUS|MEM|NET_INTERNAL)$)/;
+const KNOB = /^(OPENHUMAN_|TASK_TIMEOUT_S$|BENCH_(MODEL|REASONING|TURN_MARGIN_S|PROVIDER|CPUS|MEM|NET_INTERNAL)$)/;
 
 /**
  * @param root    bench checkout
