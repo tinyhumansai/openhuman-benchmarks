@@ -1,4 +1,19 @@
-# Cross-harness benchmark
+# OpenHuman benchmarks
+
+Public cross-harness benchmarks for [OpenHuman](https://github.com/tinyhumansai/openhuman).
+Browse the results at **https://tinyhumansai.github.io/openhuman-benchmarks/**.
+
+- `results/<run>/` is committed: summaries, grades, per-task patches, harness logs and the
+  meter proxy's per-call records (`results/meter.jsonl`). Raw request captures
+  (`results/<run>/captures/`, the full prompts and responses) are gitignored and stay on the
+  bench host; `node viewer/server.mjs` there shows them alongside everything else.
+- Every push to `main` rebuilds the site (`viewer/build-static.mjs`, `.github/workflows/pages.yml`).
+- OpenHuman is vendored as a submodule at `vendor/openhuman`; `./bundles/build.sh openhuman`
+  compiles that checkout. Move the pin to benchmark a different build.
+
+See [RUNBOOK.md](RUNBOOK.md) to reproduce a run.
+
+## Cross-harness benchmark
 
 Runs OpenHuman, Claude Code, Codex, OpenCode, OpenClaw and Hermes on the same
 tasks with the same model, the same OpenRouter key and the same reasoning
