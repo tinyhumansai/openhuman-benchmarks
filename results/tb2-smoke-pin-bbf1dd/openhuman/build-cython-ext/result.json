@@ -1,0 +1,30 @@
+{
+  "harness": "openhuman",
+  "task": "build-cython-ext",
+  "started_epoch_ms": 1791030647496,
+  "ended_epoch_ms": 1791030949327,
+  "wall_ms": 301831,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 0,
+  "resources": {
+    "cpu_seconds": 81.672314,
+    "avg_cpu_cores": 0.270589548455924,
+    "peak_mem_bytes": 914501632,
+    "peak_anon_bytes": 563531776,
+    "avg_anon_bytes": 111239147.62189054,
+    "avg_mem_bytes": 346056096.053068,
+    "wall_seconds": 301.831,
+    "samples": 603
+  },
+  "check": {
+    "passed": true,
+    "reward": 1,
+    "verifier": "harbor"
+  },
+  "harbor": {
+    "exception": null,
+    "trial": "build-cython-ext__v3Lnf82",
+    "job": ".cache/harbor-jobs/tb2-smoke-pin-bbf1dd/openhuman-tb2"
+  }
+}

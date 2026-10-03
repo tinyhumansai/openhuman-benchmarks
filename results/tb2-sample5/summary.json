@@ -5,7 +5,11 @@
     "model": "deepseek/deepseek-v4.1-flash",
     "reasoning": "high",
     "cpus": "4",
-    "mem": "8g"
+    "mem": "8g",
+    "harness_versions": {
+      "openhuman": null
+    },
+    "n_concurrent": 1
   },
   "summary": {
     "openhuman": {
@@ -25,6 +29,9 @@
       "swe_resolved": 2,
       "swe_graded": 5,
       "patch_produced": 0,
+      "tests_passed": 16,
+      "tests_total": 33,
+      "tests_tasks": 5,
       "harness_errors": 0,
       "timeouts": 0,
       "llm_calls": 134,

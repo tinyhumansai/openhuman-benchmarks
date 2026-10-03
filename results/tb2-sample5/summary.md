@@ -2,10 +2,12 @@
 
 model `deepseek/deepseek-v4.1-flash`, reasoning `high`, each task's own CPU/RAM limits (Harbor), suite `terminal-bench-2`.
 
+builds: openhuman `unrecorded`.
+
 | metric | openhuman |
 |---|---|
-| resolved (SWE) / checks passed | 2/5 resolved |
-| patch produced | 0/5 |
+| resolved (task verifier, reward 1) | 2/5 resolved |
+| verifier tests passed (tasks reporting) | 16/33 (5) |
 | harness errors / timeouts (all tasks) | 0 / 0 |
 | system prompt tokens | 917 |
 | tool schema tokens (count) | 3,511 (19) |
