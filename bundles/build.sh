@@ -13,7 +13,9 @@ while IFS='=' read -r k v; do
   args+=(--build-arg "$k=$v")
 done < "$here/harnesses.lock"
 
-image="bench-bundle-$name"
+# BUNDLE_NAME extracts (and tags) the bundle under another name, so a variant can be built and
+# run (HARNESS_BUNDLE=<name>) without replacing the bundle another run is using.
+image="bench-bundle-${BUNDLE_NAME:-$name}"
 case "$name" in
   openhuman)
     if [ ! -f "$repo/Cargo.toml" ]; then
@@ -25,6 +27,7 @@ case "$name" in
       --build-context "bench=$here/bundles" \
       --build-arg "ADAPTER=adapters/$name.sh" \
       --build-arg "GIT_SHA=$(git -C "$repo" rev-parse --short HEAD)" \
+      --build-arg "LOCAL_MODULES=${LOCAL_MODULES:-}" \
       -t "$image" "$repo"
     ;;
   deepseek-harness-minimal)
@@ -37,7 +40,7 @@ case "$name" in
     ;;
 esac
 
-out="$here/.cache/harness/$name"
+out="$here/.cache/harness/${BUNDLE_NAME:-$name}"
 rm -rf "$out"; mkdir -p "$out"
 cid="$(docker create "$image" /bin/true)"
 trap 'docker rm -f "$cid" >/dev/null' EXIT

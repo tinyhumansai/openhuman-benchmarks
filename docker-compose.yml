@@ -78,13 +78,15 @@ services:
       DUMMY_API_KEY: bench-dummy-key
       # Bench-only harness knobs, empty unless a run sets them.
       OPENHUMAN_COMPACTION_TRIGGER_TOKENS: ${OPENHUMAN_COMPACTION_TRIGGER_TOKENS:-}
+      OPENHUMAN_COMPACTION_STRATEGY: ${OPENHUMAN_COMPACTION_STRATEGY:-}
       # No telemetry / update checks from any harness.
       DISABLE_TELEMETRY: "1"
       DISABLE_AUTOUPDATER: "1"
       DO_NOT_TRACK: "1"
       CI: "1"
     volumes:
-      - ./.cache/harness/${HARNESS}:/opt/harness:ro
+      # HARNESS_BUNDLE runs a bundle extracted under another name (BUNDLE_NAME at build time).
+      - ./.cache/harness/${HARNESS_BUNDLE:-${HARNESS}}:/opt/harness:ro
       - ./runner:/opt/bench/runner:ro
       - ${TASK_DIR:-./tasks}:/bench/task:ro
       - ./results/${RUN_ID:-dev}/${HARNESS}/${TASK_ID}:/results
