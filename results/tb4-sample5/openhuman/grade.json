@@ -1,0 +1,52 @@
+{
+  "atrx-vep-crispr": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0,
+    "tests": {
+      "passed": 12,
+      "total": 16
+    }
+  },
+  "batched-eval-parity": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0,
+    "tests": {
+      "passed": 3,
+      "total": 5
+    }
+  },
+  "heat-pump-warranty": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0,
+    "tests": {
+      "passed": 13,
+      "total": 20
+    }
+  },
+  "payments-pipeline-fix": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0,
+    "tests": {
+      "passed": 2,
+      "total": 3
+    }
+  },
+  "vf2-speedup-networkx": {
+    "resolved": false,
+    "empty_patch": false,
+    "error": false,
+    "reward": 0,
+    "tests": {
+      "passed": 59,
+      "total": 60
+    }
+  }
+}

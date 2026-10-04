@@ -1,5 +1,5 @@
 .env
-.cache/
+.cache
 tasks/generated/
 # Raw request captures (full prompts and responses) stay on the bench host.
 results/*/captures/
@@ -9,3 +9,4 @@ site/
 results-archive/
 # Compaction dataset checkpoints carry full prompts and tool outputs (built by compaction/extract.mjs).
 compaction/data/
+__pycache__/

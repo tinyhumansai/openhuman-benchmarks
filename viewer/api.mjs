@@ -6,6 +6,7 @@ import path from "node:path";
 import readline from "node:readline";
 import { classify } from "../contexts.mjs";
 import { orderHarnesses } from "../format.mjs";
+import { latestAttempts } from "../report.mjs";
 import { toMarkdown } from "./transcript.mjs";
 
 let RESULTS = "";
@@ -21,7 +22,10 @@ const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const dirs = (d) =>
   fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name) : [];
 
-/** Meter records for one run, streamed so a large meter.jsonl is never loaded whole. */
+/**
+ * Meter records for one run, streamed so a large meter.jsonl is never loaded whole. Calls from an
+ * earlier, aborted attempt at a task under the same run id are dropped, as in report.mjs.
+ */
 async function meterRecords(run) {
   const file = path.join(RESULTS, "meter.jsonl");
   const out = [];
@@ -36,7 +40,16 @@ async function meterRecords(run) {
       // a half-written trailing line while a run is live
     }
   }
-  return out;
+  const index = path.join(RESULTS, run, "runs.jsonl");
+  if (!fs.existsSync(index)) return out;
+  const rows = fs.readFileSync(index, "utf8").split("\n").filter(Boolean).flatMap((l) => {
+    try {
+      return [JSON.parse(l)];
+    } catch {
+      return [];
+    }
+  });
+  return latestAttempts(rows, out).meter;
 }
 
 const sum = (xs, f) => xs.reduce((a, x) => a + (f(x) ?? 0), 0);

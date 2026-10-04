@@ -5,6 +5,8 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 # The OpenHuman bundle compiles the vendored checkout (git submodule vendor/openhuman).
 # OPENHUMAN_SRC=<checkout> builds another tree instead (e.g. a feature worktree under test).
+# BUNDLE_NAME=<name> extracts to .cache/harness/<name>/ instead of .cache/harness/<harness>/, so a
+# build under test does not replace the bundle another checkout sharing .cache is running.
 repo="${OPENHUMAN_SRC:-$here/vendor/openhuman}"
 name="${1:?usage: build.sh <harness>}"
 args=()

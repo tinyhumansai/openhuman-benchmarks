@@ -1,0 +1,6 @@
+# seed=20261003, 5 of 89 terminal-bench 2 tasks sorted by id (no GPU, memory <= 16 GB, public network)
+adaptive-rejection-sampler
+build-cython-ext
+db-wal-recovery
+mailman
+sparql-university

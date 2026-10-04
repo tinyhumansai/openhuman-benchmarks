@@ -36,8 +36,12 @@ services:
       BENCH_REASONING: ${BENCH_REASONING:-high}
       BENCH_PROVIDER: ${BENCH_PROVIDER:-DeepSeek} # pinned, no fallbacks; empty = let OpenRouter route
       METER_LOG: /results/meter.jsonl
+      # Harbor task containers reach the proxy through this socket (tbench/run.mjs mounts the
+      # directory), so the bench never adds networks to a task Harbor owns.
+      METER_SOCKET: /sock/meter.sock
     volumes:
       - ./results:/results
+      - ./.cache/meter-sock/${COMPOSE_PROJECT_NAME:-harness-bench}:/sock
     ports:
       - "127.0.0.1:${METER_HOST_PORT:-18080}:8080" # control plane for the orchestrator
     networks: [bench, egress]
@@ -79,6 +83,7 @@ services:
       # Bench-only harness knobs, empty unless a run sets them.
       OPENHUMAN_COMPACTION_TRIGGER_TOKENS: ${OPENHUMAN_COMPACTION_TRIGGER_TOKENS:-}
       OPENHUMAN_COMPACTION_STRATEGY: ${OPENHUMAN_COMPACTION_STRATEGY:-}
+      OPENHUMAN_AGENT_TURN_TIMEOUT_SECS: ${OPENHUMAN_AGENT_TURN_TIMEOUT_SECS:-}
       # No telemetry / update checks from any harness.
       DISABLE_TELEMETRY: "1"
       DISABLE_AUTOUPDATER: "1"

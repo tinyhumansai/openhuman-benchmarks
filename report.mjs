@@ -74,6 +74,8 @@ export function aggregate(meter, tasks) {
     const resolved = mine.filter((t) => t.grade?.resolved).length;
     const graded = mine.filter((t) => t.grade).length;
     const nonEmptyPatch = mine.filter((t) => (t.result?.patch_bytes ?? 0) > 0).length;
+    // Verifier test counts (Terminal-Bench): partial progress that a binary reward hides.
+    const withTests = mine.filter((t) => t.grade?.tests);
 
     // "Solved" = resolved by the official grader on SWE runs, or the task's own check on the
     // micro suite. Per-task KPIs below are measured over solved tasks only, so a harness is
@@ -114,6 +116,9 @@ export function aggregate(meter, tasks) {
       swe_resolved: graded ? resolved : null,
       swe_graded: graded,
       patch_produced: nonEmptyPatch,
+      tests_passed: withTests.length ? sum(withTests.map((t) => t.grade.tests.passed)) : null,
+      tests_total: withTests.length ? sum(withTests.map((t) => t.grade.tests.total)) : null,
+      tests_tasks: withTests.length,
       harness_errors: mine.filter((t) => !t.result || t.result.exit_code !== 0 || t.result.timed_out).length,
       timeouts: mine.filter((t) => t.result?.timed_out).length,
       llm_calls: calls.length,
@@ -191,10 +196,15 @@ const rate = (num, den) => (den ? num / den : null);
 
 export function toMarkdown(meta, summary) {
   const names = orderHarnesses(Object.keys(summary));
+  // Terminal-Bench grades the container with each task's own verifier, and captures no patch.
+  const tbench = /terminal-bench/.test(meta.suite ?? "");
   // [label, display(s), raw(s) used for ranking, better: "low" | "high" | null]
   const rows = [
-    ["resolved (SWE) / checks passed", (s) => (s.swe_resolved === null ? `${s.check_passed}/${s.tasks} checks` : `${s.swe_resolved}/${s.swe_graded} resolved`), (s) => (s.swe_resolved === null ? rate(s.check_passed, s.tasks) : rate(s.swe_resolved, s.swe_graded)), "high"],
-    ["patch produced", (s) => `${s.patch_produced}/${s.tasks}`],
+    [tbench ? "resolved (task verifier, reward 1)" : "resolved (SWE) / checks passed", (s) => (s.swe_resolved === null ? `${s.check_passed}/${s.tasks} checks` : `${s.swe_resolved}/${s.swe_graded} resolved`), (s) => (s.swe_resolved === null ? rate(s.check_passed, s.tasks) : rate(s.swe_resolved, s.swe_graded)), "high"],
+    ...(names.some((n) => summary[n].tests_total)
+      ? [["verifier tests passed (tasks reporting)", (s) => (s.tests_total ? `${count(s.tests_passed)}/${count(s.tests_total)} (${s.tests_tasks})` : "-"), (s) => rate(s.tests_passed, s.tests_total), "high"]]
+      : []),
+    ...(tbench ? [] : [["patch produced", (s) => `${s.patch_produced}/${s.tasks}`]]),
     ["harness errors / timeouts (all tasks)", (s) => `${s.harness_errors} / ${s.timeouts}`, (s) => s.harness_errors + s.timeouts, "low"],
     ["system prompt tokens", (s) => count(s.system_prompt_tokens), (s) => s.system_prompt_tokens, "low"],
     ["tool schema tokens (count)", (s) => `${count(s.tool_schema_tokens)} (${count(s.tool_count)})`, (s) => s.tool_schema_tokens, "low"],
@@ -230,7 +240,14 @@ export function toMarkdown(meta, summary) {
   return [
     `# Harness benchmark: ${meta.run_id}`,
     "",
-    `model \`${meta.model}\`, reasoning \`${meta.reasoning}\`, ${meta.cpus} vCPU / ${meta.mem} per task, suite \`${meta.suite}\`.`,
+    // Terminal-Bench runs through Harbor, which applies each task's own CPU/memory limits.
+    `model \`${meta.model}\`, reasoning \`${meta.reasoning}\`, ${tbench ? "each task's own CPU/RAM limits (Harbor)" : `${meta.cpus} vCPU / ${meta.mem} per task`}, suite \`${meta.suite}\`.`,
+    ...(meta.harness_versions && Object.keys(meta.harness_versions).length
+      ? ["", `builds: ${Object.entries(meta.harness_versions).map(([h, v]) => `${h} \`${v ?? "unrecorded"}\``).join(", ")}.`]
+      : []),
+    ...(meta.n_concurrent > 1
+      ? ["", `**${meta.n_concurrent} trials ran concurrently**: CPU, RAM and latency figures are not comparable with serial runs.`]
+      : []),
     "",
     head,
     body,
@@ -304,6 +321,11 @@ function main() {
     reasoning: meter[0]?.reasoning_effort ?? "?",
     cpus: process.env.BENCH_CPUS || "4",
     mem: process.env.BENCH_MEM || "8g",
+    // From each harness's newest row: the build that produced the counted attempts.
+    harness_versions: Object.fromEntries(
+      [...index].sort((a, b) => a.started_epoch_ms - b.started_epoch_ms).map((r) => [r.harness, r.harness_version ?? null]),
+    ),
+    n_concurrent: Math.max(1, ...index.map((r) => r.n_concurrent ?? 1)),
   };
   fs.writeFileSync(path.join(runDir, "summary.json"), JSON.stringify({ meta, summary }, null, 2));
   const md = toMarkdown(meta, summary);
