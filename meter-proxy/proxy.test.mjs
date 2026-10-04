@@ -100,6 +100,11 @@ test("splitTag reads and strips a per-request tag prefix", () => {
     url: "/v1/chat/completions",
   });
   assert.deepEqual(splitTag("/v1/chat/completions"), { tag: null, url: "/v1/chat/completions" });
+  assert.deepEqual(splitTag("/__tag/r/openhuman/t/__attempt/17%2F1/v1/chat/completions"), {
+    tag: { run_id: "r", harness: "openhuman", task: "t", attempt: "17/1" },
+    url: "/v1/chat/completions",
+  });
+  assert.deepEqual(splitTag("/__tag/r/h/t/__attempt/9"), { tag: { run_id: "r", harness: "h", task: "t", attempt: "9" }, url: "/" });
 });
 
 test("a per-request tag overrides the global tag for that call only", async () => {
@@ -136,6 +141,31 @@ test("a per-request tag overrides the global tag for that call only", async () =
     .map((r) => `${r.run_id}/${r.task}`)
     .sort();
   assert.deepEqual(tasks, ["g/global", "r2/a", "r2/b"]);
+  proxy.server.close();
+  fake.close();
+});
+
+test("the control-plane tag carries an attempt id onto every record", async () => {
+  const fake = http.createServer((req, res) => {
+    req.resume();
+    req.on("end", () => {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ choices: [], usage: { prompt_tokens: 1, completion_tokens: 1 } }));
+    });
+  });
+  const fakePort = await listen(fake);
+  const logPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "meter-")), "meter.jsonl");
+  const proxy = createProxy({ upstream: `http://127.0.0.1:${fakePort}/api`, model: "m", apiKey: "k", logPath, capture: false });
+  const port = await listen(proxy.server);
+  const base = `http://127.0.0.1:${port}`;
+  const call = (prefix = "") =>
+    fetch(`${base}${prefix}/chat/completions`, { method: "POST", body: JSON.stringify({ model: "x", messages: [] }) }).then((r) => r.text());
+  await fetch(`${base}/__bench/run`, { method: "POST", body: JSON.stringify({ run_id: "r", harness: "h", task: "t", attempt: "a1" }) });
+  await call();
+  await call("/__tag/r/h/t/__attempt/a2");
+  await call("/__tag/r/h/t");
+  const rows = fs.readFileSync(logPath, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.deepEqual(rows.map((r) => r.attempt), ["a1", "a2", undefined]);
   proxy.server.close();
   fake.close();
 });

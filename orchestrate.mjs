@@ -117,10 +117,13 @@ async function main() {
       const taskKey = o.repeat > 1 ? `${task.id}#r${rep}` : task.id;
       const resultDir = path.join(runDir, o.harness, taskKey);
       fs.mkdirSync(resultDir, { recursive: true });
-      await tagProxy(port, { run_id: o.runId, harness: o.harness, task: taskKey });
+      // One id per try: meter rows and this task's runs.jsonl row share it, so a task re-run under
+      // the same run id (after an abort) does not leak the aborted try's calls into the graded one.
+      const startedAt = Date.now();
+      const attempt = String(startedAt);
+      await tagProxy(port, { run_id: o.runId, harness: o.harness, task: taskKey, attempt });
 
       process.stdout.write(`[bench] ${o.harness} ${taskKey} ...\n`);
-      const startedAt = Date.now();
       const r = sh(
         "docker",
         ["compose", "--profile", "task", "run", "--rm", "--no-deps", "task"],
@@ -143,6 +146,7 @@ async function main() {
         suite: o.suite,
         task: task.id,
         task_key: taskKey,
+        attempt,
         compose_exit: r.status,
         ...meta,
         started_epoch_ms: startedAt,
