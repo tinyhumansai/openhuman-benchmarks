@@ -127,9 +127,11 @@ uv tool install harbor
 Each call carries its trial's tag as a path prefix (`/__tag/<run>/<harness>/<task>/`) that the
 proxy strips, so `--n-concurrent N` is metered correctly. Trials still run one at a time by
 default, because CPU and latency are only comparable between serial runs; a summary notes when
-trials ran concurrently. OpenHuman's own 60 min turn ceiling is turned off
-(`OPENHUMAN_AGENT_TURN_TIMEOUT_SECS=0`), so the task's agent timeout, which Harbor enforces, is
-the only limit, as for every other Harbor agent. Each row in `runs.jsonl`, and Harbor's
+trials ran concurrently. OpenHuman's own turn ceiling (60 min by default) is set to the task's agent timeout from
+`task.toml` (times Harbor's agent/timeout multiplier) minus 120 s (`BENCH_TURN_MARGIN_S`), so the
+turn ends itself and records a stop reason before Harbor's kill; the SWE and DeepSWE suites derive it
+the same way from `TASK_TIMEOUT_S` (`runner/turn-budget.mjs`). An explicit
+`OPENHUMAN_AGENT_TURN_TIMEOUT_SECS` wins, and `0` removes the ceiling. Each row in `runs.jsonl`, and Harbor's
 `agent_info.version`, records the OpenHuman build (the bundle's `GIT_SHA`). The sample lists are seeded draws over tasks that need no GPU, at most 16 GB, and a
 public network. Unlike the other suites, these containers have internet access, because
 Terminal-Bench is defined that way and its verifiers install their own tooling. The task

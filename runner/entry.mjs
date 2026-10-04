@@ -4,7 +4,8 @@
 // patch and runs the (uncharged) check. Writes result.json for the host.
 //
 // Env: BENCH_HARNESS BENCH_TASK_ID WORKDIR PROMPT_FILE RESULT_DIR
-//      TASK_TIMEOUT_S (default 1800). /bench/task/{setup,check}.sh run when present.
+//      TASK_TIMEOUT_S (default 1800). BENCH_TURN_BUDGET_S (the budget OpenHuman's turn ceiling is derived
+//      from, default TASK_TIMEOUT_S) and BENCH_TURN_MARGIN_S (default 120); see turn-budget.mjs. /bench/task/{setup,check}.sh run when present.
 //      BENCH_CAPTURE_PATCH=0 leaves the workdir's git state alone (Terminal-Bench tasks grade
 //      the container itself, some of them its git history).
 
@@ -12,6 +13,7 @@ import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { startSampler, summarize } from "./cgroup.mjs";
+import { turnTimeoutSecs } from "./turn-budget.mjs";
 
 const env = (k, d) => process.env[k] ?? d;
 const harness = env("BENCH_HARNESS");
@@ -81,6 +83,12 @@ if (capturePatch) {
   baseline = spawnSync("git", ["rev-parse", "HEAD"], { cwd: workdir, encoding: "utf8" }).stdout.trim();
 }
 
+// OpenHuman ends its own turn a margin before the task budget, so the run records a stop reason.
+if (harness.startsWith("openhuman")) {
+  const turn = turnTimeoutSecs();
+  if (turn !== null) process.env.OPENHUMAN_AGENT_TURN_TIMEOUT_SECS = turn;
+  log(`openhuman turn timeout ${turn ?? "default"}s`);
+}
 log("running adapter");
 const sampler = startSampler(500);
 const startedAt = Date.now();

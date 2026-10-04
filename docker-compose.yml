@@ -84,6 +84,7 @@ services:
       # Bench-only harness knobs, empty unless a run sets them.
       OPENHUMAN_COMPACTION_TRIGGER_TOKENS: ${OPENHUMAN_COMPACTION_TRIGGER_TOKENS:-}
       OPENHUMAN_AGENT_TURN_TIMEOUT_SECS: ${OPENHUMAN_AGENT_TURN_TIMEOUT_SECS:-}
+      BENCH_TURN_MARGIN_S: ${BENCH_TURN_MARGIN_S:-}
       # No telemetry / update checks from any harness.
       DISABLE_TELEMETRY: "1"
       DISABLE_AUTOUPDATER: "1"
