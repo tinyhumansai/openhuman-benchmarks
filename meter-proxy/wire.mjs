@@ -30,15 +30,35 @@ export function upstreamRoute(urlPath) {
   return query ? `${route}?${query}` : route;
 }
 
+/** A model id as OpenRouter names it: hosts may prefix it with `openrouter/`. */
+const routeId = (m) => String(m ?? "").trim().replace(/^openrouter\//, "");
+
+/** Whether `requested` is one of the models that keep their own model instead of the pinned one. */
+export function isPassthrough(requested, allowlist) {
+  if (!requested || !allowlist?.length) return false;
+  const id = routeId(requested);
+  return allowlist.some((m) => routeId(m) === id);
+}
+
 /**
  * Pin the controlled variables on one request body: model, reasoning effort,
  * and ask the upstream to report cost/usage. Returns the rewritten object and
  * the fields that were overridden (so the log can show what a harness tried to
  * send versus what was forwarded).
  */
-export function rewriteRequest(format, body, { model, effort, provider }) {
+export function rewriteRequest(format, body, { model, effort, provider, passthrough }) {
   const out = { ...body };
   const overridden = {};
+  if (isPassthrough(body.model, passthrough)) {
+    // A model the host pins on purpose (OpenHuman's vision sub-agent): the controlled variables
+    // describe the main agent's model, not this one, so its model, reasoning and provider stay
+    // as sent. Usage and cost are still requested.
+    out.usage = { ...(typeof out.usage === "object" ? out.usage : {}), include: true };
+    if (format === FORMATS.CHAT && out.stream === true) {
+      out.stream_options = { ...(out.stream_options ?? {}), include_usage: true };
+    }
+    return { body: out, overridden, passthrough: true };
+  }
   if (out.model !== model) overridden.model = out.model ?? null;
   out.model = model;
 

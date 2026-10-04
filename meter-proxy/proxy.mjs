@@ -11,6 +11,10 @@
 //   BENCH_MODEL        pinned model slug (required)
 //   BENCH_REASONING    pinned reasoning effort (default high)
 //   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (default DeepSeek; empty = unpinned)
+//   BENCH_PASSTHROUGH_MODELS  comma-separated models that keep their own model, reasoning and
+//                      provider instead of being pinned (default: OpenHuman's vision sub-agent,
+//                      qwen/qwen3.5-flash-02-23; an `openrouter/` prefix is ignored; empty = none).
+//                      Their records carry passthrough:true and a cost only when upstream reports one.
 //   METER_LOG          JSONL output (default /results/meter.jsonl)
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
 //   METER_CAPTURE=0    do not store request captures (system prompt, tools, messages);
@@ -73,6 +77,7 @@ function decoderFor(encoding) {
 // DeepSeek harness's max_tokens=256000) and cached tokens at 1/50 of the uncached price. Note that
 // pinning it on the older `deepseek-v4-flash` slug silently serves v4.1, so the slug and pin go together.
 export const DEFAULT_PROVIDER = "DeepSeek";
+export const DEFAULT_PASSTHROUGH = "qwen/qwen3.5-flash-02-23"; // OpenHuman's vision sub-agent
 
 const TAG_PREFIX = /^\/__tag\/([^/]+)\/([^/]+)\/([^/]+)(?:\/__attempt\/([^/]+))?(\/.*)?$/;
 
@@ -92,6 +97,7 @@ export function createProxy(opts) {
   const model = opts.model;
   const effort = opts.effort ?? "high";
   const provider = opts.provider || null;
+  const passthroughModels = opts.passthroughModels ?? [];
   const apiKey = opts.apiKey;
   let pricing = opts.pricing ?? null;
   let run = { run_id: "untagged", harness: "untagged", task: "untagged" };
@@ -202,16 +208,17 @@ export function createProxy(opts) {
             });
             prevState.set(key, built.state);
           }
-          const rewritten = rewriteRequest(format, parsed, { model, effort, provider });
+          const rewritten = rewriteRequest(format, parsed, { model, effort, provider, passthrough: passthroughModels });
           outBody = Buffer.from(JSON.stringify(rewritten.body));
           record = {
             seq: callSeq,
             at: new Date(startedAt).toISOString(),
             ...tag,
             format,
-            model,
-            reasoning_effort: effort,
-            provider_pinned: provider,
+            model: rewritten.passthrough ? parsed.model : model,
+            reasoning_effort: rewritten.passthrough ? null : effort,
+            provider_pinned: rewritten.passthrough ? null : provider,
+            ...(rewritten.passthrough ? { passthrough: true } : {}),
             // system prompt + tool list: lets the report tell the main agent from side requests and sub-agents
             context: built ? `${built.state.systemSha}.${built.state.toolsSha}` : undefined,
             overridden: rewritten.overridden,
@@ -278,7 +285,8 @@ export function createProxy(opts) {
             );
             const responseText = Buffer.concat(pieces).toString("utf8");
             const reported = usage.cost_usd;
-            const computed = computeCost(pricing, usage);
+            // The price list is the pinned model's; a passthrough model's cost is only what upstream reports.
+            const computed = record?.passthrough ? null : computeCost(pricing, usage);
             const timing = {
               ttfb_ms: firstByteAt === null ? null : firstByteAt - startedAt,
               ...tokens.result(),
@@ -363,6 +371,10 @@ if (isMain) {
     model,
     effort: process.env.BENCH_REASONING || "high",
     provider: process.env.BENCH_PROVIDER ?? DEFAULT_PROVIDER, // "" disables the pin
+    passthroughModels: (process.env.BENCH_PASSTHROUGH_MODELS ?? DEFAULT_PASSTHROUGH)
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean),
     apiKey: process.env.OPENROUTER_API_KEY,
     logPath: process.env.METER_LOG || "/results/meter.jsonl",
     capture: process.env.METER_CAPTURE !== "0",
