@@ -11,6 +11,10 @@
 //   BENCH_MODEL        pinned model slug (required)
 //   BENCH_REASONING    pinned reasoning effort (default high)
 //   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (default DeepSeek; empty = unpinned)
+//   BENCH_PASSTHROUGH_MODELS  comma-separated models that keep their own model, reasoning and
+//                      provider instead of being pinned (default: OpenHuman's vision sub-agent,
+//                      qwen/qwen3.5-flash-02-23; an `openrouter/` prefix is ignored; empty = none).
+//                      Their records carry passthrough:true and a cost only when upstream reports one.
 //   METER_LOG          JSONL output (default /results/meter.jsonl)
 //   METER_PRICING=0    skip the price-list fetch (cost then needs usage.cost)
 //   METER_CAPTURE=0    do not store request captures (system prompt, tools, messages);
@@ -19,12 +23,15 @@
 //                      task containers whose network the bench must not touch (Harbor tasks)
 //
 // Control plane (loopback of the compose network only):
-//   POST /__bench/run  {"run_id":"..","harness":"..","task":".."}  tag subsequent calls
+//   POST /__bench/run  {"run_id":"..","harness":"..","task":"..","attempt":".."}  tag subsequent calls
+//                      (attempt is optional: it names one try at a task, see below)
 //   GET  /__bench/runs                                 per-run first-request sizes
 //
 // Per-request tag: a path prefix /__tag/<run_id>/<harness>/<task>/ (URI-encoded segments) tags
-// that one call and is stripped before forwarding. Callers that set it can run side by side;
-// untagged calls fall back to the global tag above.
+// that one call and is stripped before forwarding. An optional /__attempt/<id> segment after the
+// task names the attempt. Every record carries it, and runs.jsonl rows carry the same id, so a
+// task re-run under one run id keeps its attempts apart and the summary counts only the graded one.
+// Callers that set a tag can run side by side; untagged calls fall back to the global tag above.
 
 import fs from "node:fs";
 import http from "node:http";
@@ -70,15 +77,18 @@ function decoderFor(encoding) {
 // DeepSeek harness's max_tokens=256000) and cached tokens at 1/50 of the uncached price. Note that
 // pinning it on the older `deepseek-v4-flash` slug silently serves v4.1, so the slug and pin go together.
 export const DEFAULT_PROVIDER = "DeepSeek";
+export const DEFAULT_PASSTHROUGH = "qwen/qwen3.5-flash-02-23"; // OpenHuman's vision sub-agent
 
-const TAG_PREFIX = /^\/__tag\/([^/]+)\/([^/]+)\/([^/]+)(\/.*)?$/;
+const TAG_PREFIX = /^\/__tag\/([^/]+)\/([^/]+)\/([^/]+)(?:\/__attempt\/([^/]+))?(\/.*)?$/;
 
 /** Split a per-request tag prefix off a URL: {tag, url}, or {tag: null, url} when absent. */
 export function splitTag(url) {
   const m = TAG_PREFIX.exec(url);
   if (!m) return { tag: null, url };
   const [run_id, harness, task] = m.slice(1, 4).map(decodeURIComponent);
-  return { tag: { run_id, harness, task }, url: m[4] || "/" };
+  const tag = { run_id, harness, task };
+  if (m[4]) tag.attempt = decodeURIComponent(m[4]);
+  return { tag, url: m[5] || "/" };
 }
 
 export function createProxy(opts) {
@@ -87,6 +97,7 @@ export function createProxy(opts) {
   const model = opts.model;
   const effort = opts.effort ?? "high";
   const provider = opts.provider || null;
+  const passthroughModels = opts.passthroughModels ?? [];
   const apiKey = opts.apiKey;
   let pricing = opts.pricing ?? null;
   let run = { run_id: "untagged", harness: "untagged", task: "untagged" };
@@ -139,6 +150,7 @@ export function createProxy(opts) {
           run_id: String(next.run_id ?? "untagged"),
           harness: String(next.harness ?? "untagged"),
           task: String(next.task ?? "untagged"),
+          ...(next.attempt ? { attempt: String(next.attempt) } : {}),
         };
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify(run));
@@ -186,7 +198,7 @@ export function createProxy(opts) {
         if (parsed) {
           const sizes = promptSizes(format, parsed, tag);
           if (captureRoot) {
-            const key = `${tag.run_id}/${tag.harness}/${tag.task}/${lineageOf(parsed)}`;
+            const key = `${tag.run_id}/${tag.harness}/${tag.task}/${tag.attempt ?? ""}/${lineageOf(parsed)}`;
             built = buildCapture({
               format,
               body: parsed,
@@ -196,16 +208,17 @@ export function createProxy(opts) {
             });
             prevState.set(key, built.state);
           }
-          const rewritten = rewriteRequest(format, parsed, { model, effort, provider });
+          const rewritten = rewriteRequest(format, parsed, { model, effort, provider, passthrough: passthroughModels });
           outBody = Buffer.from(JSON.stringify(rewritten.body));
           record = {
             seq: callSeq,
             at: new Date(startedAt).toISOString(),
             ...tag,
             format,
-            model,
-            reasoning_effort: effort,
-            provider_pinned: provider,
+            model: rewritten.passthrough ? parsed.model : model,
+            reasoning_effort: rewritten.passthrough ? null : effort,
+            provider_pinned: rewritten.passthrough ? null : provider,
+            ...(rewritten.passthrough ? { passthrough: true } : {}),
             // system prompt + tool list: lets the report tell the main agent from side requests and sub-agents
             context: built ? `${built.state.systemSha}.${built.state.toolsSha}` : undefined,
             overridden: rewritten.overridden,
@@ -272,7 +285,8 @@ export function createProxy(opts) {
             );
             const responseText = Buffer.concat(pieces).toString("utf8");
             const reported = usage.cost_usd;
-            const computed = computeCost(pricing, usage);
+            // The price list is the pinned model's; a passthrough model's cost is only what upstream reports.
+            const computed = record?.passthrough ? null : computeCost(pricing, usage);
             const timing = {
               ttfb_ms: firstByteAt === null ? null : firstByteAt - startedAt,
               ...tokens.result(),
@@ -357,6 +371,10 @@ if (isMain) {
     model,
     effort: process.env.BENCH_REASONING || "high",
     provider: process.env.BENCH_PROVIDER ?? DEFAULT_PROVIDER, // "" disables the pin
+    passthroughModels: (process.env.BENCH_PASSTHROUGH_MODELS ?? DEFAULT_PASSTHROUGH)
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean),
     apiKey: process.env.OPENROUTER_API_KEY,
     logPath: process.env.METER_LOG || "/results/meter.jsonl",
     capture: process.env.METER_CAPTURE !== "0",

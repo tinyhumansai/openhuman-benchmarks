@@ -100,6 +100,11 @@ test("splitTag reads and strips a per-request tag prefix", () => {
     url: "/v1/chat/completions",
   });
   assert.deepEqual(splitTag("/v1/chat/completions"), { tag: null, url: "/v1/chat/completions" });
+  assert.deepEqual(splitTag("/__tag/r/openhuman/t/__attempt/17%2F1/v1/chat/completions"), {
+    tag: { run_id: "r", harness: "openhuman", task: "t", attempt: "17/1" },
+    url: "/v1/chat/completions",
+  });
+  assert.deepEqual(splitTag("/__tag/r/h/t/__attempt/9"), { tag: { run_id: "r", harness: "h", task: "t", attempt: "9" }, url: "/" });
 });
 
 test("a per-request tag overrides the global tag for that call only", async () => {
@@ -136,6 +141,57 @@ test("a per-request tag overrides the global tag for that call only", async () =
     .map((r) => `${r.run_id}/${r.task}`)
     .sort();
   assert.deepEqual(tasks, ["g/global", "r2/a", "r2/b"]);
+  proxy.server.close();
+  fake.close();
+});
+
+test("an allowlisted model passes through unpinned and is not priced with the pinned model's list", async () => {
+  const bodies = [];
+  const fake = http.createServer((req, res) => {
+    const chunks = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => {
+      bodies.push(JSON.parse(Buffer.concat(chunks).toString()));
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ choices: [{ message: { content: "ok" } }], usage: { prompt_tokens: 10, completion_tokens: 1 } }));
+    });
+  });
+  const fakePort = await listen(fake);
+  const logPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "meter-")), "meter.jsonl");
+  const proxy = createProxy({
+    upstream: `http://127.0.0.1:${fakePort}/api`,
+    model: "deepseek/deepseek-v4-flash",
+    effort: "medium",
+    provider: "DeepSeek",
+    apiKey: "real-key",
+    logPath,
+    capture: false,
+    pricing: { prompt: 1e-6, completion: 2e-6, cache_read: 1e-7, cache_write: null },
+    passthroughModels: ["qwen/qwen3.5-flash-02-23"],
+  });
+  const port = await listen(proxy.server);
+  const call = (model) =>
+    fetch(`http://127.0.0.1:${port}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model, messages: [{ role: "user", content: "hi" }] }),
+    }).then((r) => r.text());
+  await call("openrouter/qwen/qwen3.5-flash-02-23");
+  await call("gpt-x");
+
+  assert.equal(bodies[0].model, "openrouter/qwen/qwen3.5-flash-02-23");
+  assert.equal(bodies[0].provider, undefined);
+  assert.equal(bodies[1].model, "deepseek/deepseek-v4-flash");
+  assert.deepEqual(bodies[1].provider, { order: ["DeepSeek"], allow_fallbacks: false });
+
+  const [vision, main] = fs.readFileSync(logPath, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.equal(vision.passthrough, true);
+  assert.equal(vision.model, "openrouter/qwen/qwen3.5-flash-02-23");
+  assert.equal(vision.cost_source, "unknown");
+  assert.equal(main.passthrough, undefined);
+  assert.equal(main.model, "deepseek/deepseek-v4-flash");
+  assert.equal(main.cost_source, "computed");
+
   proxy.server.close();
   fake.close();
 });
