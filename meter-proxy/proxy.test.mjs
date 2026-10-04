@@ -100,6 +100,11 @@ test("splitTag reads and strips a per-request tag prefix", () => {
     url: "/v1/chat/completions",
   });
   assert.deepEqual(splitTag("/v1/chat/completions"), { tag: null, url: "/v1/chat/completions" });
+  assert.deepEqual(splitTag("/__tag/r/openhuman/t/__attempt/17%2F1/v1/chat/completions"), {
+    tag: { run_id: "r", harness: "openhuman", task: "t", attempt: "17/1" },
+    url: "/v1/chat/completions",
+  });
+  assert.deepEqual(splitTag("/__tag/r/h/t/__attempt/9"), { tag: { run_id: "r", harness: "h", task: "t", attempt: "9" }, url: "/" });
 });
 
 test("a per-request tag overrides the global tag for that call only", async () => {

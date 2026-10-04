@@ -74,6 +74,33 @@ test("latestAttempts keeps only the newest attempt's index row and proxy records
   assert.equal(out.meter.length, 1);
 });
 
+test("latestAttempts keeps exactly the graded attempt's records when rows carry an attempt id", () => {
+  const index = [
+    { harness: "h", task_key: "t", attempt: "a1", started_epoch_ms: 1000 },
+    { harness: "h", task_key: "t", attempt: "a2", started_epoch_ms: 5000 },
+  ];
+  const meter = [
+    { harness: "h", task: "t", attempt: "a1", at: new Date(2000).toISOString() },
+    // Interleaved in time with the graded attempt, but from the aborted one: the timestamp rule would keep it.
+    { harness: "h", task: "t", attempt: "a1", at: new Date(6000).toISOString() },
+    { harness: "h", task: "t", attempt: "a2", at: new Date(6500).toISOString() },
+    { harness: "h", task: "other", attempt: "x", at: new Date(1).toISOString() },
+  ];
+  const out = latestAttempts(index, meter);
+  assert.deepEqual(out.meter.map((r) => r.attempt), ["a2", "x"]);
+});
+
+test("a row without an attempt id (older run) ignores records from tagged attempts", () => {
+  const out = latestAttempts(
+    [{ harness: "h", task_key: "t", started_epoch_ms: 5000 }],
+    [
+      { harness: "h", task: "t", at: new Date(6000).toISOString() },
+      { harness: "h", task: "t", attempt: "z", at: new Date(6000).toISOString() },
+    ],
+  );
+  assert.equal(out.meter.length, 1);
+});
+
 test("per-task KPIs use only solved tasks; cost per solved task includes failed spend", () => {
   const meter = [
     // task a: solved, fast. task b: failed, slow and expensive.

@@ -24,6 +24,7 @@ Host env (set by tbench/run.mjs):
 import json
 import os
 import shlex
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -41,7 +42,8 @@ def task_key(logs_dir: Path) -> str:
 
 def tag_prefix(tag: dict) -> str:
     """The proxy's per-request tag (meter-proxy/proxy.mjs splitTag)."""
-    return "/__tag/" + "/".join(quote(tag[k], safe="") for k in ("run_id", "harness", "task"))
+    prefix = "/__tag/" + "/".join(quote(tag[k], safe="") for k in ("run_id", "harness", "task"))
+    return f"{prefix}/__attempt/{quote(tag['attempt'], safe='')}" if tag.get("attempt") else prefix
 
 
 def meter_totals(log: str, tag: dict) -> dict:
@@ -54,6 +56,8 @@ def meter_totals(log: str, tag: dict) -> dict:
                 except ValueError:
                     continue
                 if (r.get("run_id"), r.get("harness"), r.get("task")) != (tag["run_id"], tag["harness"], tag["task"]):
+                    continue
+                if tag.get("attempt") and r.get("attempt") != tag["attempt"]:
                     continue
                 totals["calls"] += 1
                 totals["prompt"] += r.get("prompt_tokens") or 0
@@ -83,7 +87,9 @@ class OpenHuman(BaseAgent):
 
     async def run(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
         key = task_key(self.logs_dir)
-        tag = {"run_id": os.environ["BENCH_RUN_ID"], "harness": HARNESS, "task": key}
+        # One id per try; the meter stamps it on every call and run.mjs copies it to the runs.jsonl row.
+        tag = {"run_id": os.environ["BENCH_RUN_ID"], "harness": HARNESS, "task": key, "attempt": str(int(time.time() * 1000))}
+        (self.logs_dir / "attempt.txt").write_text(tag["attempt"], encoding="utf8")
 
         # /logs/agent is the host's trial agent dir, mounted into the container.
         (self.logs_dir / "prompt.txt").write_text(instruction, encoding="utf8")
