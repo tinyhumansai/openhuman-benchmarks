@@ -66,6 +66,22 @@ function agentTimeoutMultiplier(args) {
   };
   return flag("--agent-timeout-multiplier") ?? flag("--timeout-multiplier") ?? 1;
 }
+/** Harbor's resolved job config can override or cap the task's agent timeout. */
+function resolvedAgentTimeoutSettings(args) {
+  const result = spawnSync("harbor", [...args, "--print-config"], {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, PYTHONPATH: [root, process.env.PYTHONPATH].filter(Boolean).join(":") },
+  });
+  if (result.status !== 0) throw new Error(`harbor --print-config failed: ${result.stderr || result.stdout}`);
+  const config = JSON.parse(result.stdout);
+  const agent = config.agents?.[0] ?? {};
+  return {
+    multiplier: config.agent_timeout_multiplier ?? config.timeout_multiplier ?? agentTimeoutMultiplier(extra),
+    override: agent.override_timeout_sec ?? "",
+    maximum: agent.max_timeout_sec ?? "",
+  };
+}
 const nConcurrent = opt("--n-concurrent", "1");
 const convertOnly = own.includes("--convert-only");
 const suite = `terminal-bench-${bench}`;
@@ -124,6 +140,7 @@ services:
     ...tasks.flatMap((t) => ["-i", t, "-i", `*/${t}`]),
     ...extra,
   ];
+  const timeoutSettings = resolvedAgentTimeoutSettings(harborArgs);
   process.stdout.write(`[tbench] ${HARNESS} ${meta.harness_version ?? "(unknown build)"}: harbor ${harborArgs.join(" ")}\n`);
   const h = spawnSync("harbor", harborArgs, {
     cwd: root,
@@ -135,7 +152,9 @@ services:
       BENCH_METER_LOG: path.join(root, "results", "meter.jsonl"),
       BENCH_HARNESS_VERSION: meta.harness_version ?? "",
       // The agent derives OpenHuman's turn timeout from the task's budget, which these scale.
-      BENCH_AGENT_TIMEOUT_MULTIPLIER: String(agentTimeoutMultiplier(extra)),
+      BENCH_AGENT_TIMEOUT_MULTIPLIER: String(timeoutSettings.multiplier),
+      BENCH_AGENT_TIMEOUT_OVERRIDE_S: String(timeoutSettings.override),
+      BENCH_AGENT_TIMEOUT_MAX_S: String(timeoutSettings.maximum),
     },
   });
   process.stdout.write(`[tbench] harbor exited ${h.status}\n`);

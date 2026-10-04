@@ -43,9 +43,13 @@ def task_key(logs_dir: Path) -> str:
 
 
 def task_budget_secs(key: str) -> str:
-    """The task's agent timeout as Harbor will enforce it (task.toml [agent] timeout_sec, times
-    BENCH_AGENT_TIMEOUT_MULTIPLIER if the run passed --agent-timeout-multiplier); "" when unknown."""
+    """Resolve Harbor's agent timeout from the task config and job-level timeout settings."""
     cache = Path(os.environ.get("HARBOR_TASK_CACHE", Path.home() / ".cache/harbor/tasks"))
+    multiplier = float(os.environ.get("BENCH_AGENT_TIMEOUT_MULTIPLIER", "1"))
+    maximum = float(os.environ.get("BENCH_AGENT_TIMEOUT_MAX_S", "0") or 0)
+    override = float(os.environ.get("BENCH_AGENT_TIMEOUT_OVERRIDE_S", "0") or 0)
+    if override > 0:
+        return str(int(min(override, maximum) * multiplier if maximum > 0 else override * multiplier))
     tomls = list(cache.glob(f"*/{key}/task.toml"))
     budgets = set()
     for toml in tomls:
@@ -54,7 +58,7 @@ def task_budget_secs(key: str) -> str:
         except (OSError, ValueError):
             continue
         if isinstance(secs, (int, float)) and secs > 0:
-            budgets.add(int(secs * float(os.environ.get("BENCH_AGENT_TIMEOUT_MULTIPLIER", "1"))))
+            budgets.add(int(min(secs, maximum) * multiplier if maximum > 0 else secs * multiplier))
     if len(budgets) == 1:
         return str(budgets.pop())
     # Harbor's BaseAgent API exposes the trial logs path but not its task config or effective
@@ -118,6 +122,10 @@ class OpenHuman(BaseAgent):
         (self.logs_dir / "prompt.txt").write_text(instruction, encoding="utf8")
         workdir = (await environment.exec("pwd", timeout_sec=30)).stdout.strip() or "/"
         budget = task_budget_secs(key)
+        turn_timeout = os.environ.get("OPENHUMAN_AGENT_TURN_TIMEOUT_SECS", "")
+        if not turn_timeout and budget == "0":
+            # An ambiguous task cache must not fall back to OpenHuman's 60-minute default.
+            turn_timeout = "0"
         env = {
             "BENCH_HARNESS": HARNESS,
             "BENCH_TASK_ID": key,
@@ -136,7 +144,7 @@ class OpenHuman(BaseAgent):
             "OPENHUMAN_COMPACTION_TRIGGER_TOKENS": os.environ.get("OPENHUMAN_COMPACTION_TRIGGER_TOKENS", ""),
             # OpenHuman's default 60 min turn ceiling would cut 8 h Terminal-Bench 4.0 tasks short, so
             # runner/turn-budget.mjs sets it to the task's own agent budget minus a margin.
-            "OPENHUMAN_AGENT_TURN_TIMEOUT_SECS": os.environ.get("OPENHUMAN_AGENT_TURN_TIMEOUT_SECS", ""),
+            "OPENHUMAN_AGENT_TURN_TIMEOUT_SECS": turn_timeout,
             "BENCH_TURN_MARGIN_S": os.environ.get("BENCH_TURN_MARGIN_S", ""),
             "BENCH_TURN_BUDGET_S": budget,
             "DISABLE_TELEMETRY": "1",
