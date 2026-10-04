@@ -28,6 +28,20 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/build/target \
     cargo build --profile "${CARGO_PROFILE}" -p openhuman-cli --bin openhuman-core \
     && install -D "target/$([ "${CARGO_PROFILE}" = release ] && echo release || echo "${CARGO_PROFILE}")/openhuman-core" /out/openhuman/openhuman-core
+# Bench-only, opt-in: LOCAL_MODULES=tinyjuice compiles the checkout's vendor/tinyjuice module
+# and ships it as dev-modules/libtinyjuice_module.so; the adapter loads it through
+# TINYJUICE_TEST_MODULE (the core's developer override) in place of the pinned release. This is
+# how a module change is measured before it is released; the release pins are untouched.
+ARG LOCAL_MODULES=""
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,target=/build/target-modules \
+    mkdir -p /out/openhuman/dev-modules \
+    && case ",${LOCAL_MODULES}," in \
+      *,tinyjuice,*) cd vendor/tinyjuice \
+        && CARGO_TARGET_DIR=/build/target-modules cargo build --release -p tinyjuice-module \
+        && install -D /build/target-modules/release/libtinyjuice_module.so /out/openhuman/dev-modules/libtinyjuice_module.so ;; \
+      *) true ;; \
+    esac
 
 # Pinned native modules, staged at build time so benches never fetch them.
 FROM node:24-bookworm-slim AS modules

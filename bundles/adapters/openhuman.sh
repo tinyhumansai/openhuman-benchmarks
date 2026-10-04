@@ -19,6 +19,10 @@ export OPENHUMAN_TOOL_DISPATCHER=native
 # No Composio account in the bench: skip the hosted integrations fetch (a 401 on the
 # dummy key) that otherwise sits on the first turn's critical path.
 export OPENHUMAN_COMPOSIO_MODE=disabled
+# The task container is the isolation boundary (as for every other harness). OpenHuman's own OS
+# jail (Landlock) would confine the shell to the action dir, so installs into site-packages,
+# /etc edits and even listing / are refused as root. Turn it off (openhuman OPENHUMAN_SANDBOX).
+export OPENHUMAN_SANDBOX=off
 export OPENHUMAN_WORKSPACE="$HOME/oh-workspace"
 export OPENHUMAN_ACTION_DIR="$WORKDIR_ABS"
 mkdir -p "$OPENHUMAN_WORKSPACE"
@@ -40,6 +44,14 @@ if [ -d "$bundled" ] && [ "$(id -u)" != "$(stat -c %u "$bundled")" ]; then
   chmod -R go-w "$staged"
   export OPENHUMAN_BUNDLED_MODULES="$staged"
   echo "[openhuman] staged bundled modules owned by uid $(id -u): $staged" >&2
+fi
+# A bundle built with LOCAL_MODULES=tinyjuice carries a locally built TinyJuice module; load it
+# through the core's developer override instead of the pinned release (root-owned copy, as above).
+dev_juice=/opt/harness/openhuman/dev-modules/libtinyjuice_module.so
+if [ -f "$dev_juice" ]; then
+  mkdir -p /opt/oh-dev-modules && cp "$dev_juice" /opt/oh-dev-modules/ && chmod -R go-w /opt/oh-dev-modules
+  export TINYJUICE_TEST_MODULE=/opt/oh-dev-modules/libtinyjuice_module.so
+  echo "[openhuman] TinyJuice module override: $TINYJUICE_TEST_MODULE" >&2
 fi
 # The shell tool puts a resolved Python first on PATH for `python`/`pip` commands.
 # By default that is a downloaded standalone CPython, which lacks the task repo's
