@@ -17,3 +17,9 @@ test("a short budget keeps at least half; no budget leaves the default", () => {
   assert.equal(turnTimeoutSecs({ TASK_TIMEOUT_S: "150" }), "75");
   assert.equal(turnTimeoutSecs({}), null);
 });
+
+test("rejects invalid margins", () => {
+  for (const margin of ["-1", "NaN", "Infinity"]) {
+    assert.throws(() => turnTimeoutSecs({ TASK_TIMEOUT_S: "3600", BENCH_TURN_MARGIN_S: margin }), /BENCH_TURN_MARGIN_S/);
+  }
+});

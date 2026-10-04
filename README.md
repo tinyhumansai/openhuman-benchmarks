@@ -37,7 +37,7 @@ latency, cache efficiency, prompt size, cost and SWE-bench Verified resolve rate
 
 | Control | Mechanism |
 |---|---|
-| Same model | The metering proxy rewrites `model` on every request to `BENCH_MODEL`. |
+| Same model | The metering proxy rewrites `model` on every request to `BENCH_MODEL`, except models in `BENCH_PASSTHROUGH_MODELS` (default: OpenHuman's pinned vision sub-agent model, `qwen/qwen3.5-flash-02-23`, a text-only `BENCH_MODEL` could not replace). Those keep their model, reasoning and provider, and their meter rows carry `passthrough: true` and a cost only when upstream reports one. |
 | Same provider | The proxy pins `provider: {order: [BENCH_PROVIDER], allow_fallbacks: false}` on every request, so the prompt cache is not split across OpenRouter backends. |
 | Same reasoning level | The proxy strips each protocol's own spelling (`thinking`, `reasoning_effort`, ...) and injects `reasoning: {effort: BENCH_REASONING}`. |
 | Same key | Only the proxy holds `OPENROUTER_API_KEY`; harnesses get a dummy token. |

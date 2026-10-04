@@ -260,7 +260,9 @@ export function toMarkdown(meta, summary) {
 /**
  * A task re-run under the same run id (after fixing a driver bug, say) appends a
  * second index row and a second set of proxy records. Keep only the newest
- * attempt per (harness, task) so nothing is double counted.
+ * attempt per (harness, task) so nothing is double counted. Rows and records carry
+ * an `attempt` id: the graded row keeps exactly the records with its id. Older runs
+ * have none, so for those the records stamped after the row started stand in.
  */
 export function latestAttempts(index, meter) {
   const newest = new Map();
@@ -272,7 +274,10 @@ export function latestAttempts(index, meter) {
     index: [...newest.values()],
     meter: meter.filter((r) => {
       const row = newest.get(`${r.harness}/${r.task}`);
-      return !row || Date.parse(r.at) >= row.started_epoch_ms;
+      if (!row) return true;
+      if (row.attempt) return r.attempt === row.attempt;
+      // No id on the row (an older run): keep records from its start on, but not another attempt's.
+      return !r.attempt && Date.parse(r.at) >= row.started_epoch_ms;
     }),
   };
 }

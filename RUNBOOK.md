@@ -88,7 +88,7 @@ HARNESSES="openhuman deepseek-harness" TASK_TIMEOUT_S=1200 ./run-swe.sh swe-x86-
   2>&1 | tee /tmp/swe-x86-1.log
 ```
 
-Expect hours. Run it detached (`nohup`, `tmux`) and poll the log. To re-run one task or add a
+harness to the same run (newest attempt wins in the report; every `meter.jsonl` record and `runs.jsonl` row carries an `attempt` id, and the summary and viewer keep only the graded attempt's records. Runs from before the id existed fall back to timestamps):
 harness to the same run (newest attempt wins in the report):
 
 ```bash

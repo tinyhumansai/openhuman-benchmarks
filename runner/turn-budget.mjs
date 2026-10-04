@@ -13,6 +13,9 @@ export function turnTimeoutSecs(env = process.env) {
   const budget = Number(env.BENCH_TURN_BUDGET_S || env.TASK_TIMEOUT_S);
   if (!Number.isFinite(budget) || budget <= 0) return null;
   const margin = env.BENCH_TURN_MARGIN_S === undefined || env.BENCH_TURN_MARGIN_S === "" ? 120 : Number(env.BENCH_TURN_MARGIN_S);
+  if (!Number.isFinite(margin) || margin < 0) {
+    throw new RangeError("BENCH_TURN_MARGIN_S must be a finite, non-negative number");
+  }
   // A budget barely over the margin keeps at least half of itself.
   return String(Math.floor(Math.max(budget - margin, budget / 2)));
 }

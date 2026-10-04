@@ -8,6 +8,7 @@ import {
   extractPromptParts,
   parseResponse,
   rewriteRequest,
+  isPassthrough,
   upstreamRoute,
 } from "./wire.mjs";
 
@@ -158,4 +159,23 @@ test("rewriteRequest pins the provider with no fallbacks and reports a harness p
   assert.deepEqual(overridden.provider, { order: ["Other"], allow_fallbacks: true });
   const unpinned = rewriteRequest("chat", { model: "m", messages: [] }, { model: "m", effort: "medium" });
   assert.equal(unpinned.body.provider, undefined);
+});
+
+test("a passthrough model keeps its model, reasoning and provider; others are still pinned", () => {
+  const pin = { model: "deepseek/deepseek-v4-flash", effort: "medium", provider: "DeepSeek", passthrough: ["qwen/qwen3.5-flash-02-23"] };
+  for (const sent of ["openrouter/qwen/qwen3.5-flash-02-23", "qwen/qwen3.5-flash-02-23"]) {
+    const r = rewriteRequest(FORMATS.CHAT, { model: sent, stream: true, messages: [] }, pin);
+    assert.equal(r.passthrough, true);
+    assert.equal(r.body.model, sent);
+    assert.equal(r.body.reasoning, undefined);
+    assert.equal(r.body.provider, undefined);
+    assert.equal(r.body.usage.include, true);
+    assert.equal(r.body.stream_options.include_usage, true);
+    assert.deepEqual(r.overridden, {});
+  }
+  const main = rewriteRequest(FORMATS.CHAT, { model: "gpt-x", messages: [] }, pin);
+  assert.equal(main.passthrough, undefined);
+  assert.equal(main.body.model, "deepseek/deepseek-v4-flash");
+  assert.equal(isPassthrough("x", []), false);
+  assert.equal(isPassthrough(undefined, ["x"]), false);
 });

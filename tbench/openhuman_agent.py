@@ -26,6 +26,7 @@ import json
 import os
 import shlex
 import tomllib
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -45,20 +46,27 @@ def task_budget_secs(key: str) -> str:
     """The task's agent timeout as Harbor will enforce it (task.toml [agent] timeout_sec, times
     BENCH_AGENT_TIMEOUT_MULTIPLIER if the run passed --agent-timeout-multiplier); "" when unknown."""
     cache = Path(os.environ.get("HARBOR_TASK_CACHE", Path.home() / ".cache/harbor/tasks"))
-    tomls = sorted(cache.glob(f"*/{key}/task.toml"), key=lambda p: p.stat().st_mtime, reverse=True)
+    tomls = list(cache.glob(f"*/{key}/task.toml"))
+    budgets = set()
     for toml in tomls:
         try:
             secs = tomllib.loads(toml.read_text(encoding="utf8")).get("agent", {}).get("timeout_sec")
         except (OSError, ValueError):
             continue
         if isinstance(secs, (int, float)) and secs > 0:
-            return str(int(secs * float(os.environ.get("BENCH_AGENT_TIMEOUT_MULTIPLIER", "1"))))
-    return ""
+            budgets.add(int(secs * float(os.environ.get("BENCH_AGENT_TIMEOUT_MULTIPLIER", "1"))))
+    if len(budgets) == 1:
+        return str(budgets.pop())
+    # Harbor's BaseAgent API exposes the trial logs path but not its task config or effective
+    # timeout. If cached datasets disagree, do not guess from cache mtimes; Harbor remains the
+    # sole timeout authority and the inner ceiling is disabled for this trial.
+    return "0" if len(budgets) > 1 else ""
 
 
 def tag_prefix(tag: dict) -> str:
     """The proxy's per-request tag (meter-proxy/proxy.mjs splitTag)."""
-    return "/__tag/" + "/".join(quote(tag[k], safe="") for k in ("run_id", "harness", "task"))
+    prefix = "/__tag/" + "/".join(quote(tag[k], safe="") for k in ("run_id", "harness", "task"))
+    return f"{prefix}/__attempt/{quote(tag['attempt'], safe='')}" if tag.get("attempt") else prefix
 
 
 def meter_totals(log: str, tag: dict) -> dict:
@@ -71,6 +79,8 @@ def meter_totals(log: str, tag: dict) -> dict:
                 except ValueError:
                     continue
                 if (r.get("run_id"), r.get("harness"), r.get("task")) != (tag["run_id"], tag["harness"], tag["task"]):
+                    continue
+                if tag.get("attempt") and r.get("attempt") != tag["attempt"]:
                     continue
                 totals["calls"] += 1
                 totals["prompt"] += r.get("prompt_tokens") or 0
@@ -100,7 +110,9 @@ class OpenHuman(BaseAgent):
 
     async def run(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
         key = task_key(self.logs_dir)
-        tag = {"run_id": os.environ["BENCH_RUN_ID"], "harness": HARNESS, "task": key}
+        # One id per try; the meter stamps it on every call and run.mjs copies it to the runs.jsonl row.
+        tag = {"run_id": os.environ["BENCH_RUN_ID"], "harness": HARNESS, "task": key, "attempt": str(int(time.time() * 1000))}
+        (self.logs_dir / "attempt.txt").write_text(tag["attempt"], encoding="utf8")
 
         # /logs/agent is the host's trial agent dir, mounted into the container.
         (self.logs_dir / "prompt.txt").write_text(instruction, encoding="utf8")
@@ -125,6 +137,7 @@ class OpenHuman(BaseAgent):
             # OpenHuman's default 60 min turn ceiling would cut 8 h Terminal-Bench 4.0 tasks short, so
             # runner/turn-budget.mjs sets it to the task's own agent budget minus a margin.
             "OPENHUMAN_AGENT_TURN_TIMEOUT_SECS": os.environ.get("OPENHUMAN_AGENT_TURN_TIMEOUT_SECS", ""),
+            "BENCH_TURN_MARGIN_S": os.environ.get("BENCH_TURN_MARGIN_S", ""),
             "BENCH_TURN_BUDGET_S": budget,
             "DISABLE_TELEMETRY": "1",
             "DISABLE_AUTOUPDATER": "1",
