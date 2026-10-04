@@ -19,6 +19,10 @@ export OPENHUMAN_TOOL_DISPATCHER=native
 # No Composio account in the bench: skip the hosted integrations fetch (a 401 on the
 # dummy key) that otherwise sits on the first turn's critical path.
 export OPENHUMAN_COMPOSIO_MODE=disabled
+# The task container is the isolation boundary (as for every other harness). OpenHuman's own OS
+# jail (Landlock) would confine the shell to the action dir, so installs into site-packages,
+# /etc edits and even listing / are refused as root. Turn it off (openhuman OPENHUMAN_SANDBOX).
+export OPENHUMAN_SANDBOX=off
 export OPENHUMAN_WORKSPACE="$HOME/oh-workspace"
 export OPENHUMAN_ACTION_DIR="$WORKDIR_ABS"
 mkdir -p "$OPENHUMAN_WORKSPACE"
