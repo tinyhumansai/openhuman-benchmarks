@@ -67,6 +67,11 @@ def task_budget_secs(key: str) -> str:
     return "0" if len(budgets) > 1 else ""
 
 
+def turn_timeout_setting(explicit: str, budget: str) -> str:
+    """Preserve explicit settings and disable the default ceiling for ambiguous task budgets."""
+    return explicit or ("0" if budget == "0" else "")
+
+
 def tag_prefix(tag: dict) -> str:
     """The proxy's per-request tag (meter-proxy/proxy.mjs splitTag)."""
     prefix = "/__tag/" + "/".join(quote(tag[k], safe="") for k in ("run_id", "harness", "task"))
@@ -122,10 +127,7 @@ class OpenHuman(BaseAgent):
         (self.logs_dir / "prompt.txt").write_text(instruction, encoding="utf8")
         workdir = (await environment.exec("pwd", timeout_sec=30)).stdout.strip() or "/"
         budget = task_budget_secs(key)
-        turn_timeout = os.environ.get("OPENHUMAN_AGENT_TURN_TIMEOUT_SECS", "")
-        if not turn_timeout and budget == "0":
-            # An ambiguous task cache must not fall back to OpenHuman's 60-minute default.
-            turn_timeout = "0"
+        turn_timeout = turn_timeout_setting(os.environ.get("OPENHUMAN_AGENT_TURN_TIMEOUT_SECS", ""), budget)
         env = {
             "BENCH_HARNESS": HARNESS,
             "BENCH_TASK_ID": key,
