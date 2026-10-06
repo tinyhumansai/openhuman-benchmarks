@@ -26,6 +26,28 @@ export OPENHUMAN_SANDBOX=off
 export OPENHUMAN_WORKSPACE="$HOME/oh-workspace"
 export OPENHUMAN_ACTION_DIR="$WORKDIR_ABS"
 mkdir -p "$OPENHUMAN_WORKSPACE"
+# Turn the memory engine off. `has_api_key` tests only that a key is *present*
+# (`key.is_some()`), so the dummy credential below makes the hosted TinyHumans
+# engine look usable and `tools::ops` registers the `memory` tool -- a tool that
+# can only fail here. When the model reaches for it the 401 is a tool failure of
+# class `authentication`, and ONE of those aborts the whole turn:
+# terminal-bench 4.0 `payments-pipeline-fix` stopped on
+# "failure class `authentication` still blocks operation `memory`" with 22h of
+# its budget unused, having spent only 27 calls. It is latent in every run --
+# all five runs inspected were offered the tool -- and fires whenever the model
+# happens to pick it, so it is a variance source across the whole suite.
+#
+# An empty engine id is the supported off switch (memory/engine.rs `resolve`:
+# `"" => off(..., "no memory engine selected")`), and there is no env override
+# for it, so it goes in the config the workspace resolves to. Memory should be
+# off here regardless: every peer harness is stateless, each task gets a fresh
+# container, and the lifecycle hooks would recall against an empty engine
+# anyway. The hooks themselves are fail-soft (pre_turn/post_turn/compaction all
+# swallow the error and let the turn run), so only the model-issued tool is
+# dangerous.
+if [ ! -f "$OPENHUMAN_WORKSPACE/config.toml" ]; then
+  printf '[memory]\nengine = ""\n' > "$OPENHUMAN_WORKSPACE/config.toml"
+fi
 # The core needs *a* credential before it will run a turn even on a BYOK route;
 # a dummy API key satisfies that without granting any backend access, and
 # inference itself goes to the metering proxy through the per-call route.
@@ -65,8 +87,24 @@ export OH_PORT=7788 OH_TOKEN=bench-core-token OPENHUMAN_CORE_TOKEN=bench-core-to
 # BENCH_PROXY_PREFIX (/__tag/<run>/<harness>/<task>) tags each call for the proxy, so trials can
 # run side by side; without it the proxy's global tag applies.
 export INFERENCE_URL="http://127.0.0.1:18080${BENCH_PROXY_PREFIX:-}/v1"
+# Why the core's own log is kept: the JSON-RPC reply carries the harness's
+# SANITIZED failure string. `HostedError.message` is "a fixed, sanitized string
+# selected by `kind`" and never the underlying provider/middleware error, so a
+# failed turn reaches the bench as `model error: hosted agent invocation failed`
+# and nothing else. An `atrx-vep-crispr` turn burned 91 minutes and 176 model
+# calls and left no recorded reason at all. The real cause IS logged -- the
+# re-surfacing path in `turn_run_error.rs` logs it at debug -- but the log died
+# with the container. Scope the filter to our own crates so third-party noise
+# does not bury it, and copy it out beside the other artifacts.
+export RUST_LOG="${RUST_LOG:-warn,openhuman=debug,tinyagents=debug,tinyagents_harness=debug}"
 /opt/harness/openhuman/openhuman-core run --headless-api --host 127.0.0.1 --port "$OH_PORT" \
   > "$HOME/core.log" 2>&1 &
 core=$!
-trap 'kill $core $fwd 2>/dev/null || true' EXIT
+# Copy on EVERY exit path, including the kill: a turn that times out or is
+# halted is exactly the one whose log is worth reading.
+save_core_log() {
+  dest="${RESULT_DIR:-/results}"
+  [ -d "$dest" ] && cp "$HOME/core.log" "$dest/core.log" 2>/dev/null || true
+}
+trap 'save_core_log; kill $core $fwd 2>/dev/null || true' EXIT
 node /opt/harness/oh-turn.mjs

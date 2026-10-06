@@ -78,9 +78,18 @@ const capturePatch = env("BENCH_CAPTURE_PATCH", "1") !== "0";
 // Baseline so the patch contains only what the harness changed.
 let baseline = null;
 if (capturePatch) {
+  // `git add` needs a repository. Most task images are not one, so every step
+  // here failed quietly, `rev-parse HEAD` returned "", and `git diff --cached ""`
+  // produced nothing -- patch_bytes was 0 for EVERY task in every run, including
+  // ones that passed their tests. A silent 0 is worse than no field: it reads as
+  // "the agent wrote nothing" and was used as evidence for exactly that.
+  if (!fs.existsSync(path.join(workdir, ".git"))) {
+    spawnSync("git", ["init", "-q"], { cwd: workdir });
+  }
   spawnSync("git", ["add", "-A"], { cwd: workdir });
   spawnSync("git", ["-c", "user.email=bench@local", "-c", "user.name=bench", "commit", "-q", "--allow-empty", "-m", "bench-baseline"], { cwd: workdir });
   baseline = spawnSync("git", ["rev-parse", "HEAD"], { cwd: workdir, encoding: "utf8" }).stdout.trim();
+  if (!baseline) log("WARNING: no git baseline; patch.diff and patch_bytes will be empty");
 }
 
 // OpenHuman ends its own turn a margin before the task budget, so the run records a stop reason.
@@ -101,7 +110,7 @@ const endedAt = Date.now();
 const resources = summarize(sampler.stop());
 
 let diff = { stdout: "" };
-if (capturePatch) {
+if (capturePatch && baseline) {
   spawnSync("git", ["add", "-A"], { cwd: workdir });
   diff = spawnSync("git", ["diff", "--cached", baseline], {
     cwd: workdir,
