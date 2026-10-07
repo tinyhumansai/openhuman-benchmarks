@@ -45,8 +45,15 @@ mkdir -p "$OPENHUMAN_WORKSPACE"
 # anyway. The hooks themselves are fail-soft (pre_turn/post_turn/compaction all
 # swallow the error and let the turn run), so only the model-issued tool is
 # dangerous.
+# Web search is off: the bench configures no search provider, so every
+# `web_search_tool` call came back `provider returned HTTP 401`. The model
+# reached for it in 4 of the first 38 Terminal-Bench 2.0 tasks and, until the
+# breaker learned to steer off a refused connector, each of those turns ended
+# there (build-pov-ray after 69 s of a 3 h 20 m budget). A tool that cannot
+# work is not part of the agent being measured; the task containers keep
+# their internet, so `shell` can still fetch what a task needs.
 if [ ! -f "$OPENHUMAN_WORKSPACE/config.toml" ]; then
-  printf '[memory]\nengine = ""\n' > "$OPENHUMAN_WORKSPACE/config.toml"
+  printf '[memory]\nengine = ""\n\n[search]\nenabled = false\n' > "$OPENHUMAN_WORKSPACE/config.toml"
 fi
 # The core needs *a* credential before it will run a turn even on a BYOK route;
 # a dummy API key satisfies that without granting any backend access, and
