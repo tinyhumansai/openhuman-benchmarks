@@ -61,7 +61,12 @@ fi
 chmod +x "$out/adapter.sh"
 
 # Fail loudly here rather than as `exit 127` inside a task 30 minutes later.
-want="$(case "$platform" in */amd64) echo x86-64;; */arm64|*/aarch64) echo aarch64;; *) echo "";; esac)"
+# (a plain case: bash 3.2 cannot parse a `case` inside `$(...)` and fails after the image is built)
+case "$platform" in
+  */amd64) want=x86-64 ;;
+  */arm64|*/aarch64) want=aarch64 ;;
+  *) want="" ;;
+esac
 if [ -n "$want" ] && [ -x "$out/node/bin/node" ]; then
   got="$(file -b "$out/node/bin/node")"
   case "$got" in

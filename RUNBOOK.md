@@ -21,6 +21,14 @@ first build as the test.
   CPU and RAM from the container's cgroup.
 - `OPENROUTER_API_KEY` in the environment or in `.env`. Never print it, log it or commit it.
   Only the proxy container holds it; harnesses get a dummy token.
+- **Egress that does not hang.** An ISP can drop one of a CDN's anycast addresses while DNS
+  keeps handing it out; a client that picks it waits out its connect timeout, and `uv` gives up
+  after three tries, so a verifier that installs Python at grade time fails a solved task
+  (db-wal-recovery, 2026-10-07). 84 of the 89 Terminal-Bench 2.0 verifiers download `uv` and a
+  CPython from GitHub's CDN. Before a run, on the Docker host, as root:
+  `bash egress-blackholes.sh` (on the Lima rig: `limactl shell ohbench -- sudo bash "$PWD/egress-blackholes.sh"`,
+  also wired into the VM's boot provisioning). It probes every address of the common package
+  hosts and blackholes the dead ones so clients fail over at once. It changes nothing a task does.
 - **Nothing else heavy running on the box.** Harnesses run one at a time on purpose; the
   orchestrator refuses to start if the host is busy (it reads `/proc`). Do not set
   `BENCH_ALLOW_CONCURRENT=1`; that override exists only for macOS, where `/proc` is missing,
