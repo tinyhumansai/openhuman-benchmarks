@@ -139,6 +139,15 @@ and cache views. `results/` is git-ignored; copy it out, or tar
 
 ## Known caveats
 
+- **Rosetta cannot run a binary inside a `chroot`.** On the arm64 Lima rig, amd64 task
+  containers run under Rosetta, which opens `/proc/self/exe` at start; a jail with no
+  `/proc` gives `rosetta error: Unable to open /proc/self/exe: 2` (exit 133). Two
+  Terminal-Bench 2.0 verifiers run the agent's binary that way (`path-tracing`,
+  `path-tracing-reverse`), so those tasks can never pass here whatever the agent did: count
+  them as unmeasurable on this rig, not as failures, and run the submission on an x86_64
+  host. The same message with `: 13` during `apt-get` is apt's sandboxed download user and
+  is harmless. (2026-10-08)
+
 - Results use the proxy's pinned provider `DeepSeek`. Hermes's title requests 404 under the
   strict provider pin (its `json_schema` response format is not supported). It does not affect
   Hermes's task results.
