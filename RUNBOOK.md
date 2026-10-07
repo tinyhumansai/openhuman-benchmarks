@@ -139,6 +139,11 @@ and cache views. `results/` is git-ignored; copy it out, or tar
 
 ## Known caveats
 
+- **Pull task images before a run.** Harbor's 600 s environment-start window includes the
+  image pull; four Terminal-Bench 2.0 images are 5.8–8.4 GB and cannot arrive in time on a
+  slow link, so the trial errors (`EnvironmentStartTimeoutError`) before the agent runs.
+  `tbench/prepull.sh 2 tbench/instances-tb2-all.txt` pulls what the list needs and skips what
+  is present; it changes no timeout. (2026-10-08)
 - **Rosetta cannot run a binary inside a `chroot`.** On the arm64 Lima rig, amd64 task
   containers run under Rosetta, which opens `/proc/self/exe` at start; a jail with no
   `/proc` gives `rosetta error: Unable to open /proc/self/exe: 2` (exit 133). Two
