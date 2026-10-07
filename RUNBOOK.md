@@ -144,6 +144,13 @@ and cache views. `results/` is git-ignored; copy it out, or tar
   slow link, so the trial errors (`EnvironmentStartTimeoutError`) before the agent runs.
   `tbench/prepull.sh 2 tbench/instances-tb2-all.txt` pulls what the list needs and skips what
   is present; it changes no timeout. (2026-10-08)
+- **Debian 11 images cannot be graded any more.** `qemu-startup` and `qemu-alpine-ssh` run on
+  `debian:bullseye-slim`; bullseye left LTS in 2026-08 and its security pool is gone from
+  `deb.debian.org`, so the verifiers' own `apt-get install curl` fails (404) before `uv` can
+  be installed: reward 0 for every agent until the dataset is re-pinned. Separately, the
+  OpenHuman bundle is built on Ubuntu 22.04 and needs glibc 2.34, which bullseye (2.31) lacks,
+  so the agent cannot even start in those two images (`GLIBC_2.34 not found`); lowering the
+  builder's floor is a bundle follow-up, worth doing for older SWE-bench images. (2026-10-08)
 - **Rosetta cannot run a binary inside a `chroot`.** On the arm64 Lima rig, amd64 task
   containers run under Rosetta, which opens `/proc/self/exe` at start; a jail with no
   `/proc` gives `rosetta error: Unable to open /proc/self/exe: 2` (exit 133). Two
