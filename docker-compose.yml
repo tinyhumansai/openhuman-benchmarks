@@ -34,7 +34,18 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY (env or .env)}
       BENCH_MODEL: ${BENCH_MODEL:-deepseek/deepseek-v4.1-flash}
       BENCH_REASONING: ${BENCH_REASONING:-high}
-      BENCH_PROVIDER: ${BENCH_PROVIDER:-DeepSeek} # pinned, no fallbacks; empty = let OpenRouter route
+      # Cap the output reservation: OpenRouter's pre-flight balance check prices
+      # `max_tokens`, not what the call emits, and a reservation over the balance
+      # is a terminal 402. `-` not `:-` so an explicit empty value disables it.
+      BENCH_MAX_TOKENS: ${BENCH_MAX_TOKENS-0}
+      # Opt-in: pin a thinking budget (`reasoning.max_tokens`) INSTEAD of the effort
+      # label. 0/empty keeps the effort pin. See meter-proxy/wire.mjs.
+      BENCH_REASONING_BUDGET: ${BENCH_REASONING_BUDGET-0}
+      # `-` not `:-`: the proxy treats an empty string as "no pin"
+      # (`process.env.BENCH_PROVIDER ?? DEFAULT_PROVIDER`), but `:-` substitutes
+      # the default for empty as well as unset, so BENCH_PROVIDER= could never
+      # reach it and the documented unpinned mode was unreachable.
+      BENCH_PROVIDER: ${BENCH_PROVIDER-DeepSeek} # pinned, no fallbacks; empty = let OpenRouter route
       BENCH_PASSTHROUGH_MODELS: ${BENCH_PASSTHROUGH_MODELS-qwen/qwen3.5-flash-02-23} # keep their own model (OpenHuman vision sub-agent); empty = pin everything
       METER_LOG: /results/meter.jsonl
       # Harbor task containers reach the proxy through this socket (tbench/run.mjs mounts the

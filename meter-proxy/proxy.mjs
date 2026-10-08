@@ -10,6 +10,8 @@
 //   OPENROUTER_API_KEY real key; injected upstream, harnesses carry a dummy
 //   BENCH_MODEL        pinned model slug (required)
 //   BENCH_REASONING    pinned reasoning effort (default high)
+//   BENCH_MAX_TOKENS   cap the output reservation so OpenRouter's pre-flight balance check
+//                      cannot refuse the call with a 402 (0/unset = leave it alone)
 //   BENCH_PROVIDER     pinned OpenRouter provider, no fallbacks (default DeepSeek; empty = unpinned)
 //   BENCH_PASSTHROUGH_MODELS  comma-separated models that keep their own model, reasoning and
 //                      provider instead of being pinned (default: OpenHuman's vision sub-agent,
@@ -96,6 +98,8 @@ export function createProxy(opts) {
   const logPath = path.resolve(opts.logPath ?? "/results/meter.jsonl");
   const model = opts.model;
   const effort = opts.effort ?? "high";
+  const maxTokens = Number(opts.maxTokens ?? 0) || 0;
+  const reasoningBudget = Number(opts.reasoningBudget ?? 0) || 0;
   const provider = opts.provider || null;
   const passthroughModels = opts.passthroughModels ?? [];
   const apiKey = opts.apiKey;
@@ -208,7 +212,7 @@ export function createProxy(opts) {
             });
             prevState.set(key, built.state);
           }
-          const rewritten = rewriteRequest(format, parsed, { model, effort, provider, passthrough: passthroughModels });
+          const rewritten = rewriteRequest(format, parsed, { model, effort, provider, passthrough: passthroughModels, maxTokens, reasoningBudget });
           outBody = Buffer.from(JSON.stringify(rewritten.body));
           record = {
             seq: callSeq,
@@ -370,6 +374,9 @@ if (isMain) {
     upstream: upstreamUrl,
     model,
     effort: process.env.BENCH_REASONING || "high",
+    // 0/unset = leave the harness's own cap alone. See rewriteRequest.
+    maxTokens: Number(process.env.BENCH_MAX_TOKENS || 0) || 0,
+reasoningBudget: Number(process.env.BENCH_REASONING_BUDGET || 0) || 0,
     provider: process.env.BENCH_PROVIDER ?? DEFAULT_PROVIDER, // "" disables the pin
     passthroughModels: (process.env.BENCH_PASSTHROUGH_MODELS ?? DEFAULT_PASSTHROUGH)
       .split(",")
@@ -404,9 +411,37 @@ if (isMain) {
       upstream.on("error", () => client.destroy());
     });
     sock.on("error", (error) => process.stderr.write(`[meter] socket ${socketPath} unavailable: ${error.message}\n`));
-    fs.rmSync(socketPath, { force: true });
+    // Clear a socket a previous process left behind. `rmSync` lstats the
+    // path first and virtiofs (a Docker host inside a macOS VM — Lima,
+    // Colima, Docker Desktop) answers ENOTSUP for a socket, so after any
+    // unclean exit the proxy died here at startup and every run failed with
+    // "meter-proxy failed to start" until the directory was cleared by hand.
+    // `unlinkSync` is the right call for a socket; ENOENT just means there
+    // was nothing to clear, and anything else is reported rather than fatal
+    // because `listen` below gives the real diagnosis.
+    try {
+      fs.unlinkSync(socketPath);
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        process.stderr.write(
+          `[meter] could not clear a stale ${socketPath} (${error.code}); listen may fail\n`,
+        );
+      }
+    }
     sock.listen(socketPath, () => {
-      fs.chmodSync(socketPath, 0o666); // task images run as any uid
+      // Task images run as any uid, so widen the socket. Not every filesystem
+      // allows it: virtiofs (a Docker host inside a macOS VM — Lima, Colima,
+      // Docker Desktop) rejects chmod on a socket with EINVAL, and an uncaught
+      // throw in this callback killed the whole proxy rather than losing one
+      // hardening step. Warn and keep serving: the socket still works for a
+      // task container running as root, which Terminal-Bench's do.
+      try {
+        fs.chmodSync(socketPath, 0o666);
+      } catch (error) {
+        process.stderr.write(
+          `[meter] could not widen ${socketPath} (${error.code}): a task container running as a non-root uid may not be able to connect\n`,
+        );
+      }
       process.stdout.write(`[meter] also listening on ${socketPath}\n`);
     });
   }

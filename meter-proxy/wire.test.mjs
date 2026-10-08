@@ -179,3 +179,56 @@ test("a passthrough model keeps its model, reasoning and provider; others are st
   assert.equal(isPassthrough("x", []), false);
   assert.equal(isPassthrough(undefined, ["x"]), false);
 });
+
+test("the output reservation is capped only when it is larger than the cap", () => {
+  // OpenRouter's pre-flight balance check prices `max_tokens`, not what the
+  // call emits: "You requested up to 16384 tokens, but can only afford 14021"
+  // is a terminal 402 that killed three whole tasks on their first call while
+  // the account still had $13.69.
+  const opts = { model: "m", effort: "medium", maxTokens: 8192 };
+  const over = rewriteRequest("chat", { model: "m", max_tokens: 16384 }, opts);
+  assert.equal(over.body.max_tokens, 8192);
+  assert.equal(over.overridden.max_tokens, 16384);
+
+  // An upper bound: a request already under the cap is untouched.
+  const under = rewriteRequest("chat", { model: "m", max_tokens: 2048 }, opts);
+  assert.equal(under.body.max_tokens, 2048);
+  assert.equal(under.overridden.max_tokens, undefined);
+
+  // A request naming no cap gets one, so the reservation is still bounded.
+  const none = rewriteRequest("chat", { model: "m" }, opts);
+  assert.equal(none.body.max_tokens, 8192);
+
+  // 0/unset leaves the harness's own cap alone.
+  const off = rewriteRequest("chat", { model: "m", max_tokens: 16384 }, { model: "m", effort: "medium" });
+  assert.equal(off.body.max_tokens, 16384);
+  assert.equal(off.overridden.max_tokens, undefined);
+});
+
+
+
+
+
+
+// OpenRouter rejects `reasoning.effort` and `reasoning.max_tokens` together
+// (400), so the pin cannot carry a thinking budget. Asserted so nobody adds
+// one back without hitting the live 400 first.
+test("the reasoning pin carries an effort and no budget", () => {
+  const { body } = rewriteRequest(
+    FORMATS.CHAT,
+    { model: "someone/else", max_tokens: 16384, messages: [] },
+    { model: "deepseek/deepseek-v4.1-flash", effort: "high" },
+  );
+  assert.deepEqual(body.reasoning, { effort: "high" });
+});
+
+// A thinking budget replaces the effort label (OpenRouter rejects both together).
+test("a reasoning budget pins reasoning.max_tokens instead of the effort", () => {
+  const { body } = rewriteRequest(
+    FORMATS.CHAT,
+    { model: "someone/else", max_tokens: 16384, messages: [] },
+    { model: "deepseek/deepseek-v4.1-flash", effort: "high", reasoningBudget: 1500 },
+  );
+  assert.deepEqual(body.reasoning, { max_tokens: 1500 });
+  assert.equal(body.reasoning.effort, undefined);
+});
