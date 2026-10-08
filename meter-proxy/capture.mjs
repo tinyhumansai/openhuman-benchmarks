@@ -18,7 +18,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { FORMATS, extractPromptParts } from "./wire.mjs";
 
+// A streamed body is capped, but the END is where the answer is: the final
+// chunk carries `finish_reason`, and a provider failure inside an HTTP 200
+// stream arrives as a trailing `{"error":…}` payload. Keeping only the head
+// discarded exactly that: an `atrx-vep-crispr` turn died after 91 minutes with
+// a sanitized "hosted agent invocation failed" and the real cause sat in the
+// 844 KB that had been thrown away. Keep both ends.
 const RESPONSE_CAP = 256 * 1024;
+const RESPONSE_TAIL = 64 * 1024;
 
 export const sha = (value) =>
   crypto
@@ -132,7 +139,7 @@ function toolNames(tools) {
 /** Cap the stored response so a runaway stream cannot fill the disk. */
 export function capResponse(text) {
   return text.length > RESPONSE_CAP
-    ? `${text.slice(0, RESPONSE_CAP)}\n[truncated ${text.length - RESPONSE_CAP} chars]`
+    ? `${text.slice(0, RESPONSE_CAP - RESPONSE_TAIL)}\n[truncated ${text.length - RESPONSE_CAP} chars]\n${text.slice(-RESPONSE_TAIL)}`
     : text;
 }
 

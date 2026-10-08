@@ -50,7 +50,17 @@ def task_budget_secs(key: str) -> str:
     override = float(os.environ.get("BENCH_AGENT_TIMEOUT_OVERRIDE_S", "0") or 0)
     if override > 0:
         return str(int(min(override, maximum) * multiplier if maximum > 0 else override * multiplier))
-    tomls = list(cache.glob(f"*/{key}/task.toml"))
+    # Two cache layouts exist and both must be read. Harbor's older one is
+    # `<dataset-id>/<task>/task.toml`; the newer package layout is
+    # `packages/<dataset>/<task>/<content-hash>/task.toml`. Matching only the
+    # first silently loses the task's budget, and an empty budget falls through
+    # to TASK_TIMEOUT_S (86400) in runner/turn-budget.mjs -- so the turn ceiling
+    # became ~24h instead of the task's own. Observed on terminal-bench 4.0
+    # `payments-pipeline-fix` (declares 28800s): the turn ran with an 86280s
+    # ceiling, so neither the per-call nor the shell timeout had any turn
+    # pressure to work from and one `grep -rl /` held the shell for 3575s of a
+    # 3906s run.
+    tomls = [*cache.glob(f"*/{key}/task.toml"), *cache.glob(f"packages/*/{key}/*/task.toml")]
     budgets = set()
     for toml in tomls:
         try:
@@ -147,6 +157,13 @@ class OpenHuman(BaseAgent):
             # OpenHuman's default 60 min turn ceiling would cut 8 h Terminal-Bench 4.0 tasks short, so
             # runner/turn-budget.mjs sets it to the task's own agent budget minus a margin.
             "OPENHUMAN_AGENT_TURN_TIMEOUT_SECS": turn_timeout,
+            # Per-call ceiling. OpenHuman defaults to 900s, but a Terminal-Bench 2.0
+            # turn is 780s (900s task budget - BENCH_TURN_MARGIN_S), so its backstop
+            # for "calls that will never return" can never fire: one stalled upstream
+            # request consumes the whole task with no retry and no metered row (the
+            # proxy logs a call only once it completes). Observed on
+            # adaptive-rejection-sampler: 778s of wall clock, zero completions.
+            "OPENHUMAN_MODEL_CALL_TIMEOUT_SECS": os.environ.get("OPENHUMAN_MODEL_CALL_TIMEOUT_SECS", ""),
             "BENCH_TURN_MARGIN_S": os.environ.get("BENCH_TURN_MARGIN_S", ""),
             "BENCH_TURN_BUDGET_S": budget,
             "DISABLE_TELEMETRY": "1",

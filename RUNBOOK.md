@@ -21,6 +21,14 @@ first build as the test.
   CPU and RAM from the container's cgroup.
 - `OPENROUTER_API_KEY` in the environment or in `.env`. Never print it, log it or commit it.
   Only the proxy container holds it; harnesses get a dummy token.
+- **Egress that does not hang.** An ISP can drop one of a CDN's anycast addresses while DNS
+  keeps handing it out; a client that picks it waits out its connect timeout, and `uv` gives up
+  after three tries, so a verifier that installs Python at grade time fails a solved task
+  (db-wal-recovery, 2026-10-07). 84 of the 89 Terminal-Bench 2.0 verifiers download `uv` and a
+  CPython from GitHub's CDN. Before a run, on the Docker host, as root:
+  `bash egress-blackholes.sh` (on the Lima rig: `limactl shell ohbench -- sudo bash "$PWD/egress-blackholes.sh"`,
+  also wired into the VM's boot provisioning). It probes every address of the common package
+  hosts and blackholes the dead ones so clients fail over at once. It changes nothing a task does.
 - **Nothing else heavy running on the box.** Harnesses run one at a time on purpose; the
   orchestrator refuses to start if the host is busy (it reads `/proc`). Do not set
   `BENCH_ALLOW_CONCURRENT=1`; that override exists only for macOS, where `/proc` is missing,
@@ -130,6 +138,38 @@ and cache views. `results/` is git-ignored; copy it out, or tar
 - Skip a failing gate and carry on.
 
 ## Known caveats
+
+- **Pull task images before a run.** Harbor's 600 s environment-start window includes the
+  image pull; four Terminal-Bench 2.0 images are 5.8–8.4 GB and cannot arrive in time on a
+  slow link, so the trial errors (`EnvironmentStartTimeoutError`) before the agent runs.
+  `tbench/prepull.sh 2 tbench/instances-tb2-all.txt` pulls what the list needs and skips what
+  is present; it changes no timeout. (2026-10-08)
+- **Debian 11 images cannot be graded any more.** `qemu-startup` and `qemu-alpine-ssh` run on
+  `debian:bullseye-slim`; bullseye left LTS in 2026-08 and its security pool is gone from
+  `deb.debian.org`, so the verifiers' own `apt-get install curl` fails (404) before `uv` can
+  be installed: reward 0 for every agent until the dataset is re-pinned. Separately, the
+  OpenHuman bundle is built on Ubuntu 22.04 and needs glibc 2.34, which bullseye (2.31) lacks,
+  so the agent cannot even start in those two images (`GLIBC_2.34 not found`); lowering the
+  builder's floor is a bundle follow-up, worth doing for older SWE-bench images. (2026-10-08)
+- **Prune Docker networks before a Terminal-Bench run.** Harbor creates one network per trial
+  and does not remove it when a trial errors or the Docker host restarts mid-run; after a
+  full 89-task pass the daemon answered every new trial with "all predefined address pools
+  have been fully subnetted" and 25 trials failed before a container started. Run
+  `docker network prune -f` (removes only networks with no containers) before starting. (2026-10-08)
+- **Verifiers that download gigabytes share the link.** Some Terminal-Bench verifiers install
+  PyTorch with the CUDA wheels (several GB) at grade time; on a ~5 MB/s link that fits the
+  900 s verifier timeout only when the trial has the link to itself. With three trials in
+  flight `torch-pipeline-parallelism` graded as `VerifierTimeoutError` while still
+  downloading (2026-10-08). Run such tasks one at a time, or on a host with real bandwidth;
+  the timeout itself is the benchmark's and stays. (2026-10-08)
+- **Rosetta cannot run a binary inside a `chroot`.** On the arm64 Lima rig, amd64 task
+  containers run under Rosetta, which opens `/proc/self/exe` at start; a jail with no
+  `/proc` gives `rosetta error: Unable to open /proc/self/exe: 2` (exit 133). Two
+  Terminal-Bench 2.0 verifiers run the agent's binary that way (`path-tracing`,
+  `path-tracing-reverse`), so those tasks can never pass here whatever the agent did: count
+  them as unmeasurable on this rig, not as failures, and run the submission on an x86_64
+  host. The same message with `: 13` during `apt-get` is apt's sandboxed download user and
+  is harmless. (2026-10-08)
 
 - Results use the proxy's pinned provider `DeepSeek`. Hermes's title requests 404 under the
   strict provider pin (its `json_schema` response format is not supported). It does not affect
