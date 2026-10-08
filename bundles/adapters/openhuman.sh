@@ -53,7 +53,13 @@ mkdir -p "$OPENHUMAN_WORKSPACE"
 # work is not part of the agent being measured; the task containers keep
 # their internet, so `shell` can still fetch what a task needs.
 if [ ! -f "$OPENHUMAN_WORKSPACE/config.toml" ]; then
-  printf '[memory]\nengine = ""\n\n[search]\nenabled = false\n' > "$OPENHUMAN_WORKSPACE/config.toml"
+  # `runtime.reasoning_effort` makes the harness declare the effort the run is
+  # pinned to (the meter-proxy still pins the wire), so every request carries a
+  # thinking budget (`reasoning.budget_tokens`, 55% of the turn's output cap).
+  # The routable providers ignore that budget; tinyagents' reasoning watchdog
+  # enforces it client-side and ends a call that reasons past it with nothing
+  # visible, instead of waiting for the output cap.
+  printf '[memory]\nengine = ""\n\n[search]\nenabled = false\n\n[runtime]\nreasoning_effort = "%s"\n' "${BENCH_REASONING:-high}" > "$OPENHUMAN_WORKSPACE/config.toml"
 fi
 # The core needs *a* credential before it will run a turn even on a BYOK route;
 # a dummy API key satisfies that without granting any backend access, and
