@@ -59,7 +59,15 @@ if [ ! -f "$OPENHUMAN_WORKSPACE/config.toml" ]; then
   # The routable providers ignore that budget; tinyagents' reasoning watchdog
   # enforces it client-side and ends a call that reasons past it with nothing
   # visible, instead of waiting for the output cap.
-  printf '[memory]\nengine = ""\n\n[search]\nenabled = false\n\n[runtime]\nreasoning_effort = "%s"\n' "${BENCH_REASONING:-high}" > "$OPENHUMAN_WORKSPACE/config.toml"
+  # Web search is on only when a direct search provider's key reached this
+  # container (`BENCH_AGENT_ENV=EXA_API_KEY` on the runner); the harness's env
+  # overlay configures that provider from the key. Without one the tool would
+  # answer 401 on every call, so it stays off.
+  search_enabled=false
+  if [ -n "${EXA_API_KEY:-}" ] || [ -n "${OPENHUMAN_EXA_API_KEY:-}" ] || [ -n "${BRAVE_API_KEY:-}" ] || [ -n "${TAVILY_API_KEY:-}" ]; then
+    search_enabled=true
+  fi
+  printf '[memory]\nengine = ""\n\n[search]\nenabled = %s\n\n[runtime]\nreasoning_effort = "%s"\n' "$search_enabled" "${BENCH_REASONING:-high}" > "$OPENHUMAN_WORKSPACE/config.toml"
 fi
 # The core needs *a* credential before it will run a turn even on a BYOK route;
 # a dummy API key satisfies that without granting any backend access, and
