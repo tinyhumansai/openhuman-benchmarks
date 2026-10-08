@@ -151,6 +151,11 @@ and cache views. `results/` is git-ignored; copy it out, or tar
   OpenHuman bundle is built on Ubuntu 22.04 and needs glibc 2.34, which bullseye (2.31) lacks,
   so the agent cannot even start in those two images (`GLIBC_2.34 not found`); lowering the
   builder's floor is a bundle follow-up, worth doing for older SWE-bench images. (2026-10-08)
+- **Prune Docker networks before a Terminal-Bench run.** Harbor creates one network per trial
+  and does not remove it when a trial errors or the Docker host restarts mid-run; after a
+  full 89-task pass the daemon answered every new trial with "all predefined address pools
+  have been fully subnetted" and 25 trials failed before a container started. Run
+  `docker network prune -f` (removes only networks with no containers) before starting. (2026-10-08)
 - **Rosetta cannot run a binary inside a `chroot`.** On the arm64 Lima rig, amd64 task
   containers run under Rosetta, which opens `/proc/self/exe` at start; a jail with no
   `/proc` gives `rosetta error: Unable to open /proc/self/exe: 2` (exit 133). Two
