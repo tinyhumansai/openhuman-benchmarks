@@ -156,6 +156,12 @@ and cache views. `results/` is git-ignored; copy it out, or tar
   full 89-task pass the daemon answered every new trial with "all predefined address pools
   have been fully subnetted" and 25 trials failed before a container started. Run
   `docker network prune -f` (removes only networks with no containers) before starting. (2026-10-08)
+- **Verifiers that download gigabytes share the link.** Some Terminal-Bench verifiers install
+  PyTorch with the CUDA wheels (several GB) at grade time; on a ~5 MB/s link that fits the
+  900 s verifier timeout only when the trial has the link to itself. With three trials in
+  flight `torch-pipeline-parallelism` graded as `VerifierTimeoutError` while still
+  downloading (2026-10-08). Run such tasks one at a time, or on a host with real bandwidth;
+  the timeout itself is the benchmark's and stays. (2026-10-08)
 - **Rosetta cannot run a binary inside a `chroot`.** On the arm64 Lima rig, amd64 task
   containers run under Rosetta, which opens `/proc/self/exe` at start; a jail with no
   `/proc` gives `rosetta error: Unable to open /proc/self/exe: 2` (exit 133). Two
