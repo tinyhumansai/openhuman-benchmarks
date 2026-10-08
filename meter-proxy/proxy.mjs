@@ -220,7 +220,7 @@ export function createProxy(opts) {
             ...tag,
             format,
             model: rewritten.passthrough ? parsed.model : model,
-            reasoning_effort: rewritten.passthrough ? null : effort,
+            reasoning_effort: rewritten.passthrough ? null : (rewritten.effort ?? effort),
             provider_pinned: rewritten.passthrough ? null : provider,
             ...(rewritten.passthrough ? { passthrough: true } : {}),
             // system prompt + tool list: lets the report tell the main agent from side requests and sub-agents

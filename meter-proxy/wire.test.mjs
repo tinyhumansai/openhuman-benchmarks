@@ -42,6 +42,34 @@ test("rewriteRequest pins model and one reasoning knob, reports overrides", () =
   assert.equal(overridden.reasoning, "high");
 });
 
+test("rewriteRequest keeps a harness's explicit reasoning-off and reports it as the effort", () => {
+  // tinyagents sends `reasoning_effort: "none"` for the calls after one that
+  // died at its cap; the pin must not turn reasoning back on for them.
+  for (const body of [
+    { model: "m", reasoning_effort: "none", messages: [] },
+    { model: "m", reasoning: { effort: "none" }, messages: [] },
+    { model: "m", reasoning: { enabled: false }, messages: [] },
+    { model: "m", thinking: { type: "disabled" }, messages: [] },
+  ]) {
+    const out = rewriteRequest(FORMATS.CHAT, body, { model: "p", effort: "high", reasoningBudget: 4000 });
+    assert.deepEqual(out.body.reasoning, { effort: "none" }, JSON.stringify(body));
+    assert.equal(out.effort, "none");
+    assert.equal(out.body.reasoning_effort, undefined);
+    assert.equal(out.body.thinking, undefined);
+  }
+  // Any other value is still pinned, and the pin is what the meter records.
+  const pinned = rewriteRequest(
+    FORMATS.CHAT,
+    { model: "m", reasoning_effort: "low", messages: [] },
+    { model: "p", effort: "high" },
+  );
+  assert.deepEqual(pinned.body.reasoning, { effort: "high" });
+  assert.equal(pinned.effort, "high");
+  const budget = rewriteRequest(FORMATS.CHAT, { model: "m", messages: [] }, { model: "p", effort: "high", reasoningBudget: 4000 });
+  assert.deepEqual(budget.body.reasoning, { max_tokens: 4000 });
+  assert.equal(budget.effort, null);
+});
+
 test("rewriteRequest drops Anthropic thinking and does not add stream_options", () => {
   const { body } = rewriteRequest(
     FORMATS.ANTHROPIC,
