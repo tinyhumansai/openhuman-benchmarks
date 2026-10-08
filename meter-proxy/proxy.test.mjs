@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import http from "node:http";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -194,4 +195,36 @@ test("an allowlisted model passes through unpinned and is not priced with the pi
 
   proxy.server.close();
   fake.close();
+});
+
+// A socket left behind by an unclean exit must not stop the proxy starting.
+// `fs.rmSync` lstats the path and virtiofs answers ENOTSUP for a socket, which
+// killed every run with "meter-proxy failed to start" until the socket
+// directory was cleared by hand.
+test("a stale unix socket is cleared rather than crashing the listener", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "meter-sock-"));
+  const socketPath = path.join(dir, "meter.sock");
+
+  // A killed proxy leaves the socket file behind. A clean `close()` would
+  // unlink it, so the listener stays open while the file is cleared -- which
+  // is exactly the state a restarting proxy finds.
+  const stale = net.createServer(() => {});
+  await new Promise((resolve) => stale.listen(socketPath, resolve));
+  assert.ok(fs.statSync(socketPath).isSocket(), "fixture must leave a socket");
+
+  // rmSync is what used to run here; on virtiofs it throws ENOTSUP. unlinkSync
+  // is correct for a socket on every filesystem.
+  assert.doesNotThrow(() => fs.unlinkSync(socketPath));
+  assert.ok(!fs.existsSync(socketPath));
+  await new Promise((resolve) => stale.close(resolve));
+
+  // And the same call is a no-op when there is nothing to clear.
+  let code = null;
+  try {
+    fs.unlinkSync(socketPath);
+  } catch (error) {
+    code = error.code;
+  }
+  assert.equal(code, "ENOENT", "a missing socket must report ENOENT, not something fatal");
+  fs.rmSync(dir, { recursive: true, force: true });
 });

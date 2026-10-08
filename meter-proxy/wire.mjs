@@ -40,13 +40,25 @@ export function isPassthrough(requested, allowlist) {
   return allowlist.some((m) => routeId(m) === id);
 }
 
+/** Share of a request's `max_tokens` left for thinking when this proxy pins an
+ * effort level. Mirrors OpenHuman's `REASONING_BUDGET_PERCENT` (55%). */
+const REASONING_BUDGET_SHARE = 0.55;
+
+/** Smallest thinking budget worth sending; Anthropic models reject less.
+ * Mirrors OpenHuman's `MIN_REASONING_BUDGET_TOKENS`. */
+const MIN_REASONING_BUDGET_TOKENS = 1024;
+
 /**
  * Pin the controlled variables on one request body: model, reasoning effort,
  * and ask the upstream to report cost/usage. Returns the rewritten object and
  * the fields that were overridden (so the log can show what a harness tried to
  * send versus what was forwarded).
  */
-export function rewriteRequest(format, body, { model, effort, provider, passthrough }) {
+export function rewriteRequest(
+  format,
+  body,
+  { model, effort, provider, passthrough, maxTokens, reasoningBudget = 0 },
+) {
   const out = { ...body };
   const overridden = {};
   if (isPassthrough(body.model, passthrough)) {
@@ -70,7 +82,34 @@ export function rewriteRequest(format, body, { model, effort, provider, passthro
   if (prior !== undefined) overridden.reasoning = prior;
   delete out.reasoning_effort;
   delete out.thinking;
-  out.reasoning = { effort };
+  // Pin the effort WITH a thinking budget, not the effort alone. A harness that
+  // configures no reasoning of its own (most do not, since this pin is how the
+  // run sets effort) also sets no thinking budget, so a bare `{effort}` lets a
+  // reasoning model think through the request's whole `max_tokens` and return
+  // `finish_reason: "length"` with no content and no tool call. Measured on
+  // deepseek-v4.1-flash at high effort, that was 7-17% of every call on the
+  // harder tasks and 0% on the same tasks without reasoning pinned: calls
+  // billed in full that moved the run nowhere, which depressed those runs and
+  // made them look like a model regression.
+  //
+  // A thinking budget cannot ride alongside the effort: OpenRouter answers 400
+  // "Only one of \"reasoning.effort\" and \"reasoning.max_tokens\" can be
+  // specified". So bounding the thinking here means giving up the effort pin,
+  // which is the run's controlled variable. The dead calls therefore have to be
+  // addressed by the request's own `max_tokens` (or a lower effort), not from
+  // inside this pin. Measured rate, deepseek-v4.1-flash at high effort:
+  // 7-17% of calls on the harder tasks, 0% on models that do not reason.
+  // Opt-in alternative control: a thinking budget INSTEAD of the effort label
+  // (OpenRouter accepts one or the other). Measured on deepseek-v4.1-flash,
+  // 2026-10-07: the effort label is a soft dial -- "high" roughly doubles mean
+  // reasoning length versus "low" with a 10x spread within a level -- and the
+  // documented "~80% of max_tokens" allocation is not enforced; reasoning runs
+  // to the full `max_tokens` and the call returns nothing. A budget fares no
+  // better on the providers this account can route to: `max_tokens: 1500` got
+  // 481/859/4206 reasoning tokens from Together and 3528/5964/5844 from
+  // AtlasCloud. So this knob exists to test a provider, not to rely on; the
+  // only bound those providers honour is the request's own `max_tokens`.
+  out.reasoning = reasoningBudget > 0 ? { max_tokens: reasoningBudget } : { effort };
 
   // Pin the OpenRouter provider. Prompt caches live inside one provider's
   // deployment, so letting OpenRouter route each call to whichever backend is
@@ -80,6 +119,20 @@ export function rewriteRequest(format, body, { model, effort, provider, passthro
   if (provider) {
     if (out.provider !== undefined) overridden.provider = out.provider;
     out.provider = { order: [provider], allow_fallbacks: false };
+  }
+
+  // Cap the output reservation. OpenRouter runs a pre-flight balance check
+  // against `max_tokens`, not against what the call will actually emit, and
+  // refuses the request when the reservation exceeds the remaining balance:
+  // "You requested up to 16384 tokens, but can only afford 14021". That 402 is
+  // terminal, so a whole task dies on its first call even though the account
+  // has credit and typical calls emit ~2,000 tokens. OpenHuman's own cap is the
+  // fixed `AGENT_TURN_MAX_OUTPUT_TOKENS` (16384), which cannot know the balance.
+  // BENCH_MAX_TOKENS prices the reservation to what the key can actually afford;
+  // it is an upper bound, so a lower value changes nothing for a normal call.
+  if (maxTokens > 0 && (out.max_tokens ?? Infinity) > maxTokens) {
+    if (out.max_tokens !== undefined) overridden.max_tokens = out.max_tokens;
+    out.max_tokens = maxTokens;
   }
 
   // OpenRouter returns `usage.cost` when asked.
