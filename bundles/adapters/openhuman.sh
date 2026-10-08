@@ -64,8 +64,21 @@ if [ ! -f "$OPENHUMAN_WORKSPACE/config.toml" ]; then
   # overlay configures that provider from the key. Without one the tool would
   # answer 401 on every call, so it stays off.
   search_enabled=false
-  if [ -n "${EXA_API_KEY:-}" ] || [ -n "${OPENHUMAN_EXA_API_KEY:-}" ] || [ -n "${BRAVE_API_KEY:-}" ] || [ -n "${TAVILY_API_KEY:-}" ]; then
+  if [ -n "${EXA_API_KEY:-}" ] || [ -n "${OPENHUMAN_EXA_API_KEY:-}" ]; then
     search_enabled=true
+    # Route the provider directly: the config migration otherwise routes exa
+    # through the managed backend, which needs a signed-in user and answers
+    # 401 here (measured: 27 of 27 searches failed in 1 ms on the first run).
+    export OPENHUMAN_SEARCH_PROVIDERS="${OPENHUMAN_SEARCH_PROVIDERS:-exa:direct}"
+    export OPENHUMAN_SEARCH_ENABLED="${OPENHUMAN_SEARCH_ENABLED:-true}"
+  elif [ -n "${BRAVE_API_KEY:-}" ]; then
+    search_enabled=true
+    export OPENHUMAN_SEARCH_PROVIDERS="${OPENHUMAN_SEARCH_PROVIDERS:-brave:direct}"
+    export OPENHUMAN_SEARCH_ENABLED="${OPENHUMAN_SEARCH_ENABLED:-true}"
+  elif [ -n "${TAVILY_API_KEY:-}" ]; then
+    search_enabled=true
+    export OPENHUMAN_SEARCH_PROVIDERS="${OPENHUMAN_SEARCH_PROVIDERS:-tavily:direct}"
+    export OPENHUMAN_SEARCH_ENABLED="${OPENHUMAN_SEARCH_ENABLED:-true}"
   fi
   printf '[memory]\nengine = ""\n\n[search]\nenabled = %s\n\n[runtime]\nreasoning_effort = "%s"\n' "$search_enabled" "${BENCH_REASONING:-high}" > "$OPENHUMAN_WORKSPACE/config.toml"
 fi
