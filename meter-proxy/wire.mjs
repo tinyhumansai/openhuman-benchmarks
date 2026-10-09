@@ -109,7 +109,21 @@ export function rewriteRequest(
   // 481/859/4206 reasoning tokens from Together and 3528/5964/5844 from
   // AtlasCloud. So this knob exists to test a provider, not to rely on; the
   // only bound those providers honour is the request's own `max_tokens`.
-  out.reasoning = reasoningBudget > 0 ? { max_tokens: reasoningBudget } : { effort };
+  // A harness that switches reasoning OFF for one call keeps it off. That is
+  // the harness's own recovery (tinyagents sends `reasoning_effort: "none"`
+  // for the calls after one that died at its cap with nothing to show), and
+  // it is part of what the run measures: the pin says what effort the run
+  // wants where the harness asks for reasoning at all, not that every call
+  // must reason. `none` was also the one control measured to give zero
+  // reasoning tokens on the routable providers. The effective effort is
+  // returned so the meter records it per call.
+  const requestedOff = reasoningIsOff(prior);
+  out.reasoning = requestedOff
+    ? { effort: "none" }
+    : reasoningBudget > 0
+      ? { max_tokens: reasoningBudget }
+      : { effort };
+  const effectiveEffort = requestedOff ? "none" : reasoningBudget > 0 ? null : effort;
 
   // Pin the OpenRouter provider. Prompt caches live inside one provider's
   // deployment, so letting OpenRouter route each call to whichever backend is
@@ -140,7 +154,22 @@ export function rewriteRequest(
   if (format === FORMATS.CHAT && out.stream === true) {
     out.stream_options = { ...(out.stream_options ?? {}), include_usage: true };
   }
-  return { body: out, overridden };
+  return { body: out, overridden, effort: effectiveEffort };
+}
+
+// Whether a request's own reasoning field (any of the three spellings the
+// pin strips) asks for reasoning to be OFF: OpenAI's `reasoning_effort:
+// "none"`, OpenRouter's `{effort: "none"}` or `{enabled: false}`, Anthropic's
+// `thinking: {type: "disabled"}`. OpenRouter's `{exclude: true}` only hides
+// the reasoning from the response and is not "off".
+export function reasoningIsOff(prior) {
+  if (prior === undefined || prior === null) return false;
+  if (typeof prior === "string") return prior.trim().toLowerCase() === "none";
+  if (typeof prior !== "object") return false;
+  if (prior.enabled === false) return true;
+  if (typeof prior.effort === "string") return prior.effort.trim().toLowerCase() === "none";
+  if (prior.type === "disabled") return true;
+  return false;
 }
 
 function eachJsonEvent(text, fn) {

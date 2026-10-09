@@ -53,7 +53,34 @@ mkdir -p "$OPENHUMAN_WORKSPACE"
 # work is not part of the agent being measured; the task containers keep
 # their internet, so `shell` can still fetch what a task needs.
 if [ ! -f "$OPENHUMAN_WORKSPACE/config.toml" ]; then
-  printf '[memory]\nengine = ""\n\n[search]\nenabled = false\n' > "$OPENHUMAN_WORKSPACE/config.toml"
+  # `runtime.reasoning_effort` makes the harness declare the effort the run is
+  # pinned to (the meter-proxy still pins the wire), so every request carries a
+  # thinking budget (`reasoning.budget_tokens`, 55% of the turn's output cap).
+  # The routable providers ignore that budget; tinyagents' reasoning watchdog
+  # enforces it client-side and ends a call that reasons past it with nothing
+  # visible, instead of waiting for the output cap.
+  # Web search is on only when a direct search provider's key reached this
+  # container (`BENCH_AGENT_ENV=EXA_API_KEY` on the runner); the harness's env
+  # overlay configures that provider from the key. Without one the tool would
+  # answer 401 on every call, so it stays off.
+  search_enabled=false
+  if [ -n "${EXA_API_KEY:-}" ] || [ -n "${OPENHUMAN_EXA_API_KEY:-}" ]; then
+    search_enabled=true
+    # Route the provider directly: the config migration otherwise routes exa
+    # through the managed backend, which needs a signed-in user and answers
+    # 401 here (measured: 27 of 27 searches failed in 1 ms on the first run).
+    export OPENHUMAN_SEARCH_PROVIDERS="${OPENHUMAN_SEARCH_PROVIDERS:-exa:direct}"
+    export OPENHUMAN_SEARCH_ENABLED="${OPENHUMAN_SEARCH_ENABLED:-true}"
+  elif [ -n "${BRAVE_API_KEY:-}" ]; then
+    search_enabled=true
+    export OPENHUMAN_SEARCH_PROVIDERS="${OPENHUMAN_SEARCH_PROVIDERS:-brave:direct}"
+    export OPENHUMAN_SEARCH_ENABLED="${OPENHUMAN_SEARCH_ENABLED:-true}"
+  elif [ -n "${TAVILY_API_KEY:-}" ]; then
+    search_enabled=true
+    export OPENHUMAN_SEARCH_PROVIDERS="${OPENHUMAN_SEARCH_PROVIDERS:-tavily:direct}"
+    export OPENHUMAN_SEARCH_ENABLED="${OPENHUMAN_SEARCH_ENABLED:-true}"
+  fi
+  printf '[memory]\nengine = ""\n\n[search]\nenabled = %s\n\n[runtime]\nreasoning_effort = "%s"\n' "$search_enabled" "${BENCH_REASONING:-high}" > "$OPENHUMAN_WORKSPACE/config.toml"
 fi
 # The core needs *a* credential before it will run a turn even on a BYOK route;
 # a dummy API key satisfies that without granting any backend access, and
