@@ -36,7 +36,7 @@
  * a leak it cannot distinguish from correct behaviour.
  *
  * Usage:
- *   node scripts/bench/analyze.mjs --samples samples.jsonl --driver summary.json \
+ *   node agent-scale/analyze.mjs --samples samples.jsonl --driver summary.json \
  *     [--out report.json] [--rss-kib-per-turn 8] [--warmup-frac 0.25]
  */
 

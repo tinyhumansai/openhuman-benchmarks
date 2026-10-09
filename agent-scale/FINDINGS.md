@@ -1,6 +1,6 @@
 # Agent-scale benchmark — findings
 
-Measured with `scripts/bench/run-agent-scale.sh` against a release
+Measured with `agent-scale/run-agent-scale.sh` against a release
 `openhuman-core` on one Linux box, mocked LLM, concurrency 8, `fresh` thread
 mode. Every number below is reproducible with the commands shown.
 
@@ -30,8 +30,8 @@ full cost immediately** rather than starting fast:
 | C2 | C1's, **fresh process** | **532 ms** | 534 ms |
 
 ```bash
-scripts/bench/run-agent-scale.sh --duration-ms 240000 --keep-workspace --out-dir target/bench/C1
-scripts/bench/run-agent-scale.sh --duration-ms 120000 --workspace target/bench/C1/workspace --out-dir target/bench/C2
+agent-scale/run-agent-scale.sh --duration-ms 240000 --keep-workspace --out-dir target/bench/C1
+agent-scale/run-agent-scale.sh --duration-ms 120000 --workspace target/bench/C1/workspace --out-dir target/bench/C2
 ```
 
 A leak would have been left behind with the old process. This rules that out.
@@ -39,8 +39,8 @@ A leak would have been left behind with the old process. This rules that out.
 ### 2. Turning the memory subsystem off removes every symptom
 
 ```bash
-scripts/bench/run-agent-scale.sh --duration-ms 240000 --tool-depth 0            # memory on
-scripts/bench/run-agent-scale.sh --duration-ms 240000 --tool-depth 0 --memory-off
+agent-scale/run-agent-scale.sh --duration-ms 240000 --tool-depth 0            # memory on
+agent-scale/run-agent-scale.sh --duration-ms 240000 --tool-depth 0 --memory-off
 ```
 
 | | memory ON | memory OFF |
@@ -79,7 +79,7 @@ its own it cannot say which is expensive. Against an already-populated
 workspace, with writes off but recall still scanning every turn:
 
 ```bash
-scripts/bench/run-agent-scale.sh --duration-ms 90000 --tool-depth 0 \
+agent-scale/run-agent-scale.sh --duration-ms 90000 --tool-depth 0 \
   --memory-writes-off --workspace <populated>
 ```
 

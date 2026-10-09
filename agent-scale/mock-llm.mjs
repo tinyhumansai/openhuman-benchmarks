@@ -29,7 +29,7 @@
  *    inspect traffic, add a counter or log to stderr.
  *
  * Usage:
- *   node scripts/bench/mock-llm.mjs --port 18700 [options]
+ *   node agent-scale/mock-llm.mjs --port 18700 [options]
  *
  * Options:
  *   --port <n>          listen port. MUST NOT be one of 11434/8000/8080/1234/8888:

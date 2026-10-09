@@ -1,6 +1,6 @@
 /**
  * Behaviour of the life-scenario mock search backend
- * (`scripts/life-scenarios/mock-search.mjs`).
+ * (`life-scenarios/mock-search.mjs`).
  *
  * The rig exists because `web_search_tool` posts to the hosted backend, which
  * the benchmark has no session for — so the tool 401'd on every call and the

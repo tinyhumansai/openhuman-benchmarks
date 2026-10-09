@@ -1,6 +1,6 @@
 # What the life-scenario suite found
 
-Everything below is reproducible with `node scripts/life-scenarios/run.mjs`.
+Everything below is reproducible with `node life-scenarios/run.mjs`.
 Run directories referenced by timestamp live under `target/life-scenarios/`.
 
 ## The numbers

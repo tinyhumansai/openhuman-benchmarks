@@ -11,14 +11,15 @@
 # run's child_count scale with K → the scenario exits nonzero → this gate fails.
 #
 # Usage:
-#   ./scripts/profile/library-pool-gate.sh [--concurrency N] [--workers W] [--skip-build] [--out DIR]
+#   ./profile/scripts/library-pool-gate.sh [--concurrency N] [--workers W] [--skip-build] [--out DIR]
 #
 # Exits 0 = pass, 1 = regression/failure, 0 (with SKIP notice) = no system node.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# The profile crate root (profile/), whose target/ holds the binaries.
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 CONCURRENCY=8
 POOL_WORKERS=1

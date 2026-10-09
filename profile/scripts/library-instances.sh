@@ -11,7 +11,7 @@
 # (per-scenario RSS/duration), library-fleet.sh (one-process fleet sweep).
 #
 # Usage:
-#   ./scripts/profile/library-instances.sh [options]
+#   ./profile/scripts/library-instances.sh [options]
 #
 # Options:
 #   --instances "10,25,50"  Comma-separated instance-count sweep (default: "10,25,50")
@@ -39,14 +39,15 @@
 #   -h, --help                Show this help
 #
 # Examples:
-#   ./scripts/profile/library-instances.sh
-#   ./scripts/profile/library-instances.sh --instances "10,50" --hold-secs 30
-#   ./scripts/profile/library-instances.sh --instances "500" --max-instances 500 --gate
+#   ./profile/scripts/library-instances.sh
+#   ./profile/scripts/library-instances.sh --instances "10,50" --hold-secs 30
+#   ./profile/scripts/library-instances.sh --instances "500" --max-instances 500 --gate
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# The profile crate root (profile/), whose target/ holds the binaries.
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 INSTANCES="10,25,50"
 HOLD_SECS=30

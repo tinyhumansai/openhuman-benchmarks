@@ -1,15 +1,15 @@
-# `scripts/bench/`: agent-scale benchmarks
+# `agent-scale/`: agent-scale benchmarks
 
-Drive a **real [`openhuman-core`](../../crates/openhuman-cli/README.md) server process** at concurrency against a
+Drive a **real [`openhuman-core`](../vendor/openhuman/crates/openhuman-cli/README.md) server process** at concurrency against a
 mocked LLM ([`mock-llm.mjs`](./mock-llm.mjs)), sample its CPU and memory from the outside, and report a leak
 verdict. The pieces are [`run-agent-scale.sh`](./run-agent-scale.sh), [`driver.mjs`](./driver.mjs), [`sampler.mjs`](./sampler.mjs) and [`analyze.mjs`](./analyze.mjs).
 
-## How this differs from `scripts/profile/`
+## How this differs from `profile/scripts/`
 
 Both measure resources; they answer different questions, and the difference is
 the reason this directory exists rather than another scenario in the old one.
 
-|                | [`scripts/profile/`](../profile/README.md)                      | `scripts/bench/` (here)                       |
+|                | [`profile/scripts/`](../profile/scripts/README.md)                      | `agent-scale/` (here)                       |
 | -------------- | --------------------------------------- | --------------------------------------------- |
 | Core runs as   | a library, embedded in the bench binary | a normally-built `openhuman-core serve` process |
 | Driven through | direct `Agent` calls                    | JSON-RPC over HTTP `/rpc`                      |
@@ -18,7 +18,7 @@ the reason this directory exists rather than another scenario in the old one.
 | Measures       | domain and harness cost in isolation    | what the OS charges the shipped binary        |
 | Best for       | attributing cost to a subsystem         | leak hunting, capacity, tail latency          |
 
-`scripts/profile/` cannot see transport, serde, connection handling or the
+`profile/scripts/` cannot see transport, serde, connection handling or the
 scheduler, because in that tier none of them run. This one includes all of it
 but attributes less precisely. Use `profile/` to find out *what* costs; use
 `bench/` to find out whether the thing you ship *grows*.
@@ -39,6 +39,7 @@ but attributes less precisely. Use `profile/` to find out *what* costs; use
 - A release core binary:
 
 ```bash
+cd vendor/openhuman   # or set OPENHUMAN_DIR to another checkout
 cargo build --release --bin openhuman-core \
   --no-default-features --features "$(bash scripts/ci/product-features.sh)"
 ```
@@ -49,9 +50,9 @@ product's, so a leak verdict taken from one says little.
 ## Run it
 
 ```bash
-scripts/bench/run-agent-scale.sh                      # defaults: 8 concurrent, 300 turns
-scripts/bench/run-agent-scale.sh --concurrency 32 --turns 2000
-scripts/bench/run-agent-scale.sh --duration-ms 900000 --tool-depth 3   # 15-minute soak
+agent-scale/run-agent-scale.sh                      # defaults: 8 concurrent, 300 turns
+agent-scale/run-agent-scale.sh --concurrency 32 --turns 2000
+agent-scale/run-agent-scale.sh --duration-ms 900000 --tool-depth 3   # 15-minute soak
 ```
 
 Exit status is the verdict: non-zero when a leak or drift check fails.
@@ -236,7 +237,7 @@ accumulates, so a leak hunt should use at least 1.
 The tests are in [`analyze.test.mjs`](./analyze.test.mjs).
 
 ```bash
-node --test scripts/bench/analyze.test.mjs
+node --test agent-scale/analyze.test.mjs
 ```
 
 The analyzer's failure mode is silence: wrong math reports "pass" on a leaking
@@ -246,7 +247,7 @@ thread and FD growth, CPU drift, so a regression in the leak math fails loudly.
 
 ## Further reading
 
-- [`scripts/profile/`](../profile/README.md), the in-process counterpart.
-- [Performance and footprint](../../gitbooks/developing/performance.md) for the published numbers, and the public [openhuman-benchmarks](https://github.com/tinyhumansai/openhuman-benchmarks) repo for the cross-harness rig.
-- [`docs/library-benchmarking.md`](../../docs/library-benchmarking.md) for the embedded-library methodology.
-- [`scripts/ci/product-features.sh`](../ci/README.md), which defines the shipped feature set the release build uses.
+- [`profile/scripts/`](../profile/scripts/README.md), the in-process counterpart.
+- [Performance and footprint](https://tinyhumans.gitbook.io/openhuman/developing/performance) for the published numbers, and the public [openhuman-benchmarks](https://github.com/tinyhumansai/openhuman-benchmarks) repo for the cross-harness rig.
+- [`profile/docs/library-benchmarking.md`](../profile/docs/library-benchmarking.md) for the embedded-library methodology.
+- [`scripts/ci/product-features.sh`](../vendor/openhuman/scripts/ci/README.md), which defines the shipped feature set the release build uses.

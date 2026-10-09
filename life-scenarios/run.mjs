@@ -28,10 +28,10 @@
  * the comparison arm against a custom agent definition.
  *
  * Usage:
- *   node scripts/life-scenarios/run.mjs                       # all scenarios
- *   node scripts/life-scenarios/run.mjs --only calendar-buffer
- *   node scripts/life-scenarios/run.mjs --driver rpc --agent life_scenarios
- *   node scripts/life-scenarios/run.mjs --grade-only <run-dir>
+ *   node life-scenarios/run.mjs                       # all scenarios
+ *   node life-scenarios/run.mjs --only calendar-buffer
+ *   node life-scenarios/run.mjs --driver rpc --agent life_scenarios
+ *   node life-scenarios/run.mjs --grade-only <run-dir>
  */
 
 import { spawn } from "node:child_process";
@@ -47,7 +47,11 @@ import { startMockComposio } from "./mock-composio.mjs";
 import { startMockSearch, DEFAULT_INDEX_PATH } from "./mock-search.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const REPO = path.resolve(HERE, "..", "..");
+const REPO = path.resolve(HERE, "..");
+// The OpenHuman checkout under test: the vendored pin, unless OPENHUMAN_DIR says otherwise.
+const OPENHUMAN = process.env.OPENHUMAN_DIR
+  ? path.resolve(process.env.OPENHUMAN_DIR)
+  : path.join(REPO, "vendor", "openhuman");
 const FIXTURES = path.join(HERE, "fixtures");
 const SUPPORTED_AGENT_IDS = new Set(["life_scenarios", "orchestrator"]);
 
@@ -61,7 +65,7 @@ function parseArgs(argv) {
     // `desktop` = channel_web_chat + SSE, exactly what the composer does.
     // `rpc`     = inference_agent_chat, the only path with `cwd`/`agent_id`.
     driver: "desktop",
-    // The suite's benchmark agent (scripts/life-scenarios/agent-life-scenarios.toml):
+    // The suite's benchmark agent (life-scenarios/agent-life-scenarios.toml):
     // 40 iterations and the named tool belt these multi-step scenarios need.
     // `--agent orchestrator` runs the unmodified shipping agent for comparison,
     // capped at the 15 iterations its own definition declares.
@@ -83,7 +87,7 @@ function parseArgs(argv) {
     turnTimeoutMs: 900_000,
     coreBin:
       process.env.OPENHUMAN_CORE_BIN ||
-      path.join(REPO, "target", "debug", "openhuman-core"),
+      path.join(OPENHUMAN, "target", "debug", "openhuman-core"),
     runRoot: path.join(REPO, "target", "life-scenarios"),
     gradeOnly: "",
     // The desktop app ships the approval gate ON and a human answers it. The
@@ -987,7 +991,7 @@ async function main() {
   if (!fs.existsSync(opts.coreBin))
     throw new Error(
       `core binary not found at ${opts.coreBin}\n` +
-        `build it: cargo build --manifest-path Cargo.toml -p openhuman-cli --bin openhuman-core`,
+        `build it: cargo build --manifest-path ${path.join(OPENHUMAN, "Cargo.toml")} -p openhuman-cli --bin openhuman-core`,
     );
   if (!opts.managed && !opts.apiKey)
     throw new Error(

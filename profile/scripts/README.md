@@ -1,15 +1,15 @@
-# `scripts/profile/`
+# `profile/scripts/`
 
 Reproducible benchmarking scripts for the OpenHuman Rust core as an embedded
 library (no RPC server), built around the `library-profile` and `rss-bench`
-binaries (see [`crates/openhuman-cli/src/bin/library_profile/main.rs`](../../crates/openhuman-cli/src/bin/library_profile/main.rs) and [`rss_bench.rs`](../../crates/openhuman-cli/src/bin/rss_bench.rs)).
+binaries (see [`profile/src/bin/library_profile/main.rs`](../src/bin/library_profile/main.rs) and [`rss_bench.rs`](../src/bin/rss_bench.rs)).
 
 Six driver scripts: [`library-bench.sh`](./library-bench.sh) (per-scenario RSS/duration),
 [`library-cpu.sh`](./library-cpu.sh) (samply), [`library-heap.sh`](./library-heap.sh) (dhat), [`library-fleet.sh`](./library-fleet.sh)
 (fleet-scale sweep + budget gate), [`library-instances.sh`](./library-instances.sh) (multi-process
 instance sweep), and [`rss-bench.sh`](./rss-bench.sh) (embedded-roster RSS, #5046). A seventh, [`library-pool-gate.sh`](./library-pool-gate.sh), is the runtime-pool regression gate.
 
-Benchmarks run from these scripts, not in CI. For the server-process counterpart see [`scripts/bench/`](../bench/README.md).
+Benchmarks run from these scripts, not in CI. For the server-process counterpart see [`agent-scale/`](../../agent-scale/README.md).
 
 ## Scripts
 
@@ -21,8 +21,8 @@ measures steady-state RSS/PSS of 5 fresh processes × {1, 8} agents against the
 CI job until benchmarks moved out of CI.
 
 ```bash
-./scripts/profile/rss-bench.sh                        # build + run, JSON to target/profile/rss-bench.json
-./scripts/profile/rss-bench.sh --skip-build --out /path/rss.json
+./profile/scripts/rss-bench.sh                        # build + run, JSON to target/profile/rss-bench.json
+./profile/scripts/rss-bench.sh --skip-build --out /path/rss.json
 ```
 
 ### `library-bench.sh`: RSS/duration benchmark
@@ -32,9 +32,9 @@ process, and aggregates median/min/max duration, settled RSS, retained delta,
 and peak delta into `summary.json` + `summary.md`.
 
 ```bash
-./scripts/profile/library-bench.sh                              # all 6 scenarios, default build, 5 repeats
-./scripts/profile/library-bench.sh --slim --repeat 7             # slim (no-default-features) build
-./scripts/profile/library-bench.sh --scenarios "long-agent,subagent-storm" --turns 50 --warm
+./profile/scripts/library-bench.sh                              # all 6 scenarios, default build, 5 repeats
+./profile/scripts/library-bench.sh --slim --repeat 7             # slim (no-default-features) build
+./profile/scripts/library-bench.sh --scenarios "long-agent,subagent-storm" --turns 50 --warm
 ```
 
 Results land in `target/profile/rust-library/bench-<timestamp>/` (or `--out DIR`).
@@ -45,8 +45,8 @@ Wraps `samply record` around one scenario, isolated from persistence/timezone
 noise by default (matching the documented cold-path CPU recipe).
 
 ```bash
-./scripts/profile/library-cpu.sh subagent-storm
-./scripts/profile/library-cpu.sh long-agent -- OPENHUMAN_PROFILE_TURNS=50
+./profile/scripts/library-cpu.sh subagent-storm
+./profile/scripts/library-cpu.sh long-agent -- OPENHUMAN_PROFILE_TURNS=50
 samply load target/profile/rust-library/subagent-storm-cpu.json.gz
 ```
 
@@ -57,7 +57,7 @@ timing numbers from this build are perturbed by instrumentation; use it only
 for allocation-site/retained-bytes attribution, not for RSS comparisons.
 
 ```bash
-./scripts/profile/library-heap.sh agent-turn
+./profile/scripts/library-heap.sh agent-turn
 # open https://nnethercote.github.io/dh_view/dh_view.html and load
 # target/profile/rust-library/dhat-agent-turn.json
 ```
@@ -70,8 +70,8 @@ of agent counts, aggregates medians per N, and gates on whether the
 projected footprint at the target agent count fits the RAM budget.
 
 ```bash
-./scripts/profile/library-fleet.sh --agents 100 --latency-ms 200
-./scripts/profile/library-fleet.sh --agents "50,100,500" --target 1000 --budget-mib 2048
+./profile/scripts/library-fleet.sh --agents 100 --latency-ms 200
+./profile/scripts/library-fleet.sh --agents "50,100,500" --target 1000 --budget-mib 2048
 ```
 
 Results land in `target/profile/rust-library/fleet-<timestamp>/` (or
@@ -92,8 +92,8 @@ mean and peak aggregate sum-RSS, and, on Linux, where it's meaningful ,
 summed PSS.
 
 ```bash
-./scripts/profile/library-instances.sh --instances "10,50" --hold-secs 30
-./scripts/profile/library-instances.sh --instances "100,500" --max-instances 500 --gate
+./profile/scripts/library-instances.sh --instances "10,50" --hold-secs 30
+./profile/scripts/library-instances.sh --instances "100,500" --max-instances 500 --gate
 ```
 
 Results land in `target/profile/rust-library/instances-<timestamp>/` (or
@@ -111,8 +111,8 @@ for K > 1 (nonzero exit); this script runs it and reports a pooled-vs-unpooled
 comparison. A regression that reintroduces per-run forking fails the gate.
 
 ```bash
-./scripts/profile/library-pool-gate.sh                     # K=8, max_workers=1
-./scripts/profile/library-pool-gate.sh --concurrency 16 --skip-build
+./profile/scripts/library-pool-gate.sh                     # K=8, max_workers=1
+./profile/scripts/library-pool-gate.sh --concurrency 16 --skip-build
 ```
 
 Exits 0 = pass, 1 = regression. SKIPs (exit 0) when no system `node` is on
@@ -123,13 +123,13 @@ runners don't false-fail.
 
 ```bash
 # 1. Baseline RSS/duration across all scenarios
-./scripts/profile/library-bench.sh
+./profile/scripts/library-bench.sh
 
 # 2. CPU attribution for the slowest/most interesting scenario
-./scripts/profile/library-cpu.sh subagent-storm
+./profile/scripts/library-cpu.sh subagent-storm
 
 # 3. If a scenario's RSS looks off, drill into live heap
-./scripts/profile/library-heap.sh subagent-storm
+./profile/scripts/library-heap.sh subagent-storm
 ```
 
 All scripts require `jq` for JSON parsing/aggregation; `library-cpu.sh` also
@@ -139,7 +139,7 @@ fp16 build issue.
 
 ## Further reading
 
-- [`docs/library-benchmarking.md`](../../docs/library-benchmarking.md) and [`docs/library-minimal-recipe.md`](../../docs/library-minimal-recipe.md), the methodology behind these scripts.
-- [Performance and footprint](../../gitbooks/developing/performance.md) for the published numbers and [Embedding OpenHuman](../../gitbooks/developing/embedding.md) for the library these scripts measure.
-- [`crates/openhuman-embed/`](../../crates/openhuman-embed/README.md), the facade the scenarios drive.
+- [`profile/docs/library-benchmarking.md`](../docs/library-benchmarking.md) and [`docs/library-minimal-recipe.md`](https://github.com/tinyhumansai/openhuman/blob/main/docs/library-minimal-recipe.md), the methodology behind these scripts.
+- [Performance and footprint](https://tinyhumans.gitbook.io/openhuman/developing/performance) for the published numbers and [Embedding OpenHuman](https://tinyhumans.gitbook.io/openhuman/developing/embedding) for the library these scripts measure.
+- [`crates/openhuman-embed/`](../../vendor/openhuman/crates/openhuman-embed/README.md), the facade the scenarios drive.
 - The public [openhuman-benchmarks](https://github.com/tinyhumansai/openhuman-benchmarks) repo.

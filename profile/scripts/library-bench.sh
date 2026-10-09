@@ -8,7 +8,7 @@
 # library-heap.sh (dhat).
 #
 # Usage:
-#   ./scripts/profile/library-bench.sh [options]
+#   ./profile/scripts/library-bench.sh [options]
 #
 # Options:
 #   --slim                Build with --no-default-features (slim library recipe)
@@ -21,17 +21,18 @@
 #   -h, --help             Show this help
 #
 # Examples:
-#   ./scripts/profile/library-bench.sh
-#   ./scripts/profile/library-bench.sh --slim --repeat 7
-#   ./scripts/profile/library-bench.sh --scenarios "long-agent,subagent-storm" --turns 50 --warm
+#   ./profile/scripts/library-bench.sh
+#   ./profile/scripts/library-bench.sh --slim --repeat 7
+#   ./profile/scripts/library-bench.sh --scenarios "long-agent,subagent-storm" --turns 50 --warm
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# The profile crate root (profile/), whose target/ holds the binaries.
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # The scenarios `library-profile` actually dispatches — keep in sync with
-# `crates/openhuman-cli/src/bin/library_profile/scenarios/mod.rs`, which is the source of truth.
+# `profile/src/bin/library_profile/scenarios/mod.rs`, which is the source of truth.
 #
 # This list had drifted before openhuman#6161 touched it: it named two
 # scenarios that had not existed for some time. `dispatch` answers "unknown

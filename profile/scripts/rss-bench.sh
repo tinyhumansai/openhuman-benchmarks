@@ -7,12 +7,12 @@
 # scripts, not CI. The build is a stripped release (thin LTO, one codegen
 # unit), so expect a long first compile.
 #
-# Usage: ./scripts/profile/rss-bench.sh [--out FILE] [--skip-build]
+# Usage: ./profile/scripts/rss-bench.sh [--out FILE] [--skip-build]
 #   --out FILE     raw samples as JSON (default target/profile/rss-bench.json)
 #   --skip-build   reuse target/release/rss-bench
 set -euo pipefail
 
-cd "$(dirname "$0")/../.."
+cd "$(dirname "$0")/.."
 
 out="target/profile/rss-bench.json"
 build=1

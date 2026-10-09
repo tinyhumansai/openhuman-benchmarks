@@ -27,7 +27,7 @@
  *   children      descendant count, only with --tree
  *
  * Usage:
- *   node scripts/bench/sampler.mjs --pid <pid> [--interval-ms 250] [--tree] > samples.jsonl
+ *   node agent-scale/sampler.mjs --pid <pid> [--interval-ms 250] [--tree] > samples.jsonl
  */
 
 import fs from 'node:fs';

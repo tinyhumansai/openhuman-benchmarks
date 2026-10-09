@@ -8,7 +8,7 @@
  * series whose correct verdict is known by construction — a steady leak, a
  * plateau, a flat line, thread and FD growth, and CPU drift.
  *
- * Run: node --test scripts/bench/analyze.test.mjs
+ * Run: node --test agent-scale/analyze.test.mjs
  */
 
 import { test } from 'node:test';

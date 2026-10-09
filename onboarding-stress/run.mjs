@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // ──────────────────────────────────────────────────────────────────────
-// test-onboarding-stress.mjs
+// onboarding-stress/run.mjs (was openhuman's scripts/test-onboarding-stress.mjs)
 //
 // Runs 25 diverse onboarding scenarios, judges each one, and writes
-// a full report to docs/ONBOARDING-TEST-RESULTS.md
+// a full report to onboarding-stress/ONBOARDING-TEST-RESULTS.md
 // ──────────────────────────────────────────────────────────────────────
 
 import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs';
@@ -13,7 +13,11 @@ import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
+// The OpenHuman checkout whose node_modules supply socket.io-client: the
+// vendored pin unless OPENHUMAN_DIR is set (run `pnpm install` there first).
+const ROOT = process.env.OPENHUMAN_DIR
+  ? path.resolve(process.env.OPENHUMAN_DIR)
+  : path.resolve(__dirname, '..', 'vendor', 'openhuman');
 
 const CORE_PORT = process.env.OPENHUMAN_CORE_PORT || '7788';
 const CORE_HOST = process.env.OPENHUMAN_CORE_HOST || '127.0.0.1';
@@ -484,7 +488,7 @@ async function main() {
 
   // ── Generate report ────────────────────────────────────────────
   const report = generateReport(results);
-  const outPath = path.join(ROOT, 'docs', 'ONBOARDING-TEST-RESULTS.md');
+  const outPath = path.join(__dirname, 'ONBOARDING-TEST-RESULTS.md');
   writeFileSync(outPath, report, 'utf-8');
   log(`Report written to ${outPath}`);
 

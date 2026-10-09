@@ -1,0 +1,122 @@
+# OpenHuman library profiling and micro-benchmark binaries, moved out of
+# tinyhumansai/openhuman's `crates/openhuman-cli`. They link the vendored
+# checkout at `../vendor/openhuman`; move that pin to profile another build.
+#
+# This is its own workspace. Cargo applies `[patch]` only at a workspace root,
+# so the tables below mirror openhuman's root `Cargo.toml` with the paths
+# rebased onto the vendored tree. Re-sync them when the pin moves and openhuman
+# changes its patch tables.
+[package]
+name = "openhuman-profile"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+publish = false
+build = "build.rs"
+autobins = false
+
+[workspace]
+
+# `tool_search` ranker comparison (bm25 / overlap / jev) over the real
+# orchestrator registry plus openhuman's recorded Composio catalogues. The jev
+# ranker is compiled in with the `jev` feature and runs only when a key is set.
+[[bin]]
+name = "tool-search-bench"
+path = "src/bin/tool_search_bench.rs"
+
+# Manual, network-touching A/B of the text tool-call dialects against a local
+# Ollama model. See the file's docs for the invocation.
+[[bin]]
+name = "tool-dialect-bench"
+path = "src/bin/tool_dialect_bench.rs"
+
+# Steady-state RSS of an embedded agent roster.
+[[bin]]
+name = "rss-bench"
+path = "src/bin/rss_bench.rs"
+required-features = ["rss-bench"]
+
+# Stateful library profiling workloads under a hermetic mock provider; the
+# subject of every script in `scripts/`.
+[[bin]]
+name = "library-profile"
+path = "src/bin/library_profile/main.rs"
+required-features = ["rss-bench"]
+
+[dependencies]
+openhuman-core = { path = "../vendor/openhuman/crates/openhuman-core", package = "openhuman", default-features = false }
+openhuman-tinyhumans = { path = "../vendor/openhuman/crates/openhuman-tinyhumans", default-features = false }
+anyhow = "1.0"
+async-trait = "0.1"
+dhat = { version = "0.3", optional = true }
+env_logger = "0.11"
+futures = "0.3"
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+tinyinference-llm = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-llm" }
+tinytools = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools" }
+tinytools-agent = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools-agent" }
+tinytools-jev = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools-jev", optional = true }
+tinyjevclient = { git = "https://github.com/tinyhumansai/tinyjevclient", rev = "84b3983c7e1e14f7515658ceafabb6c4e7967c94", optional = true }
+tokio = { version = "1", features = ["full"] }
+toml = "1.0"
+
+[features]
+# The same default set as openhuman-cli's, so a default build profiles the
+# contributor build; `--no-default-features --features rss-bench` is the slim one.
+default = ["openhuman-core/default", "openhuman-tinyhumans/default", "jev"]
+jev = ["openhuman-tinyhumans/jev", "dep:tinytools-jev", "dep:tinyjevclient"]
+skills = ["openhuman-core/skills"]
+flows = ["openhuman-core/flows"]
+# The deterministic mock inference provider the profiling scenarios run on.
+rss-bench = ["openhuman-core/rss-bench"]
+# dhat heap profiling for `library-profile`; perturbs RSS, so opt-in only.
+rss-bench-dhat = ["rss-bench", "dep:dhat"]
+
+[patch."https://github.com/tinyhumansai/tinytools"]
+# tinymcp's `tools` feature names tinytools by git rev so it can be built on its
+# own. Redirect it to the copy tinyagents vendors — the one the harness and
+# every host tool link — so there is exactly one `tinytools` package and one
+# `Tool` trait. Without this, MCP tools would not satisfy the harness's trait.
+tinytools = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools" }
+tinytools-agent = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinytools/crates/tinytools-agent" }
+
+[patch."https://github.com/tinyhumansai/tinystoragedrivers"]
+# tinyflows names the storage crates by git tag so it can build on its own.
+# Redirect them to the copy tinyagents vendors — the one the session store and
+# the core `storage` domain link — so there is exactly one `DocumentStore`
+# trait and one `libsqlite3-sys` (`links = "sqlite3"`) in the graph.
+tinystoragedrivers-core = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinystoragedrivers/crates/tinystoragedrivers-core" }
+tinystoragedrivers-sqlite = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinystoragedrivers/crates/tinystoragedrivers-sqlite" }
+
+[patch."https://github.com/tinyhumansai/tinyinference"]
+tinyinference-core = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-core" }
+tinyinference-embeddings = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-embeddings" }
+tinyinference-llm = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-llm" }
+tinyinference-local = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-local" }
+tinyinference-providers = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-providers" }
+tinyinference-voice = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-voice" }
+
+[patch.crates-io]
+tinyinference-core = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-core" }
+tinyinference-embeddings = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-embeddings" }
+tinyinference-llm = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-llm" }
+tinyinference-local = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-local" }
+tinyinference-providers = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-providers" }
+tinyinference-voice = { path = "../vendor/openhuman/vendor/tinyagents/vendor/tinyinference/crates/tinyinference-voice" }
+tinyflows = { path = "../vendor/openhuman/vendor/tinyflows/crates/tinyflows" }
+tinychannels = { path = "../vendor/openhuman/vendor/tinychannels" }
+
+# Same release settings as openhuman's root manifest, so the numbers profile
+# the shipped codegen.
+[profile.release]
+debug = "line-tables-only"
+split-debuginfo = "packed"
+lto = "thin"
+codegen-units = 16
+strip = "symbols"
+
+[profile.dev.package."*"]
+debug = false

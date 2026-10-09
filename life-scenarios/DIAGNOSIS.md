@@ -322,10 +322,10 @@ runs green; fixing 1 and 2 would turn most of them green.
 
 ```bash
 # the three-cause run
-node scripts/life-scenarios/run.mjs --model anthropic/claude-sonnet-5
+node life-scenarios/run.mjs --model anthropic/claude-sonnet-5
 
 # the cheapest single reproduction of Cause 1
-node scripts/life-scenarios/run.mjs --only meal-plan --model anthropic/claude-sonnet-5
+node life-scenarios/run.mjs --only meal-plan --model anthropic/claude-sonnet-5
 grep -c "policy-blocked" target/life-scenarios/<run>/core.log
 wc -c target/life-scenarios/<run>/sandbox/meal-plan/out/*
 ```

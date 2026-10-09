@@ -10,3 +10,8 @@ results-archive/
 # Compaction dataset checkpoints carry full prompts and tool outputs (built by compaction/extract.mjs).
 compaction/data/
 __pycache__/
+
+# Build output of profile/ and the bench drivers.
+target/
+profile/target/
+onboarding-stress/ONBOARDING-TEST-RESULTS.md

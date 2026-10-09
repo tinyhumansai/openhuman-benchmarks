@@ -2,7 +2,7 @@
 
 Six everyday assistant tasks, calendar triage, receipt scanning, live web
 research, planning, multi-source synthesis, and a fact-check-and-publish
-pipeline, run against the real OpenHuman core ([`crates/openhuman-core/`](../../crates/openhuman-core/README.md)) and scored on what actually
+pipeline, run against the real OpenHuman core ([`crates/openhuman-core/`](../vendor/openhuman/crates/openhuman-core/README.md)) and scored on what actually
 landed on disk.
 
 It answers one question: **how much of a realistic task does the shipping
@@ -10,20 +10,20 @@ harness finish, and what does that cost in tokens, cache, money and time?**
 
 ```bash
 # everything, on the shipping desktop path
-node scripts/life-scenarios/run.mjs
+node life-scenarios/run.mjs
 
 # one scenario, a stronger model
-node scripts/life-scenarios/run.mjs --only calendar-buffer --model anthropic/claude-sonnet-5
+node life-scenarios/run.mjs --only calendar-buffer --model anthropic/claude-sonnet-5
 
 # the comparison arm: a custom agent definition with file tools advertised
-node scripts/life-scenarios/run.mjs --driver rpc --agent life_scenarios
+node life-scenarios/run.mjs --driver rpc --agent life_scenarios
 
 # re-score an old run without spending anything
-node scripts/life-scenarios/run.mjs --grade-only target/life-scenarios/<run-id>
+node life-scenarios/run.mjs --grade-only target/life-scenarios/<run-id>
 ```
 
-The driver is [`run.mjs`](./run.mjs) and the scenarios are defined in [`scenarios.mjs`](./scenarios.mjs). Requires a built core (`cargo build --manifest-path Cargo.toml -p openhuman-cli
---bin openhuman-core`) and `OPENROUTER_API_KEY` in the environment.
+The driver is [`run.mjs`](./run.mjs) and the scenarios are defined in [`scenarios.mjs`](./scenarios.mjs). Requires a built core (`cargo build --manifest-path vendor/openhuman/Cargo.toml -p openhuman-cli
+--bin openhuman-core`, or point `OPENHUMAN_DIR` / `OPENHUMAN_CORE_BIN` elsewhere) and `OPENROUTER_API_KEY` in the environment.
 
 ## Headless, but shaped like the desktop app
 
@@ -32,7 +32,7 @@ does, with the UI removed and nothing else changed:
 
 | desktop app | here |
 | --- | --- |
-| Tauri spawns the core as a tokio task | spawn [`openhuman-core serve`](../../crates/openhuman-cli/README.md) |
+| Tauri spawns the core as a tokio task | spawn [`openhuman-core serve`](../vendor/openhuman/crates/openhuman-cli/README.md) |
 | composer calls `openhuman.channel_web_chat` | same RPC, same params |
 | reply streams over Socket.IO | same events over `GET /events` |
 | orchestrator agent, every tool pack withheld | same, no custom definition |
@@ -93,7 +93,7 @@ Wiring it up needs three things together, and two of them are easy to miss:
    `(Some, Some)`, setting only one silently falls through to the production
    Composio URLs.
 3. A **debug** build. The env override in
-   [`integrations/composio/client/factory.rs`](../../crates/openhuman-core/src/integrations/composio/client/factory.rs) is `#[cfg(debug_assertions)]`-gated.
+   [`integrations/composio/client/factory.rs`](../vendor/openhuman/crates/openhuman-core/src/integrations/composio/client/factory.rs) is `#[cfg(debug_assertions)]`-gated.
 
 ### Mock search
 
@@ -127,7 +127,7 @@ empty one, because it spends fetches on it.
 Three things were easy to get wrong, and all three cost a run:
 
 1. **It has to take over the whole backend base.** `api_url` is the single base
-   every backend caller resolves through ([`openhuman_tinyhumans::backend::url::effective_backend_api_url`](../../crates/openhuman-tinyhumans/src/backend/url.rs)).
+   every backend caller resolves through ([`openhuman_tinyhumans::backend::url::effective_backend_api_url`](../vendor/openhuman/crates/openhuman-tinyhumans/src/backend/url.rs)).
    Loopback on an ephemeral port is what makes that work:
    `looks_like_local_ai_endpoint` treats loopback as an inference signal only
    when paired with an LLM-ish port or path, so a bare `http://127.0.0.1:<random>`
@@ -139,7 +139,7 @@ Three things were easy to get wrong, and all three cost a run:
    actually holds is `BACKEND_URL`, which `api_base_from_env` reads whichever
    config wins.
 3. **Every response needs the `{ success, data }` envelope.**
-   [`integrations/client/errors.rs::parse_envelope`](../../crates/openhuman-core/src/integrations/client/errors.rs) unwraps it. A bare payload
+   [`integrations/client/errors.rs::parse_envelope`](../vendor/openhuman/crates/openhuman-core/src/integrations/client/errors.rs) unwraps it. A bare payload
    fails as `missing field 'success'`, and fails late enough to read as a
    broken tool rather than an empty result, so the agent abandons the task. It
    did exactly that, six times in a row.
@@ -151,7 +151,7 @@ untouched: it is redirected separately over `OPENHUMAN_COMPOSIO_DIRECT_BASE_V*`.
 
 `--no-mock-search` opts out and dials the hosted backend.
 
-Self-test: [`scripts/__tests__/life-scenarios-mock-search.test.mjs`](../__tests__/life-scenarios-mock-search.test.mjs).
+Self-test: [`mock-search.test.mjs`](mock-search.test.mjs).
 
 ## Approvals are answered, not switched off
 
@@ -222,7 +222,6 @@ target/life-scenarios/<run-id>/
 
 ## See also
 
-- [`scripts/memory-scenarios/`](../memory-scenarios/README.md), the sibling harness for memory flows.
-- [Agent harness](../../gitbooks/developing/architecture/agent-harness.md) and [Approval gate](../../gitbooks/features/approval-gate.md), the product behavior being measured.
-- [Native tools](../../gitbooks/features/native-tools/README.md) and [Third-party integrations](../../gitbooks/features/integrations/README.md).
-- [`scripts/README.md`](../README.md).
+- [`scripts/memory-scenarios/`](https://github.com/tinyhumansai/openhuman/blob/main/scripts/memory-scenarios/README.md) in openhuman, the sibling harness for memory flows.
+- [Agent harness](https://tinyhumans.gitbook.io/openhuman/developing/architecture/agent-harness) and [Approval gate](https://tinyhumans.gitbook.io/openhuman/features/approval-gate), the product behavior being measured.
+- [Native tools](https://tinyhumans.gitbook.io/openhuman/features/native-tools/) and [Third-party integrations](https://tinyhumans.gitbook.io/openhuman/features/integrations/).

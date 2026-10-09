@@ -68,6 +68,19 @@ report.mjs             merges everything into results/<run>/summary.{json,md}
 harnesses.lock         pinned harness versions
 ```
 
+## OpenHuman-only benchmarks and stress tests
+
+Moved here from `tinyhumansai/openhuman` with their history. Each builds or runs the
+OpenHuman checkout at `vendor/openhuman` (set `OPENHUMAN_DIR` to use another one), and
+none of them runs in CI.
+
+| Path | What it measures |
+|---|---|
+| [`profile/`](profile/scripts/README.md) | The core as an embedded library: the `library-profile`, `rss-bench`, `tool-search-bench` and `tool-dialect-bench` binaries (its own Cargo workspace over the vendored crates) and the `scripts/` that drive them. Method in [`profile/docs/library-benchmarking.md`](profile/docs/library-benchmarking.md). |
+| [`agent-scale/`](agent-scale/README.md) | A real `openhuman-core` server process at concurrency against a mock LLM: RSS, CPU and leak verdicts. |
+| [`life-scenarios/`](life-scenarios/README.md) | Six everyday assistant tasks run through the desktop composer path and graded on what lands on disk. |
+| [`onboarding-stress/`](onboarding-stress/run.mjs) | 25 onboarding conversations against a running core, each judged, with a Markdown report. |
+
 ## Run it
 
 ```bash

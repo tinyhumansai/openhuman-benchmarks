@@ -3,7 +3,7 @@
 # Agent-scale benchmark: drive a real openhuman-core process at concurrency
 # against a mocked LLM, sample its CPU/RSS, and report a leak verdict.
 #
-# This is the OUT-OF-PROCESS tier. It complements scripts/profile/, which
+# This is the OUT-OF-PROCESS tier. It complements profile/scripts/, which
 # embeds the core as a library and measures the current process. Here the core
 # is a normally-built server binary reached over /rpc, so the numbers include
 # the transport, serde and scheduler costs a library benchmark cannot see, and
@@ -20,7 +20,7 @@
 #     The driver seeds it before the load starts.
 #
 # Usage:
-#   scripts/bench/run-agent-scale.sh [options]
+#   agent-scale/run-agent-scale.sh [options]
 #
 #   --concurrency N     parallel in-flight turns (default 8)
 #   --turns N           total turns in the measured window (default 300)
@@ -45,8 +45,10 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
+# The OpenHuman checkout under test: the vendored pin unless OPENHUMAN_DIR is set.
+OPENHUMAN_DIR="${OPENHUMAN_DIR:-$REPO_ROOT/vendor/openhuman}"
 
 CONCURRENCY=8
 TURNS=300
@@ -108,12 +110,12 @@ MOCK_PORT="${BENCH_MOCK_PORT:-18700}"
 CORE_PORT="${BENCH_CORE_PORT:-17788}"
 CORE_TOKEN="bench-$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 
-CORE_BIN="$REPO_ROOT/target/release/openhuman-core"
+CORE_BIN="$OPENHUMAN_DIR/target/release/openhuman-core"
 if [[ ! -x "$CORE_BIN" ]]; then
   echo "error: $CORE_BIN not found." >&2
   echo "Build it first:" >&2
-  echo "  cargo build --release --bin openhuman-core \\" >&2
-  echo "    --no-default-features --features \"\$(bash scripts/ci/product-features.sh)\"" >&2
+  echo "  (cd $OPENHUMAN_DIR && cargo build --release --bin openhuman-core \\" >&2
+  echo "    --no-default-features --features \"\$(bash scripts/ci/product-features.sh)\")" >&2
   exit 1
 fi
 
@@ -291,7 +293,7 @@ echo "==> workspace: $WORKSPACE"
 
 # ---------------------------------------------------------------- mock LLM
 echo "==> starting mock LLM on :$MOCK_PORT"
-node "$REPO_ROOT/scripts/bench/mock-llm.mjs" \
+node "$REPO_ROOT/agent-scale/mock-llm.mjs" \
   --port "$MOCK_PORT" \
   --latency-ms "$LATENCY_MS" \
   --jitter-ms "$JITTER_MS" \
@@ -356,7 +358,7 @@ echo "==> core pid $CORE_PID healthy"
 # The sampler starts before the driver so the series covers warm-up too; the
 # analyzer drops that head via --warmup-frac.
 echo "==> sampling every ${INTERVAL_MS}ms"
-node "$REPO_ROOT/scripts/bench/sampler.mjs" \
+node "$REPO_ROOT/agent-scale/sampler.mjs" \
   --pid "$CORE_PID" --interval-ms "$INTERVAL_MS" $TREE \
   >"$OUT_DIR/samples.jsonl" 2>"$OUT_DIR/sampler.log" &
 SAMPLER_PID=$!
@@ -384,7 +386,7 @@ WORKSPACE_MIB_BEFORE="$(du -sm "$WORKSPACE" 2>/dev/null | awk '{print $1}')"
 
 echo "==> running load"
 DRIVER_STATUS=0
-node "$REPO_ROOT/scripts/bench/driver.mjs" "${DRIVER_ARGS[@]}" \
+node "$REPO_ROOT/agent-scale/driver.mjs" "${DRIVER_ARGS[@]}" \
   >"$OUT_DIR/driver.stdout" 2>"$OUT_DIR/driver.log" || DRIVER_STATUS=$?
 
 WORKSPACE_MIB_AFTER="$(du -sm "$WORKSPACE" 2>/dev/null | awk '{print $1}')"
@@ -476,7 +478,7 @@ if (turns > 0 && stats.completions < turns) {
 # ---------------------------------------------------------------- analyze
 echo "==> analyzing"
 ANALYZE_STATUS=0
-node "$REPO_ROOT/scripts/bench/analyze.mjs" \
+node "$REPO_ROOT/agent-scale/analyze.mjs" \
   --samples "$OUT_DIR/samples.jsonl" \
   --driver "$OUT_DIR/driver.json" \
   --turns "$OUT_DIR/turns.jsonl" \

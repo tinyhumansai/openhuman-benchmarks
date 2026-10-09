@@ -6,7 +6,7 @@
 # (dhat).
 #
 # Usage:
-#   ./scripts/profile/library-fleet.sh [options]
+#   ./profile/scripts/library-fleet.sh [options]
 #
 # Options:
 #   --agents "50,100,500"  Comma-separated agent-count sweep (default: "50,100,500")
@@ -24,14 +24,15 @@
 #   -h, --help             Show this help
 #
 # Examples:
-#   ./scripts/profile/library-fleet.sh
-#   ./scripts/profile/library-fleet.sh --agents 100 --latency-ms 200
-#   ./scripts/profile/library-fleet.sh --agents "100,1000" --target 1000 --budget-mib 2048
+#   ./profile/scripts/library-fleet.sh
+#   ./profile/scripts/library-fleet.sh --agents 100 --latency-ms 200
+#   ./profile/scripts/library-fleet.sh --agents "100,1000" --target 1000 --budget-mib 2048
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# The profile crate root (profile/), whose target/ holds the binaries.
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 AGENTS="50,100,500"
 TURNS=3

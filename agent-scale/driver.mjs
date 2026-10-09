@@ -22,7 +22,7 @@
  *               same caveat about expected growth applies.
  *
  * Usage:
- *   node scripts/bench/driver.mjs --core-url http://127.0.0.1:17788 \
+ *   node agent-scale/driver.mjs --core-url http://127.0.0.1:17788 \
  *     --concurrency 8 --turns 400 --out summary.json --turns-out turns.jsonl
  */
 

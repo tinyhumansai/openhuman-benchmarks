@@ -12,7 +12,7 @@ startup cost, steady-state footprint, and growth curve.
 
 This document describes the benchmark environment built to measure that: a
 pinned `library-profile` binary with seven scenarios, the driver scripts
-under `scripts/profile/`, and the comparison point the team cares about
+under `profile/scripts/`, and the comparison point the team cares about
 (ZeroClaw). It builds on an earlier manual investigation into deep memory/CPU
 attribution (removed from the tree; see git history at `0017c58d86~1` for the
 original write-up). This document is about running repeatable benchmarks, not
@@ -21,7 +21,7 @@ re-deriving those findings.
 ## The scenarios
 
 The binary dispatches six scenarios: `agent-turn`, `long-agent`, `workflow`,
-`fleet`, `skill-run` and `subagent-storm` (`crates/openhuman-cli/src/bin/library_profile/main.rs`).
+`fleet`, `skill-run` and `subagent-storm` (`profile/src/bin/library_profile/main.rs`).
 The default `library-bench.sh` sweep runs them. `memory-ingest` and `cold-phases` remain documented workload
 designs, but are excluded because the binary no longer links the in-process
 memory engine they measured (superseded by Memory v2, whose engine is remote). All runnable scenarios run in
@@ -41,23 +41,23 @@ stderr). Each models a distinct embedding use case:
 
 ## How to run
 
-Seven scripts under `scripts/profile/` (each has `-h`/`--help`):
+Seven scripts under `profile/scripts/` (each has `-h`/`--help`):
 
 - **`library-bench.sh`** — the primary RSS/duration benchmark. Builds the
   binaries, runs each scenario N fresh-process repeats (default 5), and
   aggregates median/min/max into `summary.json` + `summary.md`.
 
   ```bash
-  ./scripts/profile/library-bench.sh                     # default build, all scenarios
-  ./scripts/profile/library-bench.sh --slim               # --no-default-features recipe
-  ./scripts/profile/library-bench.sh --scenarios "long-agent,subagents" --turns 50 --warm
+  ./profile/scripts/library-bench.sh                     # default build, all scenarios
+  ./profile/scripts/library-bench.sh --slim               # --no-default-features recipe
+  ./profile/scripts/library-bench.sh --scenarios "long-agent,subagents" --turns 50 --warm
   ```
 
 - **`library-cpu.sh`** — a `samply` wrapper for one scenario's CPU profile,
   isolated from persistence/timezone noise by default.
 
   ```bash
-  ./scripts/profile/library-cpu.sh subagents
+  ./profile/scripts/library-cpu.sh subagents
   samply load target/profile/rust-library/subagents-cpu.json.gz
   ```
 
@@ -67,7 +67,7 @@ Seven scripts under `scripts/profile/` (each has `-h`/`--help`):
   `library-bench.sh` output.
 
   ```bash
-  ./scripts/profile/library-heap.sh agent-turn
+  ./profile/scripts/library-heap.sh agent-turn
   # load target/profile/rust-library/dhat-agent-turn.json at
   # https://nnethercote.github.io/dh_view/dh_view.html
   ```
@@ -77,8 +77,8 @@ Seven scripts under `scripts/profile/` (each has `-h`/`--help`):
   below).
 
   ```bash
-  ./scripts/profile/library-fleet.sh --agents 100 --latency-ms 200
-  ./scripts/profile/library-fleet.sh --agents "50,100,500" --target 1000 --budget-mib 2048
+  ./profile/scripts/library-fleet.sh --agents 100 --latency-ms 200
+  ./profile/scripts/library-fleet.sh --agents "50,100,500" --target 1000 --budget-mib 2048
   ```
 
 - **`library-instances.sh`** — sweeps N independent *processes* (not agents
@@ -88,7 +88,7 @@ Seven scripts under `scripts/profile/` (each has `-h`/`--help`):
   [below](#fleet-one-process-vs-instances-many-processes)).
 
   ```bash
-  ./scripts/profile/library-instances.sh --instances "10,25,50" --hold-secs 30
+  ./profile/scripts/library-instances.sh --instances "10,25,50" --hold-secs 30
   ```
 
 - **`library-pool-gate.sh`** — the runtime-pool regression gate (#5106). Runs
@@ -96,7 +96,7 @@ Seven scripts under `scripts/profile/` (each has `-h`/`--help`):
   ~one pooled worker, not K interpreters; reports pooled vs unpooled.
 
   ```bash
-  ./scripts/profile/library-pool-gate.sh --concurrency 8 --workers 1
+  ./profile/scripts/library-pool-gate.sh --concurrency 8 --workers 1
   ```
 
 ### Default vs slim builds
@@ -106,8 +106,7 @@ The Product/desktop feature set links every compile-time domain gate (`voice`, `
 recipe. The slim recipe drops everything not required by the harness:
 
 ```bash
-cargo build --release \
-  -p openhuman \
+cargo build --release --manifest-path profile/Cargo.toml \
   --no-default-features --features rss-bench \
   --bin library-profile --bin rss-bench
 ```
@@ -158,7 +157,7 @@ headline numbers, `library-cpu.sh` when CPU attribution is the question, and
 ZeroClaw self-reports idling under 5 MiB RAM; the "7.8-12 MiB under load"
 figure sometimes quoted alongside it has no locatable primary source, and even
 the idle figure is vendor marketing with no third-party verification (see
-[`docs/harness-comparison-2026-07-22.md`](harness-comparison-2026-07-22.md)).
+[`profile/docs/harness-comparison-2026-07-22.md`](harness-comparison-2026-07-22.md)).
 OpenHuman's Rust core currently settles around 35-50 MiB depending on
 scenario and feature set (see the baseline table below).
 
@@ -242,7 +241,7 @@ sum-RSS, and summed PSS when available, plus a labeled 2 GB-box
 extrapolation estimate:
 
 ```bash
-./scripts/profile/library-instances.sh --instances "10,25,50" --hold-secs 30
+./profile/scripts/library-instances.sh --instances "10,25,50" --hold-secs 30
 ```
 
 **This is still a macOS proxy, not container validation.** True validation
@@ -377,5 +376,5 @@ attribution + cap before real 1000-agent runs), and p95 latency at N=500 on
 ## See also
 
 - The original profiling session write-up (deep attribution, cold-path CPU, library-design implications, recommended optimization order) was removed from the tree; see git history at `0017c58d86~1`.
-- [`scripts/profile/README.md`](../scripts/profile/README.md) — script quick reference.
-- `crates/openhuman-cli/src/bin/library_profile/main.rs` — the scenario implementations.
+- [`profile/scripts/README.md`](../scripts/README.md) — script quick reference.
+- `profile/src/bin/library_profile/main.rs` — the scenario implementations.

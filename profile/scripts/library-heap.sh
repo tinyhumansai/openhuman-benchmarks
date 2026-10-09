@@ -12,7 +12,7 @@
 # is to rerun library-bench.sh without --skip-build afterwards.
 #
 # Usage:
-#   ./scripts/profile/library-heap.sh <scenario> [-- <extra env VAR=value>...]
+#   ./profile/scripts/library-heap.sh <scenario> [-- <extra env VAR=value>...]
 #
 # Options:
 #   --skip-build    Reuse the existing target/release/library-profile binary
@@ -24,7 +24,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# The profile crate root (profile/), whose target/ holds the binaries.
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SKIP_BUILD=0
 SCENARIO=""

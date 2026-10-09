@@ -3,8 +3,8 @@
 # scenario, following the cold-path CPU profiling recipe.
 #
 # Usage:
-#   ./scripts/profile/library-cpu.sh <scenario> [-- <extra env VAR=value>...]
-#   ./scripts/profile/library-cpu.sh --no-isolate <scenario>
+#   ./profile/scripts/library-cpu.sh <scenario> [-- <extra env VAR=value>...]
+#   ./profile/scripts/library-cpu.sh --no-isolate <scenario>
 #
 # Options:
 #   --no-isolate    Do not force OPENHUMAN_PROFILE_DISABLE_MEMORY_WRITES=1 /
@@ -14,7 +14,7 @@
 #   -h, --help      Show this help
 #
 # Extra environment variables can be passed after `--`, e.g.:
-#   ./scripts/profile/library-cpu.sh long-agent -- OPENHUMAN_PROFILE_TURNS=50
+#   ./profile/scripts/library-cpu.sh long-agent -- OPENHUMAN_PROFILE_TURNS=50
 #
 # Output: target/profile/rust-library/<scenario>-cpu.json.gz
 # View it with: samply load target/profile/rust-library/<scenario>-cpu.json.gz
@@ -22,7 +22,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# The profile crate root (profile/), whose target/ holds the binaries.
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 ISOLATE=1
 SKIP_BUILD=0
